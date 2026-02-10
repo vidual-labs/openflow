@@ -12,6 +12,10 @@ const FIELD_TYPES = {
   rating: RatingInput,
   number: NumberInput,
   date: DateInput,
+  website: WebsiteInput,
+  contact: ContactInput,
+  consent: ConsentInput,
+  'image-select': ImageSelectInput,
 };
 
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
@@ -56,6 +60,21 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     if (step.type === 'email' && answers[step.id] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers[step.id])) {
       setError('Please enter a valid email address.');
       return;
+    }
+    if (step.type === 'website' && answers[step.id] && !/^https?:\/\/.+\..+/.test(answers[step.id])) {
+      setError('Please enter a valid URL (starting with http:// or https://).');
+      return;
+    }
+    if (step.type === 'consent' && step.required && !answers[step.id]) {
+      setError('You must agree to continue.');
+      return;
+    }
+    if (step.type === 'contact' && step.required) {
+      const c = answers[step.id] || {};
+      if (!c.name || !c.email) {
+        setError('Please fill in at least name and email.');
+        return;
+      }
     }
     if (currentStep < steps.length - 1) {
       setDirection('forward');
@@ -110,9 +129,9 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   }, [currentStep]);
 
-  // Auto-advance for yes-no and select with single choice
+  // Auto-advance for yes-no, consent, and image-select
   useEffect(() => {
-    if (step && (step.type === 'yes-no') && answers[step.id] !== undefined) {
+    if (step && (step.type === 'yes-no' || step.type === 'image-select') && answers[step.id] !== undefined) {
       const timer = setTimeout(() => next(), 400);
       return () => clearTimeout(timer);
     }
@@ -342,6 +361,73 @@ function RatingInput({ step, value, onChange }) {
           {value >= n ? '★' : '☆'}
         </button>
       ))}
+    </div>
+  );
+}
+
+function WebsiteInput({ step, value, onChange }) {
+  return (
+    <input
+      className="form-input"
+      type="url"
+      placeholder={step.placeholder || 'https://example.com'}
+      value={value || ''}
+      onChange={e => onChange(e.target.value)}
+      autoFocus
+    />
+  );
+}
+
+function ContactInput({ step, value, onChange }) {
+  const data = value || {};
+  function update(field, val) {
+    onChange({ ...data, [field]: val });
+  }
+  return (
+    <div className="form-contact">
+      <input className="form-input" type="text" placeholder="Full name *" value={data.name || ''} onChange={e => update('name', e.target.value)} autoFocus />
+      <input className="form-input" type="email" placeholder="Email address *" value={data.email || ''} onChange={e => update('email', e.target.value)} />
+      <input className="form-input" type="tel" placeholder="Phone (optional)" value={data.phone || ''} onChange={e => update('phone', e.target.value)} />
+      <input className="form-input" type="text" placeholder="Company (optional)" value={data.company || ''} onChange={e => update('company', e.target.value)} />
+    </div>
+  );
+}
+
+function ConsentInput({ step, value, onChange }) {
+  return (
+    <label className="form-consent">
+      <input type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} />
+      <span className="consent-text">{step.consentText || 'I agree to the privacy policy and terms of service.'}</span>
+    </label>
+  );
+}
+
+function ImageSelectInput({ step, value, onChange }) {
+  const options = step.options || [];
+  return (
+    <div className="form-image-grid">
+      {options.map((opt, i) => {
+        const optValue = typeof opt === 'string' ? opt : opt.value;
+        const optLabel = typeof opt === 'string' ? opt : opt.label;
+        const optIcon = typeof opt === 'object' ? opt.icon : null;
+        const optImage = typeof opt === 'object' ? opt.image : null;
+        return (
+          <button
+            key={i}
+            className={`form-image-option ${value === optValue ? 'selected' : ''}`}
+            onClick={() => onChange(optValue)}
+          >
+            {optImage ? (
+              <img src={optImage} alt={optLabel} className="image-option-img" />
+            ) : optIcon ? (
+              <span className="image-option-icon">{optIcon}</span>
+            ) : (
+              <span className="image-option-icon">{String.fromCharCode(65 + i)}</span>
+            )}
+            <span className="image-option-label">{optLabel}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

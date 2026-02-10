@@ -13,6 +13,10 @@ const FIELD_TYPES = [
   { value: 'multi-select', label: 'Multi Select' },
   { value: 'yes-no', label: 'Yes / No' },
   { value: 'rating', label: 'Rating' },
+  { value: 'website', label: 'Website URL' },
+  { value: 'contact', label: 'Contact Details' },
+  { value: 'consent', label: 'Consent / GDPR' },
+  { value: 'image-select', label: 'Image / Icon Select' },
 ];
 
 export default function FormEditor() {
@@ -177,6 +181,37 @@ export default function FormEditor() {
                 </div>
               )}
 
+              {step.type === 'image-select' && (
+                <div className="input-group">
+                  <label>Image/Icon Options (JSON)</label>
+                  <textarea
+                    className="input"
+                    rows={6}
+                    value={JSON.stringify(step.options || [], null, 2)}
+                    onChange={e => {
+                      try { updateStep(i, { options: JSON.parse(e.target.value) }); } catch {}
+                    }}
+                    placeholder={'[\n  { "value": "opt1", "label": "Option 1", "icon": "\uD83C\uDFE0" },\n  { "value": "opt2", "label": "Option 2", "image": "https://..." }\n]'}
+                  />
+                  <p style={{ fontSize: 12, color: '#636E72', marginTop: 4 }}>
+                    Each option needs: value, label, and either icon (emoji/text) or image (URL)
+                  </p>
+                </div>
+              )}
+
+              {step.type === 'consent' && (
+                <div className="input-group">
+                  <label>Consent Text</label>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    value={step.consentText || ''}
+                    onChange={e => updateStep(i, { consentText: e.target.value })}
+                    placeholder="I agree to the privacy policy and terms of service."
+                  />
+                </div>
+              )}
+
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 14 }}>
                 <input type="checkbox" checked={step.required || false} onChange={e => updateStep(i, { required: e.target.checked })} />
                 Required
@@ -194,7 +229,7 @@ export default function FormEditor() {
       {activeTab === 'endscreen' && (
         <div className="card">
           <div className="input-group">
-            <label>Titel</label>
+            <label>Title</label>
             <input className="input" value={form.end_screen?.title || ''} onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, title: e.target.value } })} />
           </div>
           <div className="input-group">
