@@ -27,12 +27,12 @@ export default function Login({ onLogin }) {
             <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
           <div className="input-group">
-            <label>Passwort</label>
+            <label>Password</label>
             <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
           </div>
           {error && <p style={{ color: '#E17055', marginBottom: 16, fontSize: 14 }}>{error}</p>}
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-            Anmelden
+            Sign in
           </button>
         </form>
       </div>

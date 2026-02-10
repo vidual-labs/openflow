@@ -1,21 +1,21 @@
 # OpenFlow
 
-Open-Source Formular-Builder fuer Lead-Generierung. Eine selbst-gehostete Alternative zu Typeform und Heyflow.
+Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## Features
 
-- **Multi-Step Formulare** - Typeform-aehnliche Frage-fuer-Frage Darstellung mit Animationen
-- **10 Feldtypen** - Text, E-Mail, Telefon, Textfeld, Zahl, Datum, Auswahl, Mehrfachauswahl, Ja/Nein, Bewertung
-- **Visueller Editor** - Fragen sortieren, Optionen definieren, Pflichtfelder setzen
-- **Theme-Anpassung** - Farben und Branding anpassen
-- **GTM-Integration** - Google Tag Manager pro Formular konfigurierbar, Step- und Submit-Events
-- **iframe-Embed** - Formulare in bestehende Landing Pages einbetten (mit Auto-Resize)
-- **CSV-Export** - Alle Antworten als CSV herunterladen
-- **Responsive** - Optimiert fuer Mobile und Desktop
-- **Rate Limiting** - Redis-basierter Spam-Schutz
-- **Docker** - Ein Befehl zum Starten
+- **Multi-Step Forms** - Typeform-style one-question-at-a-time experience with smooth animations
+- **10 Field Types** - Text, Email, Phone, Textarea, Number, Date, Single Select, Multi Select, Yes/No, Rating
+- **Visual Editor** - Reorder questions, define options, set required fields
+- **Theme Customization** - Customize colors and branding per form
+- **GTM Integration** - Google Tag Manager configurable per form, with step and submit events
+- **iframe Embed** - Embed forms into existing landing pages (with auto-resize)
+- **CSV Export** - Download all submissions as CSV
+- **Responsive** - Optimized for mobile and desktop
+- **Rate Limiting** - Redis-based spam protection
+- **Docker** - One command to start
 
-## Schnellstart mit Docker
+## Quick Start with Docker
 
 ```bash
 git clone https://github.com/your-org/openflow.git
@@ -23,34 +23,34 @@ cd openflow
 docker compose up -d
 ```
 
-Die App laeuft auf `http://localhost:3000`.
+The app runs on `http://localhost:3000`.
 
-**Standard-Login:**
-- E-Mail: `admin@openflow.local`
-- Passwort: `admin123`
+**Default Login:**
+- Email: `admin@openflow.local`
+- Password: `admin123`
 
-## Konfiguration
+## Configuration
 
-Umgebungsvariablen (in `.env` oder docker-compose):
+Environment variables (in `.env` or docker-compose):
 
-| Variable | Standard | Beschreibung |
-|----------|----------|-------------|
+| Variable | Default | Description |
+|----------|---------|-------------|
 | `JWT_SECRET` | `change-me-in-production` | JWT Signing Key |
-| `ADMIN_EMAIL` | `admin@openflow.local` | Admin E-Mail |
-| `ADMIN_PASSWORD` | `admin123` | Admin Passwort (nur bei Erststart) |
-| `REDIS_URL` | `redis://redis:6379` | Redis Verbindung |
-| `PORT` | `3000` | Server Port |
+| `ADMIN_EMAIL` | `admin@openflow.local` | Admin email |
+| `ADMIN_PASSWORD` | `admin123` | Admin password (only on first start) |
+| `REDIS_URL` | `redis://redis:6379` | Redis connection |
+| `PORT` | `3000` | Server port |
 
-## Architektur
+## Architecture
 
 ```
 openflow/
 ├── backend/          # Express API + SQLite + Redis
 │   └── src/
-│       ├── index.js          # Server-Einstiegspunkt
+│       ├── index.js          # Server entry point
 │       ├── models/           # DB + Redis
 │       ├── middleware/        # Auth
-│       └── routes/           # API Endpunkte
+│       └── routes/           # API endpoints
 ├── frontend/         # React (Vite)
 │   └── src/
 │       ├── components/       # FormRenderer
@@ -60,24 +60,24 @@ openflow/
 └── docker-compose.yml
 ```
 
-## API Endpunkte
+## API Endpoints
 
-### Public (kein Auth)
-- `GET /api/public/form/:slug` - Formular laden
-- `POST /api/public/form/:slug/submit` - Antwort absenden
+### Public (no auth)
+- `GET /api/public/form/:slug` - Load form
+- `POST /api/public/form/:slug/submit` - Submit response
 
-### Admin (Auth erforderlich)
-- `POST /api/auth/login` - Anmelden
-- `GET /api/forms` - Alle Formulare
-- `POST /api/forms` - Formular erstellen
-- `PUT /api/forms/:id` - Formular aktualisieren
-- `DELETE /api/forms/:id` - Formular loeschen
-- `GET /api/submissions/:formId` - Antworten abrufen
-- `GET /api/submissions/:formId/export` - CSV Export
+### Admin (auth required)
+- `POST /api/auth/login` - Log in
+- `GET /api/forms` - List all forms
+- `POST /api/forms` - Create form
+- `PUT /api/forms/:id` - Update form
+- `DELETE /api/forms/:id` - Delete form
+- `GET /api/submissions/:formId` - Get submissions
+- `GET /api/submissions/:formId/export` - CSV export
 
-## Einbetten
+## Embedding
 
-### Einfacher iFrame
+### Simple iFrame
 
 ```html
 <iframe
@@ -88,7 +88,7 @@ openflow/
 </iframe>
 ```
 
-### iFrame mit Auto-Resize
+### iFrame with Auto-Resize
 
 ```html
 <iframe
@@ -109,31 +109,31 @@ window.addEventListener('message', function(e) {
 
 ## GTM Events
 
-OpenFlow pusht automatisch Events an den Google Tag Manager:
+OpenFlow automatically pushes events to the Google Tag Manager dataLayer:
 
-| Event | Trigger | Daten |
-|-------|---------|-------|
-| `openflow_step` | Jeder Schritt-Wechsel | `formId`, `stepIndex`, `stepId` |
-| `openflow_submit` | Formular abgesendet | `formId`, `formTitle` |
+| Event | Trigger | Data |
+|-------|---------|------|
+| `openflow_step` | Each step change | `formId`, `stepIndex`, `stepId` |
+| `openflow_submit` | Form submitted | `formId`, `formTitle` |
 
-## Entwicklung
+## Development
 
 ```bash
-# Backend starten
+# Start backend
 cd backend && npm install && npm run dev
 
-# Frontend starten (in neuem Terminal)
+# Start frontend (in new terminal)
 cd frontend && npm install && npm run dev
 ```
 
-Frontend-Dev-Server: `http://localhost:5173` (proxied API zu Port 3000)
+Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 
 ## Roadmap
 
-- **Phase 1** (aktuell): iframe-Embed, GTM, Admin UI, CSV Export
-- **Phase 2**: Google Sheets Integration, E-Mail-Benachrichtigungen, Webhook-Support
-- **Phase 3**: Conditional Logic, File Uploads, Custom CSS pro Formular
+- **Phase 1** (current): iframe embed, GTM, Admin UI, CSV export
+- **Phase 2**: Google Sheets integration, email notifications, webhook support
+- **Phase 3**: Conditional logic, file uploads, custom CSS per form
 
-## Lizenz
+## License
 
 MIT

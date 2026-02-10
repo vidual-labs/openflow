@@ -28,8 +28,8 @@ export default function FormView() {
     }
   }, [form?.gtm_id]);
 
-  if (error) return <div style={{ padding: 40, textAlign: 'center' }}><h2>Formular nicht gefunden</h2></div>;
-  if (!form) return <div style={{ padding: 40, textAlign: 'center' }}>Laden...</div>;
+  if (error) return <div style={{ padding: 40, textAlign: 'center' }}><h2>Form not found</h2></div>;
+  if (!form) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
 
   return <FormRenderer form={form} onSubmit={(data) => api.submitForm(slug, data)} />;
 }

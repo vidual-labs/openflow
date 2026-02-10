@@ -50,11 +50,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   function next() {
     if (!canProceed()) {
-      setError('Bitte beantworten Sie diese Frage.');
+      setError('Please answer this question.');
       return;
     }
     if (step.type === 'email' && answers[step.id] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers[step.id])) {
-      setError('Bitte geben Sie eine gueltige E-Mail-Adresse ein.');
+      setError('Please enter a valid email address.');
       return;
     }
     if (currentStep < steps.length - 1) {
@@ -124,11 +124,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       <div className="form-renderer" style={themeVars} ref={containerRef}>
         <div className="form-end-screen slide-in-forward">
           <div className="end-icon">&#10003;</div>
-          <h2>{endScreen.title || 'Danke!'}</h2>
-          <p>{endScreen.message || 'Ihre Antworten wurden erfolgreich gesendet.'}</p>
+          <h2>{endScreen.title || 'Thank you!'}</h2>
+          <p>{endScreen.message || 'Your responses have been submitted successfully.'}</p>
           {endScreen.redirectUrl && (
             <a href={endScreen.redirectUrl} className="form-btn" style={{ marginTop: 24 }}>
-              Weiter
+              Continue
             </a>
           )}
         </div>
@@ -137,7 +137,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   }
 
   if (!step) {
-    return <div className="form-renderer" style={themeVars}><p>Keine Fragen konfiguriert.</p></div>;
+    return <div className="form-renderer" style={themeVars}><p>No questions configured.</p></div>;
   }
 
   const FieldComponent = FIELD_TYPES[step.type] || TextInput;
@@ -173,7 +173,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         </button>
         <span className="form-step-count">{currentStep + 1} / {steps.length}</span>
         <button className="form-btn" onClick={next}>
-          {currentStep === steps.length - 1 ? 'Absenden' : 'Weiter'} &#8594;
+          {currentStep === steps.length - 1 ? 'Submit' : 'Next'} &#8594;
         </button>
       </div>
     </div>
@@ -187,7 +187,7 @@ function TextInput({ step, value, onChange }) {
     <input
       className="form-input"
       type="text"
-      placeholder={step.placeholder || 'Ihre Antwort...'}
+      placeholder={step.placeholder || 'Type your answer...'}
       value={value || ''}
       onChange={e => onChange(e.target.value)}
       autoFocus
@@ -213,7 +213,7 @@ function PhoneInput({ step, value, onChange }) {
     <input
       className="form-input"
       type="tel"
-      placeholder={step.placeholder || '+49 123 456789'}
+      placeholder={step.placeholder || '+1 234 567890'}
       value={value || ''}
       onChange={e => onChange(e.target.value)}
       autoFocus
@@ -225,7 +225,7 @@ function TextareaInput({ step, value, onChange }) {
   return (
     <textarea
       className="form-input form-textarea"
-      placeholder={step.placeholder || 'Ihre Antwort...'}
+      placeholder={step.placeholder || 'Type your answer...'}
       value={value || ''}
       onChange={e => onChange(e.target.value)}
       rows={4}
@@ -311,7 +311,7 @@ function MultiSelectInput({ step, value, onChange }) {
           </button>
         );
       })}
-      <p className="option-hint">Mehrfachauswahl moeglich</p>
+      <p className="option-hint">Multiple selections allowed</p>
     </div>
   );
 }
@@ -320,10 +320,10 @@ function YesNoInput({ step, value, onChange }) {
   return (
     <div className="form-options form-yesno">
       <button className={`form-option ${value === 'yes' ? 'selected' : ''}`} onClick={() => onChange('yes')}>
-        <span className="option-key">J</span> Ja
+        <span className="option-key">Y</span> Yes
       </button>
       <button className={`form-option ${value === 'no' ? 'selected' : ''}`} onClick={() => onChange('no')}>
-        <span className="option-key">N</span> Nein
+        <span className="option-key">N</span> No
       </button>
     </div>
   );

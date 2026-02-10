@@ -20,7 +20,7 @@ export default function Submissions() {
     });
   }, [id, page]);
 
-  if (!form) return <div>Laden...</div>;
+  if (!form) return <div>Loading...</div>;
 
   const steps = form.steps || [];
   const totalPages = Math.ceil(total / 20);
@@ -29,19 +29,19 @@ export default function Submissions() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <Link to={`/forms/${id}`} style={{ color: '#636E72', textDecoration: 'none', fontSize: 13 }}>&larr; Zurueck zum Formular</Link>
-          <h2 style={{ marginTop: 8 }}>Antworten: {form.title}</h2>
-          <p style={{ color: '#636E72', fontSize: 14 }}>{total} Eintraege</p>
+          <Link to={`/forms/${id}`} style={{ color: '#636E72', textDecoration: 'none', fontSize: 13 }}>&larr; Back to form</Link>
+          <h2 style={{ marginTop: 8 }}>Responses: {form.title}</h2>
+          <p style={{ color: '#636E72', fontSize: 14 }}>{total} entries</p>
         </div>
         <a href={api.exportSubmissions(id)} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
-          CSV exportieren
+          Export CSV
         </a>
       </div>
 
       {submissions.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: 60 }}>
-          <h3>Noch keine Antworten</h3>
-          <p style={{ color: '#636E72' }}>Veroeffentlichen und teilen Sie Ihr Formular, um Antworten zu erhalten.</p>
+          <h3>No responses yet</h3>
+          <p style={{ color: '#636E72' }}>Publish and share your form to start collecting responses.</p>
         </div>
       ) : (
         <>
@@ -51,7 +51,7 @@ export default function Submissions() {
                 <tr>
                   <th>#</th>
                   {steps.map(s => <th key={s.id}>{s.label || s.question}</th>)}
-                  <th>Datum</th>
+                  <th>Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -64,7 +64,7 @@ export default function Submissions() {
                       </td>
                     ))}
                     <td style={{ fontSize: 13, color: '#636E72', whiteSpace: 'nowrap' }}>
-                      {new Date(sub.created_at).toLocaleString('de')}
+                      {new Date(sub.created_at).toLocaleString('en')}
                     </td>
                   </tr>
                 ))}
@@ -74,9 +74,9 @@ export default function Submissions() {
 
           {totalPages > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 24 }}>
-              <button className="btn btn-sm btn-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>Zurueck</button>
-              <span style={{ padding: '6px 12px', fontSize: 14 }}>Seite {page} von {totalPages}</span>
-              <button className="btn btn-sm btn-secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Weiter</button>
+              <button className="btn btn-sm btn-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
+              <span style={{ padding: '6px 12px', fontSize: 14 }}>Page {page} of {totalPages}</span>
+              <button className="btn btn-sm btn-secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
             </div>
           )}
         </>

@@ -4,15 +4,15 @@ import { api } from '../api';
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Text' },
-  { value: 'email', label: 'E-Mail' },
-  { value: 'phone', label: 'Telefon' },
-  { value: 'textarea', label: 'Textfeld' },
-  { value: 'number', label: 'Zahl' },
-  { value: 'date', label: 'Datum' },
-  { value: 'select', label: 'Auswahl (einzeln)' },
-  { value: 'multi-select', label: 'Auswahl (mehrfach)' },
-  { value: 'yes-no', label: 'Ja / Nein' },
-  { value: 'rating', label: 'Bewertung' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'textarea', label: 'Textarea' },
+  { value: 'number', label: 'Number' },
+  { value: 'date', label: 'Date' },
+  { value: 'select', label: 'Single Select' },
+  { value: 'multi-select', label: 'Multi Select' },
+  { value: 'yes-no', label: 'Yes / No' },
+  { value: 'rating', label: 'Rating' },
 ];
 
 export default function FormEditor() {
@@ -26,7 +26,7 @@ export default function FormEditor() {
     api.getForm(id).then(d => setForm(d.form));
   }, [id]);
 
-  if (!form) return <div>Laden...</div>;
+  if (!form) return <div>Loading...</div>;
 
   async function save(updates = {}) {
     setSaving(true);
@@ -78,7 +78,7 @@ export default function FormEditor() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <Link to="/" style={{ color: '#636E72', textDecoration: 'none', fontSize: 13 }}>&larr; Zurueck</Link>
+          <Link to="/" style={{ color: '#636E72', textDecoration: 'none', fontSize: 13 }}>&larr; Back</Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
             <input
               value={form.title}
@@ -86,24 +86,24 @@ export default function FormEditor() {
               style={{ fontSize: 24, fontWeight: 700, border: 'none', background: 'none', padding: 0, outline: 'none', width: 400 }}
             />
             <span className={`badge ${form.published ? 'badge-published' : 'badge-draft'}`}>
-              {form.published ? 'Live' : 'Entwurf'}
+              {form.published ? 'Live' : 'Draft'}
             </span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {saved && <span style={{ color: '#00B894', fontSize: 13 }}>Gespeichert!</span>}
+          {saved && <span style={{ color: '#00B894', fontSize: 13 }}>Saved!</span>}
           <button className="btn btn-secondary" onClick={() => save({ published: form.published ? 0 : 1 })}>
-            {form.published ? 'Deaktivieren' : 'Veroeffentlichen'}
+            {form.published ? 'Unpublish' : 'Publish'}
           </button>
           <button className="btn btn-primary" onClick={() => save()} disabled={saving}>
-            {saving ? 'Speichert...' : 'Speichern'}
+            {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '2px solid var(--border)', paddingBottom: 0 }}>
-        {[{ key: 'steps', label: 'Fragen' }, { key: 'endscreen', label: 'Endbildschirm' }, { key: 'theme', label: 'Design' }, { key: 'embed', label: 'Einbetten' }].map(tab => (
+        {[{ key: 'steps', label: 'Questions' }, { key: 'endscreen', label: 'End Screen' }, { key: 'theme', label: 'Design' }, { key: 'embed', label: 'Embed' }].map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -128,45 +128,45 @@ export default function FormEditor() {
           {form.steps.map((step, i) => (
             <div key={step.id} className="card" style={{ position: 'relative' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>Frage {i + 1}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>Question {i + 1}</span>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  <button className="btn btn-sm btn-secondary" onClick={() => moveStep(i, -1)} disabled={i === 0} title="Nach oben">&uarr;</button>
-                  <button className="btn btn-sm btn-secondary" onClick={() => moveStep(i, 1)} disabled={i === form.steps.length - 1} title="Nach unten">&darr;</button>
-                  <button className="btn btn-sm btn-danger" onClick={() => removeStep(i)}>Entfernen</button>
+                  <button className="btn btn-sm btn-secondary" onClick={() => moveStep(i, -1)} disabled={i === 0} title="Move up">&uarr;</button>
+                  <button className="btn btn-sm btn-secondary" onClick={() => moveStep(i, 1)} disabled={i === form.steps.length - 1} title="Move down">&darr;</button>
+                  <button className="btn btn-sm btn-danger" onClick={() => removeStep(i)}>Remove</button>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="input-group">
-                  <label>Frage</label>
-                  <input className="input" value={step.question} onChange={e => updateStep(i, { question: e.target.value })} placeholder="Ihre Frage..." />
+                  <label>Question</label>
+                  <input className="input" value={step.question} onChange={e => updateStep(i, { question: e.target.value })} placeholder="Your question..." />
                 </div>
                 <div className="input-group">
-                  <label>Feldtyp</label>
+                  <label>Field Type</label>
                   <select className="input" value={step.type} onChange={e => updateStep(i, { type: e.target.value })}>
                     {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
                 <div className="input-group">
                   <label>Label / ID</label>
-                  <input className="input" value={step.label || ''} onChange={e => updateStep(i, { label: e.target.value })} placeholder="z.B. Name, E-Mail..." />
+                  <input className="input" value={step.label || ''} onChange={e => updateStep(i, { label: e.target.value })} placeholder="e.g. Name, Email..." />
                 </div>
                 <div className="input-group">
-                  <label>Platzhalter</label>
-                  <input className="input" value={step.placeholder || ''} onChange={e => updateStep(i, { placeholder: e.target.value })} placeholder="Platzhaltertext..." />
+                  <label>Placeholder</label>
+                  <input className="input" value={step.placeholder || ''} onChange={e => updateStep(i, { placeholder: e.target.value })} placeholder="Placeholder text..." />
                 </div>
               </div>
 
               {step.description !== undefined && (
                 <div className="input-group">
-                  <label>Beschreibung</label>
+                  <label>Description</label>
                   <input className="input" value={step.description || ''} onChange={e => updateStep(i, { description: e.target.value })} />
                 </div>
               )}
 
               {(step.type === 'select' || step.type === 'multi-select') && (
                 <div className="input-group">
-                  <label>Optionen (eine pro Zeile)</label>
+                  <label>Options (one per line)</label>
                   <textarea
                     className="input"
                     rows={4}
@@ -179,13 +179,13 @@ export default function FormEditor() {
 
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 14 }}>
                 <input type="checkbox" checked={step.required || false} onChange={e => updateStep(i, { required: e.target.checked })} />
-                Pflichtfeld
+                Required
               </label>
             </div>
           ))}
 
           <button className="btn btn-secondary" onClick={addStep} style={{ width: '100%', justifyContent: 'center', padding: 16 }}>
-            + Frage hinzufuegen
+            + Add Question
           </button>
         </div>
       )}
@@ -198,11 +198,11 @@ export default function FormEditor() {
             <input className="input" value={form.end_screen?.title || ''} onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, title: e.target.value } })} />
           </div>
           <div className="input-group">
-            <label>Nachricht</label>
+            <label>Message</label>
             <textarea className="input" rows={3} value={form.end_screen?.message || ''} onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, message: e.target.value } })} />
           </div>
           <div className="input-group">
-            <label>Weiterleitung URL (optional)</label>
+            <label>Redirect URL (optional)</label>
             <input className="input" value={form.end_screen?.redirectUrl || ''} onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, redirectUrl: e.target.value } })} placeholder="https://..." />
           </div>
         </div>
@@ -213,21 +213,21 @@ export default function FormEditor() {
         <div className="card">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div className="input-group">
-              <label>Primaerfarbe</label>
+              <label>Primary Color</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input type="color" value={form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, primaryColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
                 <input className="input" value={form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, primaryColor: e.target.value } })} />
               </div>
             </div>
             <div className="input-group">
-              <label>Hintergrundfarbe</label>
+              <label>Background Color</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input type="color" value={form.theme?.backgroundColor || '#FFFFFF'} onChange={e => setForm({ ...form, theme: { ...form.theme, backgroundColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
                 <input className="input" value={form.theme?.backgroundColor || '#FFFFFF'} onChange={e => setForm({ ...form, theme: { ...form.theme, backgroundColor: e.target.value } })} />
               </div>
             </div>
             <div className="input-group">
-              <label>Textfarbe</label>
+              <label>Text Color</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input type="color" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
                 <input className="input" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} />
@@ -244,13 +244,13 @@ export default function FormEditor() {
       {/* Embed Tab */}
       {activeTab === 'embed' && (
         <div className="card">
-          <h3 style={{ marginBottom: 16 }}>Formular einbetten</h3>
+          <h3 style={{ marginBottom: 16 }}>Embed Form</h3>
           <p style={{ color: '#636E72', marginBottom: 24, fontSize: 14 }}>
-            Kopieren Sie den Code und fuegen Sie ihn in Ihre Landing Page ein.
+            Copy the code and paste it into your landing page.
           </p>
 
           <div className="input-group">
-            <label>Direkter Link</label>
+            <label>Direct Link</label>
             <input className="input" readOnly value={`${baseUrl}/f/${form.slug}`} onClick={e => { e.target.select(); navigator.clipboard?.writeText(e.target.value); }} />
           </div>
 
@@ -260,7 +260,7 @@ export default function FormEditor() {
           </div>
 
           <div className="input-group">
-            <label>iFrame mit Auto-Resize</label>
+            <label>iFrame with Auto-Resize</label>
             <textarea className="input" readOnly rows={8} value={`<iframe id="openflow-${form.slug}" src="${baseUrl}/embed/${form.slug}" width="100%" height="600" frameborder="0" style="border:none;border-radius:12px;"></iframe>
 <script>
 window.addEventListener('message', function(e) {
@@ -273,10 +273,10 @@ window.addEventListener('message', function(e) {
 
           {form.published ? (
             <a href={`/f/${form.slug}`} target="_blank" className="btn btn-primary" style={{ textDecoration: 'none' }}>
-              Vorschau oeffnen
+              Open Preview
             </a>
           ) : (
-            <p style={{ color: '#E67E22', fontSize: 14 }}>Veroeffentlichen Sie das Formular, um es einzubetten.</p>
+            <p style={{ color: '#E67E22', fontSize: 14 }}>Publish the form to embed it.</p>
           )}
         </div>
       )}

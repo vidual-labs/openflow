@@ -46,7 +46,7 @@ router.post('/', (req, res) => {
     title || 'Untitled Form',
     slug,
     JSON.stringify(steps || []),
-    JSON.stringify(end_screen || { title: 'Danke!', message: 'Wir melden uns bei Ihnen.' }),
+    JSON.stringify(end_screen || { title: 'Thank you!', message: 'We will get back to you shortly.' }),
     JSON.stringify(theme || {}),
     gtm_id || ''
   );

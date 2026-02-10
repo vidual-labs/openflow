@@ -16,7 +16,7 @@ export default function App() {
     api.me().then(d => setUser(d.user)).catch(() => setUser(null)).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Laden...</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
 
   if (!user) {
     return <Login onLogin={(u) => { setUser(u); navigate('/'); }} />;
@@ -32,12 +32,12 @@ export default function App() {
       <aside className="admin-sidebar">
         <h1>OpenFlow</h1>
         <nav>
-          <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Formulare</Link>
+          <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
           <span style={{ fontSize: 13, opacity: 0.5, display: 'block', padding: '0 12px', marginBottom: 8 }}>{user.email}</span>
           <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 13, padding: '8px 12px', cursor: 'pointer' }}>
-            Abmelden
+            Log out
           </button>
         </div>
       </aside>

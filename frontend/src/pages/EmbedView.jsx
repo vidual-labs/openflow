@@ -39,8 +39,8 @@ export default function EmbedView() {
     return () => observer.disconnect();
   }, []);
 
-  if (error) return <div style={{ padding: 40, textAlign: 'center' }}>Formular nicht gefunden</div>;
-  if (!form) return <div style={{ padding: 40, textAlign: 'center' }}>Laden...</div>;
+  if (error) return <div style={{ padding: 40, textAlign: 'center' }}>Form not found</div>;
+  if (!form) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
 
   return <FormRenderer form={form} onSubmit={(data) => api.submitForm(slug, data)} embedded />;
 }
