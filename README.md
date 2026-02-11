@@ -5,8 +5,10 @@ version  0.2
 
 ### 🎯 Form Builder
 - **Multi-Step Forms** — Typeform-style one-question-at-a-time experience with smooth animations
-- **14 Field Types** — Text, Email, Phone, Textarea, Number, Date, Single Select, Multi Select, Yes/No, Rating, Website URL, Contact Details, Consent/GDPR, Image/Icon Select
-- **Visual Editor** — Reorder questions, define options, set required fields
+- **14 Field Types** — Short Text, Long Text, Number, Date, Single Choice, Multiple Choice, Yes/No, Rating, Image/Icon Select, Email, Phone, Website URL, Address, Consent/GDPR
+- **Smart Defaults** — Selecting a field type auto-fills question, label, and placeholder
+- **Visual Editor** — Collapsible question cards, reorder, visual field type picker with icons
+- **Emoji/Icon Picker** — Built-in category-based emoji selector for Image/Icon Select fields
 - **Theme Customization** — Colors and branding per form
 - **GDPR-Ready** — Built-in consent checkbox field with configurable text
 
@@ -45,6 +47,23 @@ The app runs on `http://localhost:3000`.
 **🔑 Default Login:**
 - Email: `admin@openflow.local`
 - Password: `admin123`
+
+---
+
+## 🔄 Updating
+
+To update an existing Docker installation:
+
+```bash
+cd openflow
+git pull
+docker compose up -d --build
+```
+
+Your data is safe — the SQLite database is stored in a Docker volume (`db-data`) and persists across rebuilds.
+
+> 💡 To fully recreate the container (e.g. after major changes): `docker compose down && docker compose up -d --build`
+> ⚠️ To reset everything including data: `docker compose down -v && docker compose up -d --build`
 
 ---
 
@@ -89,22 +108,29 @@ openflow/
 
 ## 📋 Field Types
 
+**Question Types:**
+
 | Type | Description | Auto-advance |
 |------|-------------|:---:|
-| 📝 Text | Single-line text input | |
-| 📧 Email | Email with validation | |
-| 📞 Phone | Phone number input | |
-| 📄 Textarea | Multi-line text | |
+| 📝 Short Text | Single-line text input | |
+| 📄 Long Text | Multi-line text | |
 | 🔢 Number | Numeric input with min/max | |
 | 📅 Date | Date picker | |
-| ☑️ Single Select | Choose one option | |
-| ✅ Multi Select | Choose multiple options | |
+| ☑️ Single Choice | Choose one option | |
+| ✅ Multiple Choice | Choose multiple options | |
 | 👍 Yes / No | Binary choice | ✓ |
-| ⭐ Rating | Star rating (1-5+) | |
+| ⭐ Rating | Star rating (configurable 3-10) | |
+| 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs | ✓ |
+
+**Contact & Data Fields:**
+
+| Type | Description | Sub-fields |
+|------|-------------|------------|
+| 📧 Email Address | Email with validation | |
+| 📞 Phone Number | Phone number input | |
 | 🌐 Website URL | URL with validation | |
-| 👤 Contact Details | Name, email, phone, company composite | |
+| 🏠 Address | Composite address field | Street, Postal Code, City, Country |
 | 🔒 Consent / GDPR | Checkbox with configurable legal text | |
-| 🖼️ Image / Icon Select | Visual grid with emoji, text, or image URLs | ✓ |
 
 ---
 

@@ -13,7 +13,8 @@ const FIELD_TYPES = {
   number: NumberInput,
   date: DateInput,
   website: WebsiteInput,
-  contact: ContactInput,
+  address: AddressInput,
+  contact: AddressInput, // backward compat
   consent: ConsentInput,
   'image-select': ImageSelectInput,
 };
@@ -69,10 +70,10 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       setError('You must agree to continue.');
       return;
     }
-    if (step.type === 'contact' && step.required) {
+    if ((step.type === 'address' || step.type === 'contact') && step.required) {
       const c = answers[step.id] || {};
-      if (!c.name || !c.email) {
-        setError('Please fill in at least name and email.');
+      if (!c.street || !c.postalCode || !c.city) {
+        setError('Please fill in street, postal code, and city.');
         return;
       }
     }
@@ -129,7 +130,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   }, [currentStep]);
 
-  // Auto-advance for yes-no, consent, and image-select
+  // Auto-advance for yes-no and image-select
   useEffect(() => {
     if (step && (step.type === 'yes-no' || step.type === 'image-select') && answers[step.id] !== undefined) {
       const timer = setTimeout(() => next(), 400);
@@ -378,17 +379,21 @@ function WebsiteInput({ step, value, onChange }) {
   );
 }
 
-function ContactInput({ step, value, onChange }) {
+function AddressInput({ step, value, onChange }) {
   const data = value || {};
   function update(field, val) {
     onChange({ ...data, [field]: val });
   }
   return (
-    <div className="form-contact">
-      <input className="form-input" type="text" placeholder="Full name *" value={data.name || ''} onChange={e => update('name', e.target.value)} autoFocus />
-      <input className="form-input" type="email" placeholder="Email address *" value={data.email || ''} onChange={e => update('email', e.target.value)} />
-      <input className="form-input" type="tel" placeholder="Phone (optional)" value={data.phone || ''} onChange={e => update('phone', e.target.value)} />
-      <input className="form-input" type="text" placeholder="Company (optional)" value={data.company || ''} onChange={e => update('company', e.target.value)} />
+    <div className="form-address">
+      <input className="form-input" type="text" placeholder="Street and house number *" value={data.street || ''} onChange={e => update('street', e.target.value)} autoFocus />
+      <div className="form-address-row">
+        <input className="form-input" type="text" placeholder="Postal code *" value={data.postalCode || ''} onChange={e => update('postalCode', e.target.value)} />
+        <input className="form-input" type="text" placeholder="City *" value={data.city || ''} onChange={e => update('city', e.target.value)} />
+      </div>
+      {step.showCountry !== false && (
+        <input className="form-input" type="text" placeholder="Country (optional)" value={data.country || ''} onChange={e => update('country', e.target.value)} />
+      )}
     </div>
   );
 }

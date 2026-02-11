@@ -306,7 +306,24 @@
   max-width: 400px;
 }
 
-/* Contact fields */
+/* Address fields */
+.form-address {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-address .form-input {
+  font-size: 18px;
+}
+
+.form-address-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 12px;
+}
+
+/* Contact fields (backward compat) */
 .form-contact {
   display: flex;
   flex-direction: column;
