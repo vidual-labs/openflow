@@ -1,24 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';
 
+// Field types sorted logically: question types first, then contact/data fields
 const FIELD_TYPES = [
-  { value: 'text', label: 'Text' },
-  { value: 'email', label: 'Email' },
-  { value: 'phone', label: 'Phone' },
-  { value: 'textarea', label: 'Textarea' },
-  { value: 'number', label: 'Number' },
-  { value: 'date', label: 'Date' },
-  { value: 'select', label: 'Single Select' },
-  { value: 'multi-select', label: 'Multi Select' },
-  { value: 'yes-no', label: 'Yes / No' },
-  { value: 'rating', label: 'Rating' },
-  { value: 'website', label: 'Website URL' },
-  { value: 'contact', label: 'Contact Details' },
-  { value: 'consent', label: 'Consent / GDPR' },
-  { value: 'image-select', label: 'Image / Icon Select' },
+  // --- Question Types ---
+  { value: 'text', label: 'Short Text', icon: '📝', defaults: { question: 'What is your answer?', label: 'Answer', placeholder: 'Type your answer...' } },
+  { value: 'textarea', label: 'Long Text', icon: '📄', defaults: { question: 'Tell us more...', label: 'Details', placeholder: 'Type your answer...' } },
+  { value: 'number', label: 'Number', icon: '🔢', defaults: { question: 'Enter a number', label: 'Number', placeholder: '0' } },
+  { value: 'date', label: 'Date', icon: '📅', defaults: { question: 'Pick a date', label: 'Date', placeholder: '' } },
+  { value: 'select', label: 'Single Choice', icon: '☑️', defaults: { question: 'Choose one option', label: 'Choice', placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'] } },
+  { value: 'multi-select', label: 'Multiple Choice', icon: '✅', defaults: { question: 'Choose one or more options', label: 'Selection', placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'] } },
+  { value: 'yes-no', label: 'Yes / No', icon: '👍', defaults: { question: 'Is this correct?', label: 'Confirmation', placeholder: '' } },
+  { value: 'rating', label: 'Rating', icon: '⭐', defaults: { question: 'How would you rate this?', label: 'Rating', placeholder: '' } },
+  { value: 'image-select', label: 'Image / Icon Select', icon: '🖼️', defaults: { question: 'Choose an option', label: 'Selection', placeholder: '', options: [{ value: 'opt1', label: 'Option 1', icon: '🏠' }, { value: 'opt2', label: 'Option 2', icon: '🏢' }, { value: 'opt3', label: 'Option 3', icon: '🏗️' }] } },
+  // --- Contact & Data Fields ---
+  { value: 'email', label: 'Email Address', icon: '📧', defaults: { question: 'What is your email address?', label: 'Email', placeholder: 'name@example.com' } },
+  { value: 'phone', label: 'Phone Number', icon: '📞', defaults: { question: 'What is your phone number?', label: 'Phone', placeholder: '+1 234 567890' } },
+  { value: 'website', label: 'Website URL', icon: '🌐', defaults: { question: 'What is your website?', label: 'Website', placeholder: 'https://example.com' } },
+  { value: 'address', label: 'Address', icon: '🏠', defaults: { question: 'What is your address?', label: 'Address', placeholder: '' } },
+  { value: 'consent', label: 'Consent / GDPR', icon: '🔒', defaults: { question: 'Please confirm', label: 'Consent', placeholder: '', consentText: 'I agree to the privacy policy and terms of service.' } },
 ];
+
+const FIELD_TYPE_MAP = Object.fromEntries(FIELD_TYPES.map(f => [f.value, f]));
+
+// Common emoji categories for the icon picker
+const EMOJI_CATEGORIES = {
+  'Popular': ['👍', '👎', '❤️', '⭐', '🔥', '✅', '❌', '💡', '🎯', '🚀', '💰', '📦', '🏆', '🎉', '💎', '⚡'],
+  'Buildings': ['🏠', '🏢', '🏗️', '🏭', '🏥', '🏫', '🏛️', '⛪', '🏪', '🏨', '🏰', '🏟️'],
+  'Transport': ['🚗', '🚕', '🚌', '🏎️', '🚓', '🚲', '✈️', '🚀', '🛳️', '🚁', '🚂', '🏍️'],
+  'Nature': ['🌳', '🌺', '🌻', '🌿', '☀️', '🌙', '⭐', '🌊', '🏔️', '🌈', '🍃', '🔥'],
+  'Food': ['🍕', '🍔', '🍣', '☕', '🍷', '🎂', '🍎', '🥗', '🍜', '🧁', '🍺', '🥤'],
+  'People': ['👤', '👥', '👨‍💻', '👩‍💼', '👨‍🔧', '👩‍⚕️', '👨‍🏫', '👩‍🍳', '🤝', '👋', '💪', '🙌'],
+  'Objects': ['💻', '📱', '📧', '📞', '🔑', '🔒', '📊', '📈', '💳', '🛒', '📋', '✏️'],
+  'Symbols': ['✓', '✗', '➡️', '⬅️', '⬆️', '⬇️', '♻️', '💲', '📌', '🔗', '⚙️', '🔔'],
+};
 
 export default function FormEditor() {
   const { id } = useParams();
@@ -26,6 +43,7 @@ export default function FormEditor() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState('steps');
+  const [expandedStep, setExpandedStep] = useState(null);
 
   useEffect(() => {
     api.getForm(id).then(d => setForm(d.form));
@@ -58,15 +76,46 @@ export default function FormEditor() {
     setForm({ ...form, steps });
   }
 
+  function changeFieldType(index, newType) {
+    const fieldDef = FIELD_TYPE_MAP[newType];
+    const step = form.steps[index];
+    const defaults = fieldDef?.defaults || {};
+    const steps = [...form.steps];
+    // Keep existing id, update everything else with smart defaults
+    steps[index] = {
+      id: step.id,
+      type: newType,
+      question: defaults.question || '',
+      label: defaults.label || '',
+      placeholder: defaults.placeholder || '',
+      required: step.required || false,
+      // Type-specific defaults
+      ...(defaults.options ? { options: defaults.options } : {}),
+      ...(defaults.consentText ? { consentText: defaults.consentText } : {}),
+    };
+    setForm({ ...form, steps });
+  }
+
   function addStep() {
     const newId = `field_${Date.now()}`;
-    const steps = [...form.steps, { id: newId, type: 'text', question: '', label: '', required: false, placeholder: '' }];
+    const defaultType = FIELD_TYPES[0];
+    const steps = [...form.steps, {
+      id: newId,
+      type: defaultType.value,
+      question: defaultType.defaults.question,
+      label: defaultType.defaults.label,
+      required: false,
+      placeholder: defaultType.defaults.placeholder,
+    }];
     setForm({ ...form, steps });
+    setExpandedStep(steps.length - 1);
   }
 
   function removeStep(index) {
     const steps = form.steps.filter((_, i) => i !== index);
     setForm({ ...form, steps });
+    if (expandedStep === index) setExpandedStep(null);
+    else if (expandedStep > index) setExpandedStep(expandedStep - 1);
   }
 
   function moveStep(index, dir) {
@@ -75,6 +124,8 @@ export default function FormEditor() {
     if (target < 0 || target >= steps.length) return;
     [steps[index], steps[target]] = [steps[target], steps[index]];
     setForm({ ...form, steps });
+    if (expandedStep === index) setExpandedStep(target);
+    else if (expandedStep === target) setExpandedStep(index);
   }
 
   const baseUrl = window.location.origin;
@@ -131,93 +182,18 @@ export default function FormEditor() {
       {activeTab === 'steps' && (
         <div>
           {form.steps.map((step, i) => (
-            <div key={step.id} className="card" style={{ position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>Question {i + 1}</span>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button className="btn btn-sm btn-secondary" onClick={() => moveStep(i, -1)} disabled={i === 0} title="Move up">&uarr;</button>
-                  <button className="btn btn-sm btn-secondary" onClick={() => moveStep(i, 1)} disabled={i === form.steps.length - 1} title="Move down">&darr;</button>
-                  <button className="btn btn-sm btn-danger" onClick={() => removeStep(i)}>Remove</button>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div className="input-group">
-                  <label>Question</label>
-                  <input className="input" value={step.question} onChange={e => updateStep(i, { question: e.target.value })} placeholder="Your question..." />
-                </div>
-                <div className="input-group">
-                  <label>Field Type</label>
-                  <select className="input" value={step.type} onChange={e => updateStep(i, { type: e.target.value })}>
-                    {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label>Label / ID</label>
-                  <input className="input" value={step.label || ''} onChange={e => updateStep(i, { label: e.target.value })} placeholder="e.g. Name, Email..." />
-                </div>
-                <div className="input-group">
-                  <label>Placeholder</label>
-                  <input className="input" value={step.placeholder || ''} onChange={e => updateStep(i, { placeholder: e.target.value })} placeholder="Placeholder text..." />
-                </div>
-              </div>
-
-              {step.description !== undefined && (
-                <div className="input-group">
-                  <label>Description</label>
-                  <input className="input" value={step.description || ''} onChange={e => updateStep(i, { description: e.target.value })} />
-                </div>
-              )}
-
-              {(step.type === 'select' || step.type === 'multi-select') && (
-                <div className="input-group">
-                  <label>Options (one per line)</label>
-                  <textarea
-                    className="input"
-                    rows={4}
-                    value={(step.options || []).join('\n')}
-                    onChange={e => updateStep(i, { options: e.target.value.split('\n').filter(Boolean) })}
-                    placeholder={"Option 1\nOption 2\nOption 3"}
-                  />
-                </div>
-              )}
-
-              {step.type === 'image-select' && (
-                <div className="input-group">
-                  <label>Image/Icon Options (JSON)</label>
-                  <textarea
-                    className="input"
-                    rows={6}
-                    value={JSON.stringify(step.options || [], null, 2)}
-                    onChange={e => {
-                      try { updateStep(i, { options: JSON.parse(e.target.value) }); } catch {}
-                    }}
-                    placeholder={'[\n  { "value": "opt1", "label": "Option 1", "icon": "\uD83C\uDFE0" },\n  { "value": "opt2", "label": "Option 2", "image": "https://..." }\n]'}
-                  />
-                  <p style={{ fontSize: 12, color: '#636E72', marginTop: 4 }}>
-                    Each option needs: value, label, and either icon (emoji/text) or image (URL)
-                  </p>
-                </div>
-              )}
-
-              {step.type === 'consent' && (
-                <div className="input-group">
-                  <label>Consent Text</label>
-                  <textarea
-                    className="input"
-                    rows={3}
-                    value={step.consentText || ''}
-                    onChange={e => updateStep(i, { consentText: e.target.value })}
-                    placeholder="I agree to the privacy policy and terms of service."
-                  />
-                </div>
-              )}
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 14 }}>
-                <input type="checkbox" checked={step.required || false} onChange={e => updateStep(i, { required: e.target.checked })} />
-                Required
-              </label>
-            </div>
+            <StepEditor
+              key={step.id}
+              step={step}
+              index={i}
+              total={form.steps.length}
+              expanded={expandedStep === i}
+              onToggle={() => setExpandedStep(expandedStep === i ? null : i)}
+              onChange={(changes) => updateStep(i, changes)}
+              onChangeType={(type) => changeFieldType(i, type)}
+              onMove={(dir) => moveStep(i, dir)}
+              onRemove={() => removeStep(i)}
+            />
           ))}
 
           <button className="btn btn-secondary" onClick={addStep} style={{ width: '100%', justifyContent: 'center', padding: 16 }}>
@@ -321,6 +297,358 @@ window.addEventListener('message', function(e) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ===========================
+   StepEditor - Collapsible question card
+   =========================== */
+function StepEditor({ step, index, total, expanded, onToggle, onChange, onChangeType, onMove, onRemove }) {
+  const fieldDef = FIELD_TYPE_MAP[step.type];
+
+  return (
+    <div className="card" style={{ position: 'relative', marginBottom: 12 }}>
+      {/* Collapsed header - always visible */}
+      <div
+        onClick={onToggle}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+          padding: expanded ? '0 0 16px 0' : 0,
+          borderBottom: expanded ? '1px solid var(--border, #eee)' : 'none',
+        }}
+      >
+        <span style={{ fontSize: 20 }}>{fieldDef?.icon || '📝'}</span>
+        <div style={{ flex: 1 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {index + 1}. {fieldDef?.label || step.type}
+          </span>
+          <div style={{ fontSize: 14, color: '#636E72', marginTop: 2 }}>
+            {step.question || <em style={{ opacity: 0.5 }}>No question set</em>}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+          <button className="btn btn-sm btn-secondary" onClick={() => onMove(-1)} disabled={index === 0} title="Move up">&uarr;</button>
+          <button className="btn btn-sm btn-secondary" onClick={() => onMove(1)} disabled={index === total - 1} title="Move down">&darr;</button>
+          <button className="btn btn-sm btn-danger" onClick={onRemove}>Remove</button>
+        </div>
+        <span style={{ fontSize: 18, color: '#aaa', marginLeft: 4 }}>{expanded ? '▲' : '▼'}</span>
+      </div>
+
+      {/* Expanded content */}
+      {expanded && (
+        <div style={{ paddingTop: 16 }}>
+          {/* Field Type Selector - visual grid */}
+          <div className="input-group">
+            <label>Field Type</label>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginTop: 4,
+            }}>
+              {FIELD_TYPES.map(ft => (
+                <button
+                  key={ft.value}
+                  onClick={() => onChangeType(ft.value)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 12px',
+                    border: step.type === ft.value ? '2px solid var(--primary, #6C5CE7)' : '2px solid #e0e0e0',
+                    borderRadius: 10,
+                    background: step.type === ft.value ? 'rgba(108,92,231,0.08)' : '#fafafa',
+                    cursor: 'pointer', fontSize: 13, fontWeight: step.type === ft.value ? 700 : 500,
+                    color: step.type === ft.value ? 'var(--primary, #6C5CE7)' : '#333',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>{ft.icon}</span>
+                  {ft.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+            <div className="input-group">
+              <label>Question</label>
+              <input className="input" value={step.question || ''} onChange={e => onChange({ question: e.target.value })} placeholder="Your question..." />
+            </div>
+            <div className="input-group">
+              <label>Label / ID</label>
+              <input className="input" value={step.label || ''} onChange={e => onChange({ label: e.target.value })} placeholder="e.g. Name, Email..." />
+            </div>
+          </div>
+
+          {/* Placeholder - not for types that don't use it */}
+          {!['select', 'multi-select', 'yes-no', 'rating', 'consent', 'image-select', 'address'].includes(step.type) && (
+            <div className="input-group" style={{ marginTop: 12 }}>
+              <label>Placeholder</label>
+              <input className="input" value={step.placeholder || ''} onChange={e => onChange({ placeholder: e.target.value })} placeholder="Placeholder text..." />
+            </div>
+          )}
+
+          {/* Options for select types */}
+          {(step.type === 'select' || step.type === 'multi-select') && (
+            <div className="input-group" style={{ marginTop: 12 }}>
+              <label>Options (one per line)</label>
+              <textarea
+                className="input"
+                rows={4}
+                value={(step.options || []).join('\n')}
+                onChange={e => onChange({ options: e.target.value.split('\n').filter(Boolean) })}
+                placeholder={"Option 1\nOption 2\nOption 3"}
+              />
+            </div>
+          )}
+
+          {/* Image/Icon Select - visual editor */}
+          {step.type === 'image-select' && (
+            <ImageSelectEditor
+              options={step.options || []}
+              onChange={options => onChange({ options })}
+            />
+          )}
+
+          {/* Consent text */}
+          {step.type === 'consent' && (
+            <div className="input-group" style={{ marginTop: 12 }}>
+              <label>Consent Text</label>
+              <textarea
+                className="input"
+                rows={3}
+                value={step.consentText || ''}
+                onChange={e => onChange({ consentText: e.target.value })}
+                placeholder="I agree to the privacy policy and terms of service."
+              />
+            </div>
+          )}
+
+          {/* Address sub-fields config */}
+          {step.type === 'address' && (
+            <div style={{ marginTop: 12, padding: 16, background: '#f8f9fa', borderRadius: 10 }}>
+              <p style={{ fontSize: 13, color: '#636E72', marginBottom: 8 }}>
+                This field automatically collects: <strong>Street</strong>, <strong>Postal Code</strong>, <strong>City</strong>, and optionally <strong>Country</strong>.
+              </p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                <input type="checkbox" checked={step.showCountry !== false} onChange={e => onChange({ showCountry: e.target.checked })} />
+                Include country field
+              </label>
+            </div>
+          )}
+
+          {/* Rating max config */}
+          {step.type === 'rating' && (
+            <div className="input-group" style={{ marginTop: 12 }}>
+              <label>Max Stars</label>
+              <input className="input" type="number" min={3} max={10} value={step.max || 5} onChange={e => onChange({ max: parseInt(e.target.value) || 5 })} style={{ width: 100 }} />
+            </div>
+          )}
+
+          {/* Number min/max */}
+          {step.type === 'number' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+              <div className="input-group">
+                <label>Min</label>
+                <input className="input" type="number" value={step.min || ''} onChange={e => onChange({ min: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="No minimum" />
+              </div>
+              <div className="input-group">
+                <label>Max</label>
+                <input className="input" type="number" value={step.max || ''} onChange={e => onChange({ max: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="No maximum" />
+              </div>
+            </div>
+          )}
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 14 }}>
+            <input type="checkbox" checked={step.required || false} onChange={e => onChange({ required: e.target.checked })} />
+            Required
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===========================
+   ImageSelectEditor - Visual editor for image/icon options
+   =========================== */
+function ImageSelectEditor({ options, onChange }) {
+  const [showEmojiPicker, setShowEmojiPicker] = useState(null); // index of option being edited
+  const [activeCategory, setActiveCategory] = useState('Popular');
+
+  function addOption() {
+    onChange([...options, { value: `opt_${Date.now()}`, label: 'New Option', icon: '⭐' }]);
+  }
+
+  function updateOption(index, changes) {
+    const updated = [...options];
+    updated[index] = { ...updated[index], ...changes };
+    onChange(updated);
+  }
+
+  function removeOption(index) {
+    onChange(options.filter((_, i) => i !== index));
+    if (showEmojiPicker === index) setShowEmojiPicker(null);
+  }
+
+  function moveOption(index, dir) {
+    const updated = [...options];
+    const target = index + dir;
+    if (target < 0 || target >= updated.length) return;
+    [updated[index], updated[target]] = [updated[target], updated[index]];
+    onChange(updated);
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: 13, color: '#555' }}>
+        Options
+      </label>
+
+      {/* Option cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {options.map((opt, i) => {
+          const optObj = typeof opt === 'string' ? { value: opt, label: opt, icon: '' } : opt;
+          return (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+              background: '#f8f9fa', borderRadius: 10, border: '1px solid #e8e8e8',
+            }}>
+              {/* Icon/Emoji display + picker trigger */}
+              <button
+                onClick={() => setShowEmojiPicker(showEmojiPicker === i ? null : i)}
+                style={{
+                  width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 24, border: '2px dashed #ccc', borderRadius: 10, background: 'white', cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  ...(showEmojiPicker === i ? { borderColor: 'var(--primary, #6C5CE7)', background: 'rgba(108,92,231,0.05)' } : {}),
+                }}
+                title="Pick icon"
+              >
+                {optObj.icon || optObj.image ? (
+                  optObj.image ? <img src={optObj.image} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} /> : optObj.icon
+                ) : '➕'}
+              </button>
+
+              {/* Label + value */}
+              <div style={{ flex: 1, display: 'flex', gap: 8 }}>
+                <input
+                  className="input"
+                  value={optObj.label || ''}
+                  onChange={e => updateOption(i, { label: e.target.value })}
+                  placeholder="Label"
+                  style={{ fontSize: 14, padding: '8px 10px' }}
+                />
+                <input
+                  className="input"
+                  value={optObj.value || ''}
+                  onChange={e => updateOption(i, { value: e.target.value })}
+                  placeholder="Value"
+                  style={{ fontSize: 14, padding: '8px 10px', width: 120 }}
+                />
+              </div>
+
+              {/* Image URL input */}
+              <input
+                className="input"
+                value={optObj.image || ''}
+                onChange={e => updateOption(i, { image: e.target.value, icon: e.target.value ? '' : optObj.icon })}
+                placeholder="Image URL (optional)"
+                style={{ fontSize: 12, padding: '8px 10px', width: 160 }}
+              />
+
+              {/* Controls */}
+              <div style={{ display: 'flex', gap: 2 }}>
+                <button className="btn btn-sm btn-secondary" onClick={() => moveOption(i, -1)} disabled={i === 0} style={{ padding: '4px 6px', fontSize: 11 }}>&uarr;</button>
+                <button className="btn btn-sm btn-secondary" onClick={() => moveOption(i, 1)} disabled={i === options.length - 1} style={{ padding: '4px 6px', fontSize: 11 }}>&darr;</button>
+                <button className="btn btn-sm btn-danger" onClick={() => removeOption(i)} style={{ padding: '4px 6px', fontSize: 11 }}>x</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Emoji picker dropdown */}
+      {showEmojiPicker !== null && (
+        <EmojiPicker
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+          onSelect={(emoji) => {
+            updateOption(showEmojiPicker, { icon: emoji, image: '' });
+            setShowEmojiPicker(null);
+          }}
+          onClose={() => setShowEmojiPicker(null)}
+        />
+      )}
+
+      <button
+        className="btn btn-secondary"
+        onClick={addOption}
+        style={{ marginTop: 10, width: '100%', justifyContent: 'center', padding: 10, fontSize: 13 }}
+      >
+        + Add Option
+      </button>
+    </div>
+  );
+}
+
+/* ===========================
+   EmojiPicker - Category-based emoji selector
+   =========================== */
+function EmojiPicker({ activeCategory, onCategoryChange, onSelect, onClose }) {
+  const ref = useRef();
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) onClose();
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <div ref={ref} style={{
+      marginTop: 8, border: '1px solid #e0e0e0', borderRadius: 12, background: 'white',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflow: 'hidden', maxWidth: 420,
+    }}>
+      {/* Category tabs */}
+      <div style={{
+        display: 'flex', gap: 0, overflowX: 'auto', borderBottom: '1px solid #eee',
+        padding: '0 4px',
+      }}>
+        {Object.keys(EMOJI_CATEGORIES).map(cat => (
+          <button
+            key={cat}
+            onClick={() => onCategoryChange(cat)}
+            style={{
+              padding: '8px 12px', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              background: activeCategory === cat ? 'var(--primary, #6C5CE7)' : 'transparent',
+              color: activeCategory === cat ? 'white' : '#888',
+              borderRadius: '6px 6px 0 0', whiteSpace: 'nowrap', transition: 'all 0.15s',
+            }}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Emoji grid */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2, padding: 8, maxHeight: 180, overflowY: 'auto',
+      }}>
+        {(EMOJI_CATEGORIES[activeCategory] || []).map((emoji, i) => (
+          <button
+            key={i}
+            onClick={() => onSelect(emoji)}
+            style={{
+              width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, border: 'none', borderRadius: 8, background: 'transparent', cursor: 'pointer',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={e => e.target.style.background = '#f0f0f0'}
+            onMouseLeave={e => e.target.style.background = 'transparent'}
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
