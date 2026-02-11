@@ -1,11 +1,5 @@
 # 🌊 OpenFlow
 
-> Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
->
-> 🤖 *Vibecoded with [Claude Opus 4.6](https://anthropic.com) — from zero to full-stack in one session.*
-
----
-
 ## ✨ Features
 
 ### 🎯 Form Builder
