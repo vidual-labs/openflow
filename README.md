@@ -25,7 +25,7 @@ version  0.3
 - **WordPress Plugin** — Shortcode `[openflow]`, WPBakery element, and Gutenberg block
 
 ### 🛠️ Infrastructure
-- **🐳 Docker** — One command to start (`docker compose up -d`)
+- **🐳 Docker** — One command to start )
 - **SQLite** — Zero-config database, no external DB needed
 - **🛡️ Rate Limiting** — Built-in in-memory spam protection
 - **Responsive** — Optimized for mobile and desktop
@@ -39,8 +39,6 @@ git clone https://github.com/vidual-labs/openflow.git
 cd openflow
 docker compose up -d --build
 ```
-
-> 💡 No BuildX required — works with plain `docker compose`.
 
 The app runs on `http://localhost:3000`.
 
@@ -265,7 +263,7 @@ Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 
 ## 📄 License
 
-GNU 3.0
+GPL 3.0
 
 ---
 
