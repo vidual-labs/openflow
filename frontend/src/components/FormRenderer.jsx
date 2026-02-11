@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './FormRenderer.css';
 
 const FIELD_TYPES = {
@@ -15,13 +15,14 @@ const FIELD_TYPES = {
   website: WebsiteInput,
   address: AddressInput,
   contact: AddressInput, // backward compat
-  consent: ConsentInput,
+  consent: ConsentInput, // backward compat for old forms
   'image-select': ImageSelectInput,
 };
 
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
+  const [consentGiven, setConsentGiven] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [direction, setDirection] = useState('forward');
@@ -31,6 +32,10 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
   const step = steps[currentStep];
   const theme = form.theme || {};
+  const endScreen = form.end_screen || {};
+  const isLastStep = currentStep === steps.length - 1;
+  const consentRequired = !!endScreen.consentEnabled;
+  const consentText = endScreen.consentText || 'I agree to the privacy policy and terms of service.';
 
   const themeVars = {
     '--form-primary': theme.primaryColor || '#6C5CE7',
@@ -53,7 +58,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     return true;
   }
 
-  function next() {
+  const next = useCallback(function next() {
     if (!canProceed()) {
       setError('Please answer this question.');
       return;
@@ -77,6 +82,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         return;
       }
     }
+    // Check consent on last step
+    if (isLastStep && consentRequired && !consentGiven) {
+      setError('You must agree to the consent to submit.');
+      return;
+    }
     if (currentStep < steps.length - 1) {
       setDirection('forward');
       setCurrentStep(prev => prev + 1);
@@ -84,7 +94,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     } else {
       handleSubmit();
     }
-  }
+  });
 
   function prev() {
     if (currentStep > 0) {
@@ -95,10 +105,13 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   }
 
   async function handleSubmit() {
+    const submitData = { ...answers };
+    if (consentRequired) {
+      submitData._consent = consentGiven;
+    }
     try {
-      await onSubmit(answers);
+      await onSubmit(submitData);
       setSubmitted(true);
-      // GTM event
       if (window.dataLayer) {
         window.dataLayer.push({
           event: 'openflow_submit',
@@ -139,7 +152,6 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   }, [answers[step?.id]]);
 
   if (submitted) {
-    const endScreen = form.end_screen || {};
     return (
       <div className="form-renderer" style={themeVars} ref={containerRef}>
         <div className="form-end-screen slide-in-forward">
@@ -164,7 +176,6 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   return (
     <div className={`form-renderer ${embedded ? 'embedded' : ''}`} style={themeVars} onKeyDown={handleKeyDown} ref={containerRef}>
-      {/* Progress bar */}
       <div className="form-progress">
         <div className="form-progress-bar" style={{ width: `${progress}%` }} />
       </div>
@@ -183,6 +194,14 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
             />
           </div>
 
+          {/* GDPR consent on last step */}
+          {isLastStep && consentRequired && (
+            <label className="form-consent" style={{ marginTop: 24 }}>
+              <input type="checkbox" checked={consentGiven} onChange={e => { setConsentGiven(e.target.checked); setError(''); }} />
+              <span className="consent-text">{consentText}</span>
+            </label>
+          )}
+
           {error && <p className="step-error">{error}</p>}
         </div>
       </div>
@@ -193,107 +212,78 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         </button>
         <span className="form-step-count">{currentStep + 1} / {steps.length}</span>
         <button className="form-btn" onClick={next}>
-          {currentStep === steps.length - 1 ? 'Submit' : 'Next'} &#8594;
+          {isLastStep ? 'Submit' : 'Next'} &#8594;
         </button>
       </div>
     </div>
   );
 }
 
-/* Field Components */
+/* ========================
+   Field Components
+   ======================== */
 
 function TextInput({ step, value, onChange }) {
   return (
-    <input
-      className="form-input"
-      type="text"
-      placeholder={step.placeholder || 'Type your answer...'}
-      value={value || ''}
-      onChange={e => onChange(e.target.value)}
-      autoFocus
-    />
+    <input className="form-input" type="text" placeholder={step.placeholder || 'Type your answer...'} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
   );
 }
 
 function EmailInput({ step, value, onChange }) {
   return (
-    <input
-      className="form-input"
-      type="email"
-      placeholder={step.placeholder || 'name@example.com'}
-      value={value || ''}
-      onChange={e => onChange(e.target.value)}
-      autoFocus
-    />
+    <input className="form-input" type="email" placeholder={step.placeholder || 'name@example.com'} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
   );
 }
 
 function PhoneInput({ step, value, onChange }) {
   return (
-    <input
-      className="form-input"
-      type="tel"
-      placeholder={step.placeholder || '+1 234 567890'}
-      value={value || ''}
-      onChange={e => onChange(e.target.value)}
-      autoFocus
-    />
+    <input className="form-input" type="tel" placeholder={step.placeholder || '+1 234 567890'} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
   );
 }
 
 function TextareaInput({ step, value, onChange }) {
   return (
-    <textarea
-      className="form-input form-textarea"
-      placeholder={step.placeholder || 'Type your answer...'}
-      value={value || ''}
-      onChange={e => onChange(e.target.value)}
-      rows={4}
-      autoFocus
-    />
+    <textarea className="form-input form-textarea" placeholder={step.placeholder || 'Type your answer...'} value={value || ''} onChange={e => onChange(e.target.value)} rows={4} autoFocus />
   );
 }
 
 function NumberInput({ step, value, onChange }) {
   return (
-    <input
-      className="form-input"
-      type="number"
-      placeholder={step.placeholder || '0'}
-      value={value || ''}
-      onChange={e => onChange(e.target.value)}
-      min={step.min}
-      max={step.max}
-      autoFocus
-    />
+    <input className="form-input" type="number" placeholder={step.placeholder || '0'} value={value || ''} onChange={e => onChange(e.target.value)} min={step.min} max={step.max} autoFocus />
   );
 }
 
 function DateInput({ step, value, onChange }) {
   return (
-    <input
-      className="form-input"
-      type="date"
-      value={value || ''}
-      onChange={e => onChange(e.target.value)}
-      autoFocus
-    />
+    <input className="form-input" type="date" value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
   );
 }
 
 function SelectInput({ step, value, onChange }) {
   const options = step.options || [];
+  const selectedIdx = options.findIndex(opt => (typeof opt === 'string' ? opt : opt.value) === value);
+
+  function handleKeyDown(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const next = (selectedIdx + 1) % options.length;
+      const opt = options[next];
+      onChange(typeof opt === 'string' ? opt : opt.value);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prev = selectedIdx <= 0 ? options.length - 1 : selectedIdx - 1;
+      const opt = options[prev];
+      onChange(typeof opt === 'string' ? opt : opt.value);
+    }
+  }
+
   return (
-    <div className="form-options">
+    <div className="form-options" tabIndex={0} onKeyDown={handleKeyDown}>
       {options.map((opt, i) => {
         const optValue = typeof opt === 'string' ? opt : opt.value;
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
-          <button
-            key={i}
-            className={`form-option ${value === optValue ? 'selected' : ''}`}
-            onClick={() => onChange(optValue)}
-          >
+          <button key={i} className={`form-option ${value === optValue ? 'selected' : ''}`} onClick={() => onChange(optValue)}>
             <span className="option-key">{String.fromCharCode(65 + i)}</span>
             {optLabel}
           </button>
@@ -306,6 +296,7 @@ function SelectInput({ step, value, onChange }) {
 function MultiSelectInput({ step, value, onChange }) {
   const selected = value || [];
   const options = step.options || [];
+  const [focusIdx, setFocusIdx] = useState(0);
 
   function toggle(optValue) {
     if (selected.includes(optValue)) {
@@ -315,30 +306,45 @@ function MultiSelectInput({ step, value, onChange }) {
     }
   }
 
+  function handleKeyDown(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      setFocusIdx(prev => (prev + 1) % options.length);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setFocusIdx(prev => prev <= 0 ? options.length - 1 : prev - 1);
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      const opt = options[focusIdx];
+      toggle(typeof opt === 'string' ? opt : opt.value);
+    }
+  }
+
   return (
-    <div className="form-options">
+    <div className="form-options" tabIndex={0} onKeyDown={handleKeyDown}>
       {options.map((opt, i) => {
         const optValue = typeof opt === 'string' ? opt : opt.value;
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
-          <button
-            key={i}
-            className={`form-option ${selected.includes(optValue) ? 'selected' : ''}`}
-            onClick={() => toggle(optValue)}
-          >
+          <button key={i} className={`form-option ${selected.includes(optValue) ? 'selected' : ''} ${focusIdx === i ? 'focused' : ''}`} onClick={() => toggle(optValue)}>
             <span className="option-key">{selected.includes(optValue) ? '✓' : String.fromCharCode(65 + i)}</span>
             {optLabel}
           </button>
         );
       })}
-      <p className="option-hint">Multiple selections allowed</p>
+      <p className="option-hint">Multiple selections allowed &middot; Use arrow keys + space</p>
     </div>
   );
 }
 
 function YesNoInput({ step, value, onChange }) {
+  function handleKeyDown(e) {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); onChange('yes'); }
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); onChange('no'); }
+  }
+
   return (
-    <div className="form-options form-yesno">
+    <div className="form-options form-yesno" tabIndex={0} onKeyDown={handleKeyDown}>
       <button className={`form-option ${value === 'yes' ? 'selected' : ''}`} onClick={() => onChange('yes')}>
         <span className="option-key">Y</span> Yes
       </button>
@@ -351,14 +357,22 @@ function YesNoInput({ step, value, onChange }) {
 
 function RatingInput({ step, value, onChange }) {
   const max = step.max || 5;
+
+  function handleKeyDown(e) {
+    const current = value || 0;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      onChange(Math.min(current + 1, max));
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      onChange(Math.max(current - 1, 1));
+    }
+  }
+
   return (
-    <div className="form-rating">
+    <div className="form-rating" tabIndex={0} onKeyDown={handleKeyDown}>
       {Array.from({ length: max }, (_, i) => i + 1).map(n => (
-        <button
-          key={n}
-          className={`rating-star ${value >= n ? 'active' : ''}`}
-          onClick={() => onChange(n)}
-        >
+        <button key={n} className={`rating-star ${value >= n ? 'active' : ''}`} onClick={() => onChange(n)}>
           {value >= n ? '★' : '☆'}
         </button>
       ))}
@@ -368,14 +382,7 @@ function RatingInput({ step, value, onChange }) {
 
 function WebsiteInput({ step, value, onChange }) {
   return (
-    <input
-      className="form-input"
-      type="url"
-      placeholder={step.placeholder || 'https://example.com'}
-      value={value || ''}
-      onChange={e => onChange(e.target.value)}
-      autoFocus
-    />
+    <input className="form-input" type="url" placeholder={step.placeholder || 'https://example.com'} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
   );
 }
 
@@ -409,8 +416,33 @@ function ConsentInput({ step, value, onChange }) {
 
 function ImageSelectInput({ step, value, onChange }) {
   const options = step.options || [];
+  const selectedIdx = options.findIndex(opt => (typeof opt === 'string' ? opt : opt.value) === value);
+  const [focusIdx, setFocusIdx] = useState(selectedIdx >= 0 ? selectedIdx : 0);
+
+  function handleKeyDown(e) {
+    const cols = Math.min(options.length, 4); // approximate grid columns
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setFocusIdx(prev => Math.min(prev + 1, options.length - 1));
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setFocusIdx(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusIdx(prev => Math.min(prev + cols, options.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusIdx(prev => Math.max(prev - cols, 0));
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      const opt = options[focusIdx];
+      onChange(typeof opt === 'string' ? opt : opt.value);
+    }
+  }
+
   return (
-    <div className="form-image-grid">
+    <div className="form-image-grid" tabIndex={0} onKeyDown={handleKeyDown}>
       {options.map((opt, i) => {
         const optValue = typeof opt === 'string' ? opt : opt.value;
         const optLabel = typeof opt === 'string' ? opt : opt.label;
@@ -419,7 +451,7 @@ function ImageSelectInput({ step, value, onChange }) {
         return (
           <button
             key={i}
-            className={`form-image-option ${value === optValue ? 'selected' : ''}`}
+            className={`form-image-option ${value === optValue ? 'selected' : ''} ${focusIdx === i ? 'focused' : ''}`}
             onClick={() => onChange(optValue)}
           >
             {optImage ? (

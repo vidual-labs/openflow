@@ -52,9 +52,30 @@ input, select, textarea {
 }
 
 .admin-sidebar h1 {
-  font-size: 20px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
   margin-bottom: 32px;
   padding: 0 8px;
+}
+
+.admin-sidebar h1 .logo-icon {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #6C5CE7, #a29bfe);
+  border-radius: 7px;
+  text-align: center;
+  line-height: 28px;
+  font-size: 16px;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+.login-box h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: -0.5px;
 }
 
 .admin-sidebar nav a {

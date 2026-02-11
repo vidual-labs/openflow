@@ -20,7 +20,6 @@ const FIELD_TYPES = [
   { value: 'phone', label: 'Phone Number', icon: '📞', defaults: { question: 'What is your phone number?', label: 'Phone', placeholder: '+1 234 567890' } },
   { value: 'website', label: 'Website URL', icon: '🌐', defaults: { question: 'What is your website?', label: 'Website', placeholder: 'https://example.com' } },
   { value: 'address', label: 'Address', icon: '🏠', defaults: { question: 'What is your address?', label: 'Address', placeholder: '' } },
-  { value: 'consent', label: 'Consent / GDPR', icon: '🔒', defaults: { question: 'Please confirm', label: 'Consent', placeholder: '', consentText: 'I agree to the privacy policy and terms of service.' } },
 ];
 
 const FIELD_TYPE_MAP = Object.fromEntries(FIELD_TYPES.map(f => [f.value, f]));
@@ -159,7 +158,7 @@ export default function FormEditor() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '2px solid var(--border)', paddingBottom: 0 }}>
-        {[{ key: 'steps', label: 'Questions' }, { key: 'endscreen', label: 'End Screen' }, { key: 'theme', label: 'Design' }, { key: 'integrations', label: 'Integrations' }, { key: 'embed', label: 'Embed' }].map(tab => (
+        {[{ key: 'steps', label: 'Questions' }, { key: 'endscreen', label: 'End Screen' }, { key: 'theme', label: 'Design' }, { key: 'tracking', label: 'GTM / GDPR' }, { key: 'integrations', label: 'Integrations' }, { key: 'embed', label: 'Embed' }].map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -245,10 +244,61 @@ export default function FormEditor() {
                 <input className="input" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} />
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* GTM / GDPR Tab */}
+      {activeTab === 'tracking' && (
+        <div>
+          {/* GTM */}
+          <div className="card">
+            <h3 style={{ marginBottom: 4 }}>Google Tag Manager</h3>
+            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
+              GTM is injected automatically when this form is viewed. Events are pushed to the dataLayer on each step change and on submit.
+            </p>
             <div className="input-group">
-              <label>GTM Container-ID</label>
-              <input className="input" value={form.gtm_id || ''} onChange={e => setForm({ ...form, gtm_id: e.target.value })} placeholder="GTM-XXXXXXX" />
+              <label>GTM Container ID</label>
+              <input className="input" value={form.gtm_id || ''} onChange={e => setForm({ ...form, gtm_id: e.target.value })} placeholder="GTM-XXXXXXX" style={{ maxWidth: 300 }} />
             </div>
+            {form.gtm_id && (
+              <div style={{ padding: 12, background: '#f0f9f4', borderRadius: 8, fontSize: 13 }}>
+                <strong>Events fired:</strong>
+                <ul style={{ margin: '8px 0 0 16px', color: '#636E72' }}>
+                  <li><code>openflow_step</code> — on each step change (formId, stepIndex, stepId)</li>
+                  <li><code>openflow_submit</code> — on form submission (formId, formTitle)</li>
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* GDPR Consent */}
+          <div className="card">
+            <h3 style={{ marginBottom: 4 }}>GDPR / Consent</h3>
+            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
+              When enabled, a consent checkbox is automatically shown on the last step of the form before submission.
+            </p>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 600, marginBottom: 16, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={!!form.end_screen?.consentEnabled}
+                onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentEnabled: e.target.checked } })}
+                style={{ width: 20, height: 20, accentColor: 'var(--primary)' }}
+              />
+              Require consent before submission
+            </label>
+            {form.end_screen?.consentEnabled && (
+              <div className="input-group">
+                <label>Consent Text</label>
+                <textarea
+                  className="input"
+                  rows={3}
+                  value={form.end_screen?.consentText || 'I agree to the privacy policy and terms of service.'}
+                  onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentText: e.target.value } })}
+                  placeholder="I agree to the privacy policy and terms of service."
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -378,7 +428,7 @@ function StepEditor({ step, index, total, expanded, onToggle, onChange, onChange
           </div>
 
           {/* Placeholder - not for types that don't use it */}
-          {!['select', 'multi-select', 'yes-no', 'rating', 'consent', 'image-select', 'address'].includes(step.type) && (
+          {!['select', 'multi-select', 'yes-no', 'rating', 'image-select', 'address'].includes(step.type) && (
             <div className="input-group" style={{ marginTop: 12 }}>
               <label>Placeholder</label>
               <input className="input" value={step.placeholder || ''} onChange={e => onChange({ placeholder: e.target.value })} placeholder="Placeholder text..." />
@@ -405,20 +455,6 @@ function StepEditor({ step, index, total, expanded, onToggle, onChange, onChange
               options={step.options || []}
               onChange={options => onChange({ options })}
             />
-          )}
-
-          {/* Consent text */}
-          {step.type === 'consent' && (
-            <div className="input-group" style={{ marginTop: 12 }}>
-              <label>Consent Text</label>
-              <textarea
-                className="input"
-                rows={3}
-                value={step.consentText || ''}
-                onChange={e => onChange({ consentText: e.target.value })}
-                placeholder="I agree to the privacy policy and terms of service."
-              />
-            </div>
           )}
 
           {/* Address sub-fields config */}

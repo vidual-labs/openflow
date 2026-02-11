@@ -154,6 +154,11 @@
   font-weight: 600;
 }
 
+.form-option.focused {
+  outline: 2px solid var(--form-primary, #6C5CE7);
+  outline-offset: 2px;
+}
+
 .option-key {
   display: inline-flex;
   align-items: center;
@@ -388,6 +393,11 @@
   border-color: var(--form-primary, #6C5CE7);
   background: rgba(108, 92, 231, 0.08);
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
+}
+
+.form-image-option.focused {
+  outline: 2px solid var(--form-primary, #6C5CE7);
+  outline-offset: 2px;
 }
 
 .image-option-img {

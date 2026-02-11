@@ -30,7 +30,7 @@ export default function App() {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <h1>OpenFlow</h1>
+        <h1><span className="logo-icon">&#9830;</span>OpenFlow</h1>
         <nav>
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
         </nav>
