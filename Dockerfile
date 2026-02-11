@@ -6,9 +6,10 @@ COPY frontend/ ./
 RUN npm run build
 
 FROM node:20-alpine
+RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY backend/package.json backend/package-lock.json* ./
-RUN npm install --production
+RUN npm install --production && apk del python3 make g++
 COPY backend/ ./
 COPY --from=frontend-build /build/dist ./public
 RUN mkdir -p /app/data

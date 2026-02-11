@@ -48,6 +48,16 @@ function initDb() {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (form_id) REFERENCES forms(id)
     );
+
+    CREATE TABLE IF NOT EXISTS integrations (
+      id TEXT PRIMARY KEY,
+      form_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      enabled INTEGER DEFAULT 1,
+      config TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (form_id) REFERENCES forms(id)
+    );
   `);
 
   // Seed admin user

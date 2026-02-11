@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
+import IntegrationsPanel from '../components/IntegrationsPanel';
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Text' },
@@ -107,7 +108,7 @@ export default function FormEditor() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '2px solid var(--border)', paddingBottom: 0 }}>
-        {[{ key: 'steps', label: 'Questions' }, { key: 'endscreen', label: 'End Screen' }, { key: 'theme', label: 'Design' }, { key: 'embed', label: 'Embed' }].map(tab => (
+        {[{ key: 'steps', label: 'Questions' }, { key: 'endscreen', label: 'End Screen' }, { key: 'theme', label: 'Design' }, { key: 'integrations', label: 'Integrations' }, { key: 'embed', label: 'Embed' }].map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -274,6 +275,11 @@ export default function FormEditor() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Integrations Tab */}
+      {activeTab === 'integrations' && (
+        <IntegrationsPanel formId={id} />
       )}
 
       {/* Embed Tab */}

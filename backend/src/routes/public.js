@@ -30,7 +30,7 @@ router.post('/form/:slug/submit', async (req, res) => {
   }
 
   const db = getDb();
-  const form = db.prepare('SELECT id, steps FROM forms WHERE slug = ? AND published = 1').get(req.params.slug);
+  const form = db.prepare('SELECT id, title, steps FROM forms WHERE slug = ? AND published = 1').get(req.params.slug);
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
   const steps = JSON.parse(form.steps);
@@ -59,6 +59,12 @@ router.post('/form/:slug/submit', async (req, res) => {
   );
 
   res.status(201).json({ ok: true, id });
+
+  // Run integrations async (don't block response)
+  const { runIntegrations } = require('../models/integrations');
+  runIntegrations(db, form.id, form.title, data, steps).catch(err => {
+    console.error('Integration execution error:', err.message);
+  });
 });
 
 module.exports = router;

@@ -29,6 +29,12 @@ export const api = {
   getSubmissions: (formId, page = 1) => request(`/submissions/${formId}?page=${page}`),
   exportSubmissions: (formId) => `${BASE}/submissions/${formId}/export`,
 
+  getIntegrations: (formId) => request(`/integrations/${formId}`),
+  createIntegration: (formId, data) => request(`/integrations/${formId}`, { method: 'POST', body: JSON.stringify(data) }),
+  updateIntegration: (formId, id, data) => request(`/integrations/${formId}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteIntegration: (formId, id) => request(`/integrations/${formId}/${id}`, { method: 'DELETE' }),
+  testIntegration: (formId, id) => request(`/integrations/${formId}/${id}/test`, { method: 'POST' }),
+
   getPublicForm: (slug) => request(`/public/form/${slug}`),
   submitForm: (slug, data) => request(`/public/form/${slug}/submit`, { method: 'POST', body: JSON.stringify({ data }) }),
 };
