@@ -34,8 +34,10 @@
 ```bash
 git clone https://github.com/vidual-labs/openflow.git
 cd openflow
-docker compose up -d
+docker compose up -d --build
 ```
+
+> 💡 No BuildX required — works with plain `docker compose`.
 
 The app runs on `http://localhost:3000`.
 
