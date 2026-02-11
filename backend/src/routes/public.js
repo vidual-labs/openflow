@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
-const { checkRateLimit } = require('../models/redis');
+const { checkRateLimit } = require('../models/rateLimit');
 const { v4: uuid } = require('uuid');
 
 const router = Router();
@@ -24,7 +24,7 @@ router.get('/form/:slug', (req, res) => {
 router.post('/form/:slug/submit', async (req, res) => {
   // Rate limit: 10 submissions per IP per minute
   const ip = req.ip || req.connection.remoteAddress;
-  const allowed = await checkRateLimit(`submit:${ip}`, 10, 60);
+  const allowed = checkRateLimit(`submit:${ip}`, 10, 60);
   if (!allowed) {
     return res.status(429).json({ error: 'Too many submissions, please try again later' });
   }

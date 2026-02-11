@@ -29,8 +29,8 @@
 
 ### 🛠️ Infrastructure
 - **🐳 Docker** — One command to start (`docker compose up -d`)
-- **Redis** — Rate limiting & spam protection (optional, graceful fallback)
 - **SQLite** — Zero-config database, no external DB needed
+- **🛡️ Rate Limiting** — Built-in in-memory spam protection
 - **Responsive** — Optimized for mobile and desktop
 
 ---
@@ -60,7 +60,6 @@ Environment variables (in `.env` or docker-compose):
 | `JWT_SECRET` | `change-me-in-production` | 🔐 JWT Signing Key |
 | `ADMIN_EMAIL` | `admin@openflow.local` | 👤 Admin email |
 | `ADMIN_PASSWORD` | `admin123` | 🔑 Admin password (only on first start) |
-| `REDIS_URL` | `redis://redis:6379` | 🔴 Redis connection (optional) |
 | `DB_PATH` | `/app/data/openflow.db` | 💾 SQLite database path |
 | `PORT` | `3000` | 🌐 Server port |
 
@@ -70,10 +69,10 @@ Environment variables (in `.env` or docker-compose):
 
 ```
 openflow/
-├── backend/                # 🟢 Express API + SQLite + Redis
+├── backend/                # 🟢 Express API + SQLite
 │   └── src/
 │       ├── index.js        # Server entry point
-│       ├── models/         # DB, Redis, Integrations engine
+│       ├── models/         # DB, Rate Limiting, Integrations engine
 │       ├── middleware/      # JWT Auth
 │       └── routes/         # API endpoints
 ├── frontend/               # ⚛️ React (Vite)
