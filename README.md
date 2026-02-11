@@ -32,7 +32,7 @@
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/your-org/openflow.git
+git clone https://github.com/vidual-labs/openflow.git
 cd openflow
 docker compose up -d
 ```
@@ -237,7 +237,7 @@ Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 
 ## 📄 License
 
-MIT
+GNU 3.0
 
 ---
 
