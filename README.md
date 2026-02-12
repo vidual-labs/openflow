@@ -15,7 +15,7 @@
 - **Footer Links** — Add up to 3 links (Privacy Policy, Imprint, Terms) below the form
 - **Theme Customization** — Colors, custom CSS, and branding per form
 - **GDPR-Ready** — Consent checkbox auto-appended to the last step (form-level toggle)
-- **Keyboard Navigation** — Arrow keys + letter keys (A, B, C, D) for all selection fields
+- **Auto-Advance** — Single choice, yes/no, and image select auto-proceed on click
 - **File Uploads** — Drag & drop with configurable file types and size limits
 
 ### 📊 Data & Integrations
@@ -42,6 +42,8 @@
 - **SQLite** — Zero-config database, no external DB needed
 - **🛡️ Rate Limiting** — Built-in in-memory spam protection
 - **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
+- **🌙 Dark Mode** — Auto/light/dark theme toggle for the admin interface
+- **🛡️ Delete Protection** — Published forms require typing the form name to confirm deletion
 - **Responsive** — Optimized for mobile and desktop
 
 ---
@@ -122,18 +124,18 @@ openflow/
 
 **Question Types:**
 
-| Type | Description | Keyboard | Auto-advance |
-|------|-------------|:--------:|:---:|
-| 📝 Short Text | Single-line text input | | |
-| 📄 Long Text | Multi-line text | | |
-| 🔢 Number | Numeric input with min/max | | |
-| 📅 Date | Date picker | | |
-| ☑️ Single Choice | Choose one option | A, B, C... | |
-| ✅ Multiple Choice | Choose multiple options | A, B, C... | |
-| 👍 Yes / No | Binary choice | Y/N, A/B | ✓ |
-| ⭐ Rating | Star rating (configurable 3-10) | 1-9 | |
-| 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | A, B, C... | ✓ |
-| 📎 File Upload | Drag & drop with configurable types and size limit | | |
+| Type | Description | Auto-advance |
+|------|-------------|:---:|
+| 📝 Short Text | Single-line text input | |
+| 📄 Long Text | Multi-line text | |
+| 🔢 Number | Numeric input with min/max | |
+| 📅 Date | Date picker | |
+| ☑️ Single Choice | Choose one option | ✓ |
+| ✅ Multiple Choice | Choose multiple options | |
+| 👍 Yes / No | Binary choice | ✓ |
+| ⭐ Rating | Star rating (configurable 3-10) | |
+| 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | ✓ |
+| 📎 File Upload | Drag & drop with configurable types and size limit | |
 
 **Contact & Data Fields:**
 
@@ -305,7 +307,7 @@ Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 - ✅ **Phase 1**: Multi-step forms, field types, Admin UI, GTM, iframe embed, CSV export, WordPress plugin
 - ✅ **Phase 2**: Webhook, email notifications, Google Sheets integration
 - ✅ **Phase 3**: Conditional logic, file uploads, custom CSS per form, multi-user support, landing page header/footer
-- ✅ **Phase 4**: Analytics dashboard, simplified Google Sheets, keyboard shortcuts (A/B/C/D keys)
+- ✅ **Phase 4**: Analytics dashboard, simplified Google Sheets, dark mode, delete protection for live forms
 - 🔜 **Phase 5**: A/B testing, custom domain support, form templates
 
 ---

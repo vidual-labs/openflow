@@ -541,8 +541,6 @@
 @media (max-width: 600px) {
   .form-content {
     padding: 60px 20px 100px;
-    align-items: flex-start;
-    padding-top: 20vh;
   }
 
   .form-option {

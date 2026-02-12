@@ -212,9 +212,9 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   }, [currentStep]);
 
-  // Auto-advance for yes-no and image-select
+  // Auto-advance for single-choice fields
   useEffect(() => {
-    if (step && (step.type === 'yes-no' || step.type === 'image-select') && answers[step.id] !== undefined) {
+    if (step && (step.type === 'yes-no' || step.type === 'image-select' || step.type === 'select') && answers[step.id] !== undefined) {
       const timer = setTimeout(() => next(), 400);
       return () => clearTimeout(timer);
     }
