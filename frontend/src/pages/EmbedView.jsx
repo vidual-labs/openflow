@@ -8,6 +8,17 @@ export default function EmbedView() {
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
 
+  // Force light theme on embedded form pages (dark mode is admin-only)
+  useEffect(() => {
+    const root = document.documentElement;
+    const prev = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', 'light');
+    return () => {
+      if (prev) root.setAttribute('data-theme', prev);
+      else root.removeAttribute('data-theme');
+    };
+  }, []);
+
   useEffect(() => {
     api.getPublicForm(slug).then(d => setForm(d.form)).catch(e => setError(e.message));
   }, [slug]);
