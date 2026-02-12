@@ -15,7 +15,6 @@
 - **Footer Links** — Add up to 3 links (Privacy Policy, Imprint, Terms) below the form
 - **Theme Customization** — Colors, custom CSS, and branding per form
 - **GDPR-Ready** — Consent checkbox auto-appended to the last step (form-level toggle)
-- **Auto-Advance** — Single choice, yes/no, and image select auto-proceed on click
 - **File Uploads** — Drag & drop with configurable file types and size limits
 
 ### 📊 Data & Integrations
