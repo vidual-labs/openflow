@@ -1,10 +1,6 @@
 # 🌊 OpenFlow v0.6.0
-
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
->
-> 🤖 *Vibecoded with [Claude Opus 4.6](https://anthropic.com) — from zero to full-stack in one session.*
 
----
 
 ## ✨ Features
 
@@ -42,7 +38,7 @@
 - **WordPress Plugin** — Shortcode `[openflow]`, WPBakery element, and Gutenberg block
 
 ### 🛠️ Infrastructure
-- **🐳 Docker** — One command to start (`docker compose up -d`)
+- **🐳 Docker** — One command to start )
 - **SQLite** — Zero-config database, no external DB needed
 - **🛡️ Rate Limiting** — Built-in in-memory spam protection
 - **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
@@ -57,8 +53,6 @@ git clone https://github.com/vidual-labs/openflow.git
 cd openflow
 docker compose up -d --build
 ```
-
-> 💡 No BuildX required — works with plain `docker compose`.
 
 The app runs on `http://localhost:3000`.
 
@@ -318,7 +312,7 @@ Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 
 ## 📄 License
 
-GNU 3.0
+GPL 3.0
 
 ---
 
