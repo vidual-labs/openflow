@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import FormEditor from './pages/FormEditor';
 import Submissions from './pages/Submissions';
+import Users from './pages/Users';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -27,12 +28,15 @@ export default function App() {
     setUser(null);
   }
 
+  const isAdmin = user.role === 'admin';
+
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
         <h1><span className="logo-icon">&#9830;</span>OpenFlow</h1>
         <nav>
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
+          {isAdmin && <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>Users</Link>}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
           <span style={{ fontSize: 13, opacity: 0.5, display: 'block', padding: '0 12px', marginBottom: 8 }}>{user.email}</span>
@@ -46,6 +50,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/forms/:id" element={<FormEditor />} />
           <Route path="/forms/:id/submissions" element={<Submissions />} />
+          {isAdmin && <Route path="/users" element={<Users />} />}
         </Routes>
       </main>
     </div>

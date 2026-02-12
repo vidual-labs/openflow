@@ -22,6 +22,7 @@ function initDb() {
       id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      role TEXT DEFAULT 'user',
       created_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -60,6 +61,14 @@ function initDb() {
     );
   `);
 
+  // Migrate: add role column if missing (existing DBs)
+  try {
+    db.prepare('SELECT role FROM users LIMIT 1').get();
+  } catch {
+    db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'");
+    console.log('Migration: added role column to users');
+  }
+
   // Seed admin user
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@openflow.local';
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
@@ -67,8 +76,11 @@ function initDb() {
   if (!existing) {
     const { v4: uuid } = require('uuid');
     const hash = bcrypt.hashSync(adminPassword, 10);
-    db.prepare('INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)').run(uuid(), adminEmail, hash);
+    db.prepare("INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, 'admin')").run(uuid(), adminEmail, hash);
     console.log(`Admin user created: ${adminEmail}`);
+  } else {
+    // Ensure admin has admin role
+    db.prepare("UPDATE users SET role = 'admin' WHERE email = ? AND (role IS NULL OR role != 'admin')").run(adminEmail);
   }
 }
 
