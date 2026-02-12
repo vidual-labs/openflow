@@ -85,12 +85,20 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const consentRequired = !!endScreen.consentEnabled;
   const consentText = endScreen.consentText || 'I agree to the privacy policy and terms of service.';
 
+  const formBg = theme.backgroundColor || '#FFFFFF';
   const themeVars = {
     '--form-primary': theme.primaryColor || '#6C5CE7',
-    '--form-bg': theme.backgroundColor || '#FFFFFF',
+    '--form-bg': formBg,
     '--form-text': theme.textColor || '#2D3436',
     '--form-font': theme.fontFamily || 'inherit',
   };
+
+  // Sync body background to form background so no dark-mode bleed-through
+  useEffect(() => {
+    const prev = document.body.style.background;
+    document.body.style.background = formBg;
+    return () => { document.body.style.background = prev; };
+  }, [formBg]);
 
   function setAnswer(value) {
     setAnswers(prev => ({ ...prev, [step.id]: value }));
@@ -347,48 +355,17 @@ function DateInput({ step, value, onChange }) {
 
 function SelectInput({ step, value, onChange }) {
   const options = step.options || [];
-  const selectedIdx = options.findIndex(opt => (typeof opt === 'string' ? opt : opt.value) === value);
-  const containerRef = useRef(null);
-
-  useEffect(() => { containerRef.current?.focus(); }, []);
-
-  function handleKeyDown(e) {
-    e.stopPropagation();
-    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      const next = (selectedIdx + 1) % options.length;
-      const opt = options[next];
-      onChange(typeof opt === 'string' ? opt : opt.value);
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-      e.preventDefault();
-      const prev = selectedIdx <= 0 ? options.length - 1 : selectedIdx - 1;
-      const opt = options[prev];
-      onChange(typeof opt === 'string' ? opt : opt.value);
-    } else if (e.key === 'Enter') {
-      // let parent handle Enter for next/submit
-    } else {
-      const letterIdx = e.key.toUpperCase().charCodeAt(0) - 65;
-      if (letterIdx >= 0 && letterIdx < options.length) {
-        e.preventDefault();
-        const opt = options[letterIdx];
-        onChange(typeof opt === 'string' ? opt : opt.value);
-      }
-    }
-  }
-
   return (
-    <div className="form-options" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
+    <div className="form-options">
       {options.map((opt, i) => {
         const optValue = typeof opt === 'string' ? opt : opt.value;
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
-          <button key={i} className={`form-option ${value === optValue ? 'selected' : ''}`} onClick={() => onChange(optValue)} tabIndex={-1}>
-            <span className="option-key">{String.fromCharCode(65 + i)}</span>
+          <button key={i} className={`form-option ${value === optValue ? 'selected' : ''}`} onClick={() => onChange(optValue)}>
             {optLabel}
           </button>
         );
       })}
-      <p className="option-hint">Press A, B, C... or use arrow keys</p>
     </div>
   );
 }
@@ -396,10 +373,6 @@ function SelectInput({ step, value, onChange }) {
 function MultiSelectInput({ step, value, onChange }) {
   const selected = value || [];
   const options = step.options || [];
-  const [focusIdx, setFocusIdx] = useState(0);
-  const containerRef = useRef(null);
-
-  useEffect(() => { containerRef.current?.focus(); }, []);
 
   function toggle(optValue) {
     if (selected.includes(optValue)) {
@@ -409,67 +382,30 @@ function MultiSelectInput({ step, value, onChange }) {
     }
   }
 
-  function handleKeyDown(e) {
-    e.stopPropagation();
-    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      setFocusIdx(prev => (prev + 1) % options.length);
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-      e.preventDefault();
-      setFocusIdx(prev => prev <= 0 ? options.length - 1 : prev - 1);
-    } else if (e.key === ' ') {
-      e.preventDefault();
-      const opt = options[focusIdx];
-      toggle(typeof opt === 'string' ? opt : opt.value);
-    } else if (e.key === 'Enter') {
-      // let parent handle
-    } else {
-      const letterIdx = e.key.toUpperCase().charCodeAt(0) - 65;
-      if (letterIdx >= 0 && letterIdx < options.length) {
-        e.preventDefault();
-        const opt = options[letterIdx];
-        toggle(typeof opt === 'string' ? opt : opt.value);
-        setFocusIdx(letterIdx);
-      }
-    }
-  }
-
   return (
-    <div className="form-options" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
+    <div className="form-options">
       {options.map((opt, i) => {
         const optValue = typeof opt === 'string' ? opt : opt.value;
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
-          <button key={i} className={`form-option ${selected.includes(optValue) ? 'selected' : ''} ${focusIdx === i ? 'focused' : ''}`} onClick={() => toggle(optValue)} tabIndex={-1}>
-            <span className="option-key">{selected.includes(optValue) ? '✓' : String.fromCharCode(65 + i)}</span>
+          <button key={i} className={`form-option ${selected.includes(optValue) ? 'selected' : ''}`} onClick={() => toggle(optValue)}>
+            <span className="option-key">{selected.includes(optValue) ? '✓' : ''}</span>
             {optLabel}
           </button>
         );
       })}
-      <p className="option-hint">Press A, B, C... to toggle &middot; Arrow keys + space</p>
     </div>
   );
 }
 
 function YesNoInput({ step, value, onChange }) {
-  const containerRef = useRef(null);
-
-  useEffect(() => { containerRef.current?.focus(); }, []);
-
-  function handleKeyDown(e) {
-    e.stopPropagation();
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'y' || e.key === 'Y' || e.key === 'a' || e.key === 'A') { e.preventDefault(); onChange('yes'); }
-    else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'n' || e.key === 'N' || e.key === 'b' || e.key === 'B') { e.preventDefault(); onChange('no'); }
-    // Enter: let parent handle
-  }
-
   return (
-    <div className="form-options form-yesno" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
-      <button className={`form-option ${value === 'yes' ? 'selected' : ''}`} onClick={() => onChange('yes')} tabIndex={-1}>
-        <span className="option-key">Y</span> Yes
+    <div className="form-options form-yesno">
+      <button className={`form-option ${value === 'yes' ? 'selected' : ''}`} onClick={() => onChange('yes')}>
+        Yes
       </button>
-      <button className={`form-option ${value === 'no' ? 'selected' : ''}`} onClick={() => onChange('no')} tabIndex={-1}>
-        <span className="option-key">N</span> No
+      <button className={`form-option ${value === 'no' ? 'selected' : ''}`} onClick={() => onChange('no')}>
+        No
       </button>
     </div>
   );
@@ -477,32 +413,8 @@ function YesNoInput({ step, value, onChange }) {
 
 function RatingInput({ step, value, onChange }) {
   const max = step.max || 5;
-  const containerRef = useRef(null);
-
-  useEffect(() => { containerRef.current?.focus(); }, []);
-
-  function handleKeyDown(e) {
-    e.stopPropagation();
-    const current = value || 0;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      onChange(Math.min(current + 1, max));
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      onChange(Math.max(current - 1, 1));
-    } else if (e.key === 'Enter') {
-      // let parent handle
-    } else {
-      const num = parseInt(e.key);
-      if (num >= 1 && num <= max) {
-        e.preventDefault();
-        onChange(num);
-      }
-    }
-  }
-
   return (
-    <div className="form-rating" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
+    <div className="form-rating">
       {Array.from({ length: max }, (_, i) => i + 1).map(n => (
         <button key={n} className={`rating-star ${value >= n ? 'active' : ''}`} onClick={() => onChange(n)}>
           {value >= n ? '★' : '☆'}
@@ -597,50 +509,8 @@ function FileUploadInput({ step, value, onChange }) {
 
 function ImageSelectInput({ step, value, onChange }) {
   const options = step.options || [];
-  const selectedIdx = options.findIndex(opt => (typeof opt === 'string' ? opt : opt.value) === value);
-  const [focusIdx, setFocusIdx] = useState(selectedIdx >= 0 ? selectedIdx : 0);
-  const containerRef = useRef(null);
-
-  useEffect(() => { containerRef.current?.focus(); }, []);
-
-  function handleKeyDown(e) {
-    e.stopPropagation();
-    const cols = Math.min(options.length, 4);
-    if (e.key === 'Enter') {
-      // let parent handle for next/submit
-      return;
-    }
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      setFocusIdx(prev => Math.min(prev + 1, options.length - 1));
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      setFocusIdx(prev => Math.max(prev - 1, 0));
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setFocusIdx(prev => Math.min(prev + cols, options.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setFocusIdx(prev => Math.max(prev - cols, 0));
-    } else if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      e.stopPropagation();
-      const opt = options[focusIdx];
-      onChange(typeof opt === 'string' ? opt : opt.value);
-    } else {
-      // A, B, C, D... letter keys to select option
-      const letterIdx = e.key.toUpperCase().charCodeAt(0) - 65;
-      if (letterIdx >= 0 && letterIdx < options.length) {
-        e.preventDefault();
-        setFocusIdx(letterIdx);
-        const opt = options[letterIdx];
-        onChange(typeof opt === 'string' ? opt : opt.value);
-      }
-    }
-  }
-
   return (
-    <div className="form-image-grid" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
+    <div className="form-image-grid">
       {options.map((opt, i) => {
         const optValue = typeof opt === 'string' ? opt : opt.value;
         const optLabel = typeof opt === 'string' ? opt : opt.label;
@@ -649,16 +519,14 @@ function ImageSelectInput({ step, value, onChange }) {
         return (
           <button
             key={i}
-            className={`form-image-option ${value === optValue ? 'selected' : ''} ${focusIdx === i ? 'focused' : ''}`}
+            className={`form-image-option ${value === optValue ? 'selected' : ''}`}
             onClick={() => onChange(optValue)}
           >
             {optImage ? (
               <img src={optImage} alt={optLabel} className="image-option-img" />
             ) : optIcon ? (
               <span className="image-option-icon">{optIcon}</span>
-            ) : (
-              <span className="image-option-icon">{String.fromCharCode(65 + i)}</span>
-            )}
+            ) : null}
             <span className="image-option-label">{optLabel}</span>
           </button>
         );

@@ -8,7 +8,7 @@ import Submissions from './pages/Submissions';
 import Users from './pages/Users';
 import Analytics from './pages/Analytics';
 
-const APP_VERSION = '0.7.0';
+const APP_VERSION = '0.7.1';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
