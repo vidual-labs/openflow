@@ -39,7 +39,7 @@ app.get('*', (req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(200).json({ status: 'OpenFlow API running', version: '0.7.0' });
+    res.status(200).json({ status: 'OpenFlow API running', version: '0.7.1' });
   }
 });
 

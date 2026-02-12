@@ -24,7 +24,17 @@ export default function Dashboard() {
   }
 
   async function deleteForm(id) {
-    if (!confirm('Are you sure you want to delete this form?')) return;
+    const form = forms.find(f => f.id === id);
+    if (!form) return;
+    if (form.published) {
+      const input = prompt(`This form is live. To delete it, type the form name: "${form.title}"`);
+      if (input !== form.title) {
+        if (input !== null) alert('Form name did not match. Deletion cancelled.');
+        return;
+      }
+    } else {
+      if (!confirm('Are you sure you want to delete this form?')) return;
+    }
     await api.deleteForm(id);
     setForms(forms.filter(f => f.id !== id));
   }
