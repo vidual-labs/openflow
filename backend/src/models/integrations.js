@@ -22,7 +22,11 @@ async function runIntegrations(db, formId, formTitle, submissionData, steps) {
           await runEmail(config, formId, formTitle, submissionData, steps);
           break;
         case 'google_sheets':
-          await runGoogleSheets(config, formId, submissionData, steps);
+          if (config.mode === 'apps_script') {
+            await runGoogleSheetsAppsScript(config, formId, formTitle, submissionData, steps);
+          } else {
+            await runGoogleSheets(config, formId, submissionData, steps);
+          }
           break;
       }
       results.push({ id: integration.id, type: integration.type, ok: true });
@@ -108,7 +112,36 @@ async function runEmail(config, formId, formTitle, data, steps) {
 }
 
 // ──────────────────────────────────────────
-// Google Sheets
+// Google Sheets (Simple — via Apps Script)
+// ──────────────────────────────────────────
+
+async function runGoogleSheetsAppsScript(config, formId, formTitle, data, steps) {
+  const { apps_script_url } = config;
+  if (!apps_script_url) throw new Error('Apps Script URL is required');
+
+  const payload = {
+    formId,
+    formTitle,
+    data,
+    fields: (steps || []).map(s => ({ id: s.id, label: s.label || s.question || s.id })),
+    timestamp: new Date().toISOString(),
+  };
+
+  const res = await fetch(apps_script_url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(15000),
+    redirect: 'follow',
+  });
+
+  if (!res.ok) {
+    throw new Error(`Apps Script returned ${res.status}`);
+  }
+}
+
+// ──────────────────────────────────────────
+// Google Sheets (Service Account)
 // ──────────────────────────────────────────
 
 async function runGoogleSheets(config, formId, data, steps) {

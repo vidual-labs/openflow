@@ -41,6 +41,10 @@ export const api = {
   updateUser: (id, data) => request(`/auth/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteUser: (id) => request(`/auth/users/${id}`, { method: 'DELETE' }),
 
+  // Analytics
+  getAnalyticsOverview: (days = 30) => request(`/analytics/overview?days=${days}`),
+  getAnalyticsDetail: (formId, days = 30) => request(`/analytics/${formId}?days=${days}`),
+
   getPublicForm: (slug) => request(`/public/form/${slug}`),
   submitForm: (slug, data) => request(`/public/form/${slug}/submit`, { method: 'POST', body: JSON.stringify({ data }) }),
 };

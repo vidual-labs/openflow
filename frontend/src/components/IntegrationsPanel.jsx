@@ -4,7 +4,8 @@ import { api } from '../api';
 const INTEGRATION_TYPES = [
   { value: 'webhook', label: 'Webhook', icon: '🔗', description: 'Send submission data to any URL' },
   { value: 'email', label: 'Email Notification', icon: '📧', description: 'Send email on each submission' },
-  { value: 'google_sheets', label: 'Google Sheets', icon: '📊', description: 'Append rows to a Google Sheet' },
+  { value: 'google_sheets', label: 'Google Sheets (Simple)', icon: '📊', description: 'Via Google Apps Script — no JSON key needed' },
+  { value: 'google_sheets_sa', label: 'Google Sheets (Service Account)', icon: '📊', description: 'Via service account JSON key' },
 ];
 
 export default function IntegrationsPanel({ formId }) {
@@ -18,12 +19,14 @@ export default function IntegrationsPanel({ formId }) {
   }, [formId]);
 
   async function addIntegration(type) {
+    const actualType = type === 'google_sheets_sa' ? 'google_sheets' : type;
     const defaults = {
       webhook: { url: '', secret: '', method: 'POST' },
       email: { smtp_host: '', smtp_port: 587, smtp_user: '', smtp_pass: '', smtp_secure: false, to: '', from: '', subject: '' },
-      google_sheets: { credentials_json: '', spreadsheet_id: '', sheet_name: 'Sheet1' },
+      google_sheets: { mode: 'apps_script', apps_script_url: '' },
+      google_sheets_sa: { mode: 'service_account', credentials_json: '', spreadsheet_id: '', sheet_name: 'Sheet1' },
     };
-    const { integration } = await api.createIntegration(formId, { type, config: defaults[type] });
+    const { integration } = await api.createIntegration(formId, { type: actualType, config: defaults[type] || defaults[actualType] });
     setIntegrations([integration, ...integrations]);
     setAdding(null);
   }
@@ -195,6 +198,54 @@ function EmailConfig({ config, onChange }) {
 }
 
 function GoogleSheetsConfig({ config, onChange }) {
+  const mode = config.mode || 'service_account';
+
+  if (mode === 'apps_script') {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+        <div className="input-group">
+          <label>Google Apps Script Web App URL</label>
+          <input className="input" value={config.apps_script_url || ''} onChange={e => onChange('apps_script_url', e.target.value)} placeholder="https://script.google.com/macros/s/.../exec" />
+        </div>
+        <div style={{ background: '#F0F4FF', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
+          <strong>Setup (3 steps):</strong>
+          <ol style={{ margin: '8px 0 0 16px', padding: 0 }}>
+            <li>Open your Google Sheet &rarr; Extensions &rarr; Apps Script</li>
+            <li>Replace the code with the script below, click <strong>Deploy &rarr; New deployment &rarr; Web app</strong></li>
+            <li>Set "Who has access" to <strong>Anyone</strong>, then copy the URL here</li>
+          </ol>
+          <details style={{ marginTop: 12 }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Show Apps Script code</summary>
+            <pre style={{ background: '#1a1a2e', color: '#e0e0e0', padding: 12, borderRadius: 6, marginTop: 8, fontSize: 11, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{`function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+
+  // Write headers if first row is empty
+  if (sheet.getLastRow() === 0) {
+    var headers = ['Timestamp'].concat(Object.keys(data.data || {}));
+    sheet.appendRow(headers);
+  }
+
+  // Append the submission row
+  var row = [new Date().toISOString()];
+  var keys = Object.keys(data.data || {});
+  keys.forEach(function(key) {
+    var val = data.data[key];
+    row.push(typeof val === 'object' ? JSON.stringify(val) : val);
+  });
+  sheet.appendRow(row);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ok: true}))
+    .setMimeType(ContentService.MimeType.JSON);
+}`}</pre>
+          </details>
+        </div>
+      </div>
+    );
+  }
+
+  // Service account mode
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
       <div className="input-group" style={{ gridColumn: '1 / -1' }}>

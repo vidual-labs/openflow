@@ -67,4 +67,26 @@ router.post('/form/:slug/submit', async (req, res) => {
   });
 });
 
+// Track analytics event (public, rate limited)
+router.post('/track', (req, res) => {
+  const ip = req.ip || req.connection.remoteAddress;
+  const allowed = checkRateLimit(`track:${ip}`, 100, 60);
+  if (!allowed) return res.status(429).json({ error: 'Rate limited' });
+
+  const { formId, event, sessionId, stepIndex, stepId } = req.body;
+  if (!formId || !event) return res.status(400).json({ error: 'Missing formId or event' });
+
+  const validEvents = ['view', 'start', 'step', 'complete', 'drop'];
+  if (!validEvents.includes(event)) return res.status(400).json({ error: 'Invalid event type' });
+
+  const db = getDb();
+  try {
+    db.prepare(
+      'INSERT INTO analytics_events (form_id, event, session_id, step_index, step_id) VALUES (?, ?, ?, ?, ?)'
+    ).run(formId, event, sessionId || null, stepIndex ?? null, stepId || null);
+  } catch {}
+
+  res.json({ ok: true });
+});
+
 module.exports = router;

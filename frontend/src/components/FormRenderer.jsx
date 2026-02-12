@@ -20,6 +20,31 @@ const FIELD_TYPES = {
   'file-upload': FileUploadInput,
 };
 
+// Generate a unique session ID for analytics
+function getSessionId() {
+  let sid = sessionStorage.getItem('of_sid');
+  if (!sid) {
+    sid = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    sessionStorage.setItem('of_sid', sid);
+  }
+  return sid;
+}
+
+function trackEvent(formId, eventType, meta = {}) {
+  try {
+    const baseUrl = window.__OPENFLOW_BASE_URL__ || '';
+    navigator.sendBeacon?.(
+      `${baseUrl}/api/public/track`,
+      JSON.stringify({ formId, event: eventType, sessionId: getSessionId(), ...meta })
+    ) || fetch(`${baseUrl}/api/public/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ formId, event: eventType, sessionId: getSessionId(), ...meta }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {}
+}
+
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -28,6 +53,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [error, setError] = useState('');
   const [direction, setDirection] = useState('forward');
   const containerRef = useRef(null);
+  const trackedRef = useRef(false);
 
   const allSteps = form.steps || [];
   const theme = form.theme || {};
@@ -132,6 +158,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     try {
       await onSubmit(submitData);
       setSubmitted(true);
+      trackEvent(form.id, 'complete');
       if (window.dataLayer) {
         window.dataLayer.push({
           event: 'openflow_submit',
@@ -151,15 +178,27 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   }
 
-  // GTM step tracking
+  // Track form view on mount
   useEffect(() => {
-    if (window.dataLayer && step) {
-      window.dataLayer.push({
-        event: 'openflow_step',
-        formId: form.id,
-        stepIndex: currentStep,
-        stepId: step.id,
-      });
+    if (!trackedRef.current && form?.id) {
+      trackedRef.current = true;
+      trackEvent(form.id, 'view');
+      trackEvent(form.id, 'start');
+    }
+  }, [form?.id]);
+
+  // GTM step tracking + analytics
+  useEffect(() => {
+    if (step) {
+      trackEvent(form.id, 'step', { stepIndex: currentStep, stepId: step.id });
+      if (window.dataLayer) {
+        window.dataLayer.push({
+          event: 'openflow_step',
+          formId: form.id,
+          stepIndex: currentStep,
+          stepId: step.id,
+        });
+      }
     }
   }, [currentStep]);
 
@@ -319,6 +358,14 @@ function SelectInput({ step, value, onChange }) {
       const prev = selectedIdx <= 0 ? options.length - 1 : selectedIdx - 1;
       const opt = options[prev];
       onChange(typeof opt === 'string' ? opt : opt.value);
+    } else {
+      // A, B, C, D... letter keys to select option
+      const letterIdx = e.key.toUpperCase().charCodeAt(0) - 65;
+      if (letterIdx >= 0 && letterIdx < options.length) {
+        e.preventDefault();
+        const opt = options[letterIdx];
+        onChange(typeof opt === 'string' ? opt : opt.value);
+      }
     }
   }
 
@@ -334,6 +381,7 @@ function SelectInput({ step, value, onChange }) {
           </button>
         );
       })}
+      <p className="option-hint">Press A, B, C... or use arrow keys</p>
     </div>
   );
 }
@@ -362,6 +410,15 @@ function MultiSelectInput({ step, value, onChange }) {
       e.preventDefault();
       const opt = options[focusIdx];
       toggle(typeof opt === 'string' ? opt : opt.value);
+    } else {
+      // A, B, C, D... letter keys to toggle option
+      const letterIdx = e.key.toUpperCase().charCodeAt(0) - 65;
+      if (letterIdx >= 0 && letterIdx < options.length) {
+        e.preventDefault();
+        const opt = options[letterIdx];
+        toggle(typeof opt === 'string' ? opt : opt.value);
+        setFocusIdx(letterIdx);
+      }
     }
   }
 
@@ -377,15 +434,15 @@ function MultiSelectInput({ step, value, onChange }) {
           </button>
         );
       })}
-      <p className="option-hint">Multiple selections allowed &middot; Use arrow keys + space</p>
+      <p className="option-hint">Press A, B, C... to toggle &middot; Arrow keys + space</p>
     </div>
   );
 }
 
 function YesNoInput({ step, value, onChange }) {
   function handleKeyDown(e) {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); onChange('yes'); }
-    else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); onChange('no'); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'y' || e.key === 'Y' || e.key === 'a' || e.key === 'A') { e.preventDefault(); onChange('yes'); }
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'n' || e.key === 'N' || e.key === 'b' || e.key === 'B') { e.preventDefault(); onChange('no'); }
   }
 
   return (
@@ -411,6 +468,13 @@ function RatingInput({ step, value, onChange }) {
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
       e.preventDefault();
       onChange(Math.max(current - 1, 1));
+    } else {
+      // Number keys 1-9 to set rating directly
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= max) {
+        e.preventDefault();
+        onChange(num);
+      }
     }
   }
 
@@ -532,6 +596,15 @@ function ImageSelectInput({ step, value, onChange }) {
       e.stopPropagation();
       const opt = options[focusIdx];
       onChange(typeof opt === 'string' ? opt : opt.value);
+    } else {
+      // A, B, C, D... letter keys to select option
+      const letterIdx = e.key.toUpperCase().charCodeAt(0) - 65;
+      if (letterIdx >= 0 && letterIdx < options.length) {
+        e.preventDefault();
+        setFocusIdx(letterIdx);
+        const opt = options[letterIdx];
+        onChange(typeof opt === 'string' ? opt : opt.value);
+      }
     }
   }
 

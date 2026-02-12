@@ -1,4 +1,4 @@
-# 🌊 OpenFlow
+# 🌊 OpenFlow v0.6.0
 
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 >
@@ -19,15 +19,22 @@
 - **Footer Links** — Add up to 3 links (Privacy Policy, Imprint, Terms) below the form
 - **Theme Customization** — Colors, custom CSS, and branding per form
 - **GDPR-Ready** — Consent checkbox auto-appended to the last step (form-level toggle)
-- **Keyboard Navigation** — Arrow keys for all selection fields
+- **Keyboard Navigation** — Arrow keys + letter keys (A, B, C, D) for all selection fields
 - **File Uploads** — Drag & drop with configurable file types and size limits
 
 ### 📊 Data & Integrations
 - **Webhook Support** — POST/PUT submission data to any URL with optional HMAC signing
 - **📧 Email Notifications** — SMTP-based alerts with beautiful HTML submission tables
-- **📝 Google Sheets** — Auto-append rows to a spreadsheet via service account
+- **📝 Google Sheets (Simple)** — Via Google Apps Script — no service account needed, just paste a URL
+- **📝 Google Sheets (Service Account)** — Auto-append rows via service account for advanced setups
 - **CSV Export** — Download all submissions as CSV
 - **Test Button** — Verify each integration with sample data before going live
+
+### 📈 Analytics Dashboard
+- **Conversion Funnel** — Views → Starts → Completions with conversion rates
+- **Step Drop-off** — See where users abandon the form
+- **Daily Trends** — Visual chart of form activity over time
+- **Per-Form Stats** — Detailed analytics for each form
 
 ### 🔌 Embedding & Tracking
 - **iframe Embed** — Drop forms into any landing page (with auto-resize)
@@ -121,18 +128,18 @@ openflow/
 
 **Question Types:**
 
-| Type | Description | Auto-advance |
-|------|-------------|:---:|
-| 📝 Short Text | Single-line text input | |
-| 📄 Long Text | Multi-line text | |
-| 🔢 Number | Numeric input with min/max | |
-| 📅 Date | Date picker | |
-| ☑️ Single Choice | Choose one option | |
-| ✅ Multiple Choice | Choose multiple options | |
-| 👍 Yes / No | Binary choice | ✓ |
-| ⭐ Rating | Star rating (configurable 3-10) | |
-| 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | ✓ |
-| 📎 File Upload | Drag & drop with configurable types and size limit | |
+| Type | Description | Keyboard | Auto-advance |
+|------|-------------|:--------:|:---:|
+| 📝 Short Text | Single-line text input | | |
+| 📄 Long Text | Multi-line text | | |
+| 🔢 Number | Numeric input with min/max | | |
+| 📅 Date | Date picker | | |
+| ☑️ Single Choice | Choose one option | A, B, C... | |
+| ✅ Multiple Choice | Choose multiple options | A, B, C... | |
+| 👍 Yes / No | Binary choice | Y/N, A/B | ✓ |
+| ⭐ Rating | Star rating (configurable 3-10) | 1-9 | |
+| 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | A, B, C... | ✓ |
+| 📎 File Upload | Drag & drop with configurable types and size limit | | |
 
 **Contact & Data Fields:**
 
@@ -161,13 +168,34 @@ Receive an email with a formatted HTML table of each submission.
 - Full SMTP configuration (host, port, user, password, TLS)
 - Customizable sender, recipient, and subject line
 
-### 📊 Google Sheets
-Auto-append each submission as a new row in a Google Sheet.
-- Uses Google Service Account authentication
+### 📊 Google Sheets (Simple)
+Auto-append submissions via Google Apps Script — **no JSON key needed**.
+1. Open your Google Sheet → Extensions → Apps Script
+2. Paste the provided script, deploy as Web App
+3. Copy the URL into OpenFlow
+
+### 📊 Google Sheets (Service Account)
+Auto-append each submission using a Google Service Account.
 - Auto-creates header row from form field labels
 - Configurable sheet name
 
 > 💡 Each integration has an **Enable/Disable** toggle and a **Test** button to verify your setup with sample data.
+
+---
+
+## 📈 Analytics
+
+OpenFlow tracks form analytics automatically:
+
+| Metric | Description |
+|--------|-------------|
+| **Views** | Unique sessions that loaded the form |
+| **Starts** | Sessions that began filling the form |
+| **Completions** | Sessions that submitted the form |
+| **Conversion Rate** | Completions / Views (%) |
+| **Step Drop-off** | Per-step session count to identify where users leave |
+
+Access analytics from the **Analytics** page in the admin panel.
 
 ---
 
@@ -234,6 +262,7 @@ Also available as a **WPBakery element** and **Gutenberg block**.
 ### Public (no auth)
 - `GET /api/public/form/:slug` — Load published form
 - `POST /api/public/form/:slug/submit` — Submit response
+- `POST /api/public/track` — Track analytics event
 
 ### Admin (auth required)
 - `POST /api/auth/login` — Log in
@@ -250,6 +279,10 @@ Also available as a **WPBakery element** and **Gutenberg block**.
 - `PUT /api/integrations/:formId/:id` — Update integration
 - `DELETE /api/integrations/:formId/:id` — Delete integration
 - `POST /api/integrations/:formId/:id/test` — Test integration
+
+### Analytics (auth required)
+- `GET /api/analytics/overview` — Overview stats for all forms
+- `GET /api/analytics/:formId` — Detailed analytics for a form
 
 ### User Management (admin only)
 - `GET /api/auth/users` — List all users
@@ -278,7 +311,8 @@ Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 - ✅ **Phase 1**: Multi-step forms, field types, Admin UI, GTM, iframe embed, CSV export, WordPress plugin
 - ✅ **Phase 2**: Webhook, email notifications, Google Sheets integration
 - ✅ **Phase 3**: Conditional logic, file uploads, custom CSS per form, multi-user support, landing page header/footer
-- 🔜 **Phase 4**: A/B testing, analytics dashboard, custom domain support
+- ✅ **Phase 4**: Analytics dashboard, simplified Google Sheets, keyboard shortcuts (A/B/C/D keys)
+- 🔜 **Phase 5**: A/B testing, custom domain support, form templates
 
 ---
 
