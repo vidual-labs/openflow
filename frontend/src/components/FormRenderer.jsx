@@ -33,15 +33,17 @@ function getSessionId() {
 function trackEvent(formId, eventType, meta = {}) {
   try {
     const baseUrl = window.__OPENFLOW_BASE_URL__ || '';
-    navigator.sendBeacon?.(
-      `${baseUrl}/api/public/track`,
-      JSON.stringify({ formId, event: eventType, sessionId: getSessionId(), ...meta })
-    ) || fetch(`${baseUrl}/api/public/track`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ formId, event: eventType, sessionId: getSessionId(), ...meta }),
-      keepalive: true,
-    }).catch(() => {});
+    const payload = JSON.stringify({ formId, event: eventType, sessionId: getSessionId(), ...meta });
+    const blob = new Blob([payload], { type: 'application/json' });
+    const sent = navigator.sendBeacon?.(`${baseUrl}/api/public/track`, blob);
+    if (!sent) {
+      fetch(`${baseUrl}/api/public/track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      }).catch(() => {});
+    }
   } catch {}
 }
 
@@ -346,8 +348,12 @@ function DateInput({ step, value, onChange }) {
 function SelectInput({ step, value, onChange }) {
   const options = step.options || [];
   const selectedIdx = options.findIndex(opt => (typeof opt === 'string' ? opt : opt.value) === value);
+  const containerRef = useRef(null);
+
+  useEffect(() => { containerRef.current?.focus(); }, []);
 
   function handleKeyDown(e) {
+    e.stopPropagation();
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
       e.preventDefault();
       const next = (selectedIdx + 1) % options.length;
@@ -358,8 +364,9 @@ function SelectInput({ step, value, onChange }) {
       const prev = selectedIdx <= 0 ? options.length - 1 : selectedIdx - 1;
       const opt = options[prev];
       onChange(typeof opt === 'string' ? opt : opt.value);
+    } else if (e.key === 'Enter') {
+      // let parent handle Enter for next/submit
     } else {
-      // A, B, C, D... letter keys to select option
       const letterIdx = e.key.toUpperCase().charCodeAt(0) - 65;
       if (letterIdx >= 0 && letterIdx < options.length) {
         e.preventDefault();
@@ -370,12 +377,12 @@ function SelectInput({ step, value, onChange }) {
   }
 
   return (
-    <div className="form-options" tabIndex={0} onKeyDown={handleKeyDown}>
+    <div className="form-options" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
       {options.map((opt, i) => {
         const optValue = typeof opt === 'string' ? opt : opt.value;
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
-          <button key={i} className={`form-option ${value === optValue ? 'selected' : ''}`} onClick={() => onChange(optValue)}>
+          <button key={i} className={`form-option ${value === optValue ? 'selected' : ''}`} onClick={() => onChange(optValue)} tabIndex={-1}>
             <span className="option-key">{String.fromCharCode(65 + i)}</span>
             {optLabel}
           </button>
@@ -390,6 +397,9 @@ function MultiSelectInput({ step, value, onChange }) {
   const selected = value || [];
   const options = step.options || [];
   const [focusIdx, setFocusIdx] = useState(0);
+  const containerRef = useRef(null);
+
+  useEffect(() => { containerRef.current?.focus(); }, []);
 
   function toggle(optValue) {
     if (selected.includes(optValue)) {
@@ -400,6 +410,7 @@ function MultiSelectInput({ step, value, onChange }) {
   }
 
   function handleKeyDown(e) {
+    e.stopPropagation();
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
       e.preventDefault();
       setFocusIdx(prev => (prev + 1) % options.length);
@@ -410,8 +421,9 @@ function MultiSelectInput({ step, value, onChange }) {
       e.preventDefault();
       const opt = options[focusIdx];
       toggle(typeof opt === 'string' ? opt : opt.value);
+    } else if (e.key === 'Enter') {
+      // let parent handle
     } else {
-      // A, B, C, D... letter keys to toggle option
       const letterIdx = e.key.toUpperCase().charCodeAt(0) - 65;
       if (letterIdx >= 0 && letterIdx < options.length) {
         e.preventDefault();
@@ -423,12 +435,12 @@ function MultiSelectInput({ step, value, onChange }) {
   }
 
   return (
-    <div className="form-options" tabIndex={0} onKeyDown={handleKeyDown}>
+    <div className="form-options" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
       {options.map((opt, i) => {
         const optValue = typeof opt === 'string' ? opt : opt.value;
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
-          <button key={i} className={`form-option ${selected.includes(optValue) ? 'selected' : ''} ${focusIdx === i ? 'focused' : ''}`} onClick={() => toggle(optValue)}>
+          <button key={i} className={`form-option ${selected.includes(optValue) ? 'selected' : ''} ${focusIdx === i ? 'focused' : ''}`} onClick={() => toggle(optValue)} tabIndex={-1}>
             <span className="option-key">{selected.includes(optValue) ? '✓' : String.fromCharCode(65 + i)}</span>
             {optLabel}
           </button>
@@ -440,17 +452,23 @@ function MultiSelectInput({ step, value, onChange }) {
 }
 
 function YesNoInput({ step, value, onChange }) {
+  const containerRef = useRef(null);
+
+  useEffect(() => { containerRef.current?.focus(); }, []);
+
   function handleKeyDown(e) {
+    e.stopPropagation();
     if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'y' || e.key === 'Y' || e.key === 'a' || e.key === 'A') { e.preventDefault(); onChange('yes'); }
     else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'n' || e.key === 'N' || e.key === 'b' || e.key === 'B') { e.preventDefault(); onChange('no'); }
+    // Enter: let parent handle
   }
 
   return (
-    <div className="form-options form-yesno" tabIndex={0} onKeyDown={handleKeyDown}>
-      <button className={`form-option ${value === 'yes' ? 'selected' : ''}`} onClick={() => onChange('yes')}>
+    <div className="form-options form-yesno" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
+      <button className={`form-option ${value === 'yes' ? 'selected' : ''}`} onClick={() => onChange('yes')} tabIndex={-1}>
         <span className="option-key">Y</span> Yes
       </button>
-      <button className={`form-option ${value === 'no' ? 'selected' : ''}`} onClick={() => onChange('no')}>
+      <button className={`form-option ${value === 'no' ? 'selected' : ''}`} onClick={() => onChange('no')} tabIndex={-1}>
         <span className="option-key">N</span> No
       </button>
     </div>
@@ -459,8 +477,12 @@ function YesNoInput({ step, value, onChange }) {
 
 function RatingInput({ step, value, onChange }) {
   const max = step.max || 5;
+  const containerRef = useRef(null);
+
+  useEffect(() => { containerRef.current?.focus(); }, []);
 
   function handleKeyDown(e) {
+    e.stopPropagation();
     const current = value || 0;
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
       e.preventDefault();
@@ -468,8 +490,9 @@ function RatingInput({ step, value, onChange }) {
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
       e.preventDefault();
       onChange(Math.max(current - 1, 1));
+    } else if (e.key === 'Enter') {
+      // let parent handle
     } else {
-      // Number keys 1-9 to set rating directly
       const num = parseInt(e.key);
       if (num >= 1 && num <= max) {
         e.preventDefault();
@@ -479,7 +502,7 @@ function RatingInput({ step, value, onChange }) {
   }
 
   return (
-    <div className="form-rating" tabIndex={0} onKeyDown={handleKeyDown}>
+    <div className="form-rating" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
       {Array.from({ length: max }, (_, i) => i + 1).map(n => (
         <button key={n} className={`rating-star ${value >= n ? 'active' : ''}`} onClick={() => onChange(n)}>
           {value >= n ? '★' : '☆'}
@@ -576,9 +599,17 @@ function ImageSelectInput({ step, value, onChange }) {
   const options = step.options || [];
   const selectedIdx = options.findIndex(opt => (typeof opt === 'string' ? opt : opt.value) === value);
   const [focusIdx, setFocusIdx] = useState(selectedIdx >= 0 ? selectedIdx : 0);
+  const containerRef = useRef(null);
+
+  useEffect(() => { containerRef.current?.focus(); }, []);
 
   function handleKeyDown(e) {
-    const cols = Math.min(options.length, 4); // approximate grid columns
+    e.stopPropagation();
+    const cols = Math.min(options.length, 4);
+    if (e.key === 'Enter') {
+      // let parent handle for next/submit
+      return;
+    }
     if (e.key === 'ArrowRight') {
       e.preventDefault();
       setFocusIdx(prev => Math.min(prev + 1, options.length - 1));
@@ -609,7 +640,7 @@ function ImageSelectInput({ step, value, onChange }) {
   }
 
   return (
-    <div className="form-image-grid" tabIndex={0} onKeyDown={handleKeyDown}>
+    <div className="form-image-grid" tabIndex={0} onKeyDown={handleKeyDown} ref={containerRef}>
       {options.map((opt, i) => {
         const optValue = typeof opt === 'string' ? opt : opt.value;
         const optLabel = typeof opt === 'string' ? opt : opt.label;

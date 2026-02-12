@@ -139,7 +139,7 @@ export default function FormEditor() {
             <input
               value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
-              style={{ fontSize: 24, fontWeight: 700, border: 'none', background: 'none', padding: 0, outline: 'none', width: 400 }}
+              style={{ fontSize: 24, fontWeight: 700, border: 'none', background: 'none', padding: 0, outline: 'none', width: 400, color: 'var(--text)' }}
             />
             <span className={`badge ${form.published ? 'badge-published' : 'badge-draft'}`}>
               {form.published ? 'Live' : 'Draft'}
@@ -148,6 +148,17 @@ export default function FormEditor() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {saved && <span style={{ color: '#00B894', fontSize: 13 }}>Saved!</span>}
+          {form.published ? (
+            <a
+              href={`${baseUrl}/embed/${form.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary"
+              style={{ textDecoration: 'none' }}
+            >
+              Open Preview &#8599;
+            </a>
+          ) : null}
           <button className="btn btn-secondary" onClick={() => save({ published: form.published ? 0 : 1 })}>
             {form.published ? 'Unpublish' : 'Publish'}
           </button>
