@@ -98,6 +98,8 @@ router.delete('/:id', (req, res) => {
   const db = getDb();
   const existing = db.prepare('SELECT id FROM forms WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!existing) return res.status(404).json({ error: 'Form not found' });
+  db.prepare('DELETE FROM analytics_events WHERE form_id = ?').run(req.params.id);
+  db.prepare('DELETE FROM integrations WHERE form_id = ?').run(req.params.id);
   db.prepare('DELETE FROM submissions WHERE form_id = ?').run(req.params.id);
   db.prepare('DELETE FROM forms WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
