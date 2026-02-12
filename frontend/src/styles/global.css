@@ -16,6 +16,32 @@
   --danger: #E17055;
   --radius: 12px;
   --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --sidebar-bg: #2D3436;
+  --input-bg: transparent;
+}
+
+[data-theme="dark"] {
+  --bg: #1a1a2e;
+  --card: #232342;
+  --text: #E0E0E0;
+  --text-light: #A0A0B0;
+  --border: #3a3a5c;
+  --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --sidebar-bg: #16162a;
+  --input-bg: #2a2a4a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1a1a2e;
+    --card: #232342;
+    --text: #E0E0E0;
+    --text-light: #A0A0B0;
+    --border: #3a3a5c;
+    --shadow: 0 2px 12px rgba(0,0,0,0.3);
+    --sidebar-bg: #16162a;
+    --input-bg: #2a2a4a;
+  }
 }
 
 body {
@@ -44,7 +70,7 @@ input, select, textarea {
 
 .admin-sidebar {
   width: 240px;
-  background: var(--text);
+  background: var(--sidebar-bg);
   color: white;
   padding: 24px 16px;
   display: flex;
@@ -137,7 +163,33 @@ input, select, textarea {
 }
 
 .btn-secondary:hover {
-  background: #c8d6db;
+  background: var(--border);
+  opacity: 0.8;
+}
+
+/* Theme toggle */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.theme-toggle:hover {
+  color: rgba(255,255,255,0.8);
+}
+
+.theme-toggle-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
 }
 
 .btn-danger {
@@ -159,6 +211,8 @@ input, select, textarea {
   font-size: 16px;
   transition: border-color 0.2s;
   outline: none;
+  background: var(--input-bg);
+  color: var(--text);
 }
 
 .input:focus {
