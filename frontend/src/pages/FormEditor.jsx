@@ -15,6 +15,7 @@ const FIELD_TYPES = [
   { value: 'yes-no', label: 'Yes / No', icon: '👍', defaults: { question: 'Is this correct?', label: 'Confirmation', placeholder: '' } },
   { value: 'rating', label: 'Rating', icon: '⭐', defaults: { question: 'How would you rate this?', label: 'Rating', placeholder: '' } },
   { value: 'image-select', label: 'Image / Icon Select', icon: '🖼️', defaults: { question: 'Choose an option', label: 'Selection', placeholder: '', options: [{ value: 'opt1', label: 'Option 1', icon: '🏠' }, { value: 'opt2', label: 'Option 2', icon: '🏢' }, { value: 'opt3', label: 'Option 3', icon: '🏗️' }] } },
+  { value: 'file-upload', label: 'File Upload', icon: '📎', defaults: { question: 'Upload a file', label: 'File', placeholder: '', accept: '.pdf,.jpg,.png,.doc,.docx', maxSizeMB: 10 } },
   // --- Contact & Data Fields ---
   { value: 'email', label: 'Email Address', icon: '📧', defaults: { question: 'What is your email address?', label: 'Email', placeholder: 'name@example.com' } },
   { value: 'phone', label: 'Phone Number', icon: '📞', defaults: { question: 'What is your phone number?', label: 'Phone', placeholder: '+1 234 567890' } },
@@ -186,6 +187,7 @@ export default function FormEditor() {
               step={step}
               index={i}
               total={form.steps.length}
+              allSteps={form.steps}
               expanded={expandedStep === i}
               onToggle={() => setExpandedStep(expandedStep === i ? null : i)}
               onChange={(changes) => updateStep(i, changes)}
@@ -221,28 +223,102 @@ export default function FormEditor() {
 
       {/* Theme Tab */}
       {activeTab === 'theme' && (
-        <div className="card">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div className="input-group">
-              <label>Primary Color</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input type="color" value={form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, primaryColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
-                <input className="input" value={form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, primaryColor: e.target.value } })} />
+        <div>
+          {/* Colors */}
+          <div className="card">
+            <h3 style={{ marginBottom: 16 }}>Colors</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+              <div className="input-group">
+                <label>Primary Color</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="color" value={form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, primaryColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
+                  <input className="input" value={form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, primaryColor: e.target.value } })} />
+                </div>
+              </div>
+              <div className="input-group">
+                <label>Background Color</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="color" value={form.theme?.backgroundColor || '#FFFFFF'} onChange={e => setForm({ ...form, theme: { ...form.theme, backgroundColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
+                  <input className="input" value={form.theme?.backgroundColor || '#FFFFFF'} onChange={e => setForm({ ...form, theme: { ...form.theme, backgroundColor: e.target.value } })} />
+                </div>
+              </div>
+              <div className="input-group">
+                <label>Text Color</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="color" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
+                  <input className="input" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Header / Landing Page */}
+          <div className="card">
+            <h3 style={{ marginBottom: 4 }}>Header / Landing Page</h3>
+            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
+              Add a logo and tagline on top of your form to make it work as a standalone landing page.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="input-group">
+                <label>Logo URL</label>
+                <input className="input" value={form.theme?.logoUrl || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, logoUrl: e.target.value } })} placeholder="https://example.com/logo.png" />
+                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Recommended: max height 48px, PNG/SVG with transparent background</span>
+              </div>
+              <div className="input-group">
+                <label>Logo Position</label>
+                <select className="input" value={form.theme?.logoPosition || 'center'} onChange={e => setForm({ ...form, theme: { ...form.theme, logoPosition: e.target.value } })}>
+                  <option value="left">Left</option>
+                  <option value="center">Center</option>
+                </select>
               </div>
             </div>
             <div className="input-group">
-              <label>Background Color</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input type="color" value={form.theme?.backgroundColor || '#FFFFFF'} onChange={e => setForm({ ...form, theme: { ...form.theme, backgroundColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
-                <input className="input" value={form.theme?.backgroundColor || '#FFFFFF'} onChange={e => setForm({ ...form, theme: { ...form.theme, backgroundColor: e.target.value } })} />
-              </div>
+              <label>Headline</label>
+              <input className="input" value={form.theme?.headline || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, headline: e.target.value } })} placeholder="e.g. Get your free quote in 2 minutes" />
             </div>
             <div className="input-group">
-              <label>Text Color</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input type="color" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
-                <input className="input" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} />
+              <label>Subline (optional)</label>
+              <input className="input" value={form.theme?.subline || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, subline: e.target.value } })} placeholder="e.g. Answer a few quick questions and we'll get back to you." />
+            </div>
+            {/* Preview */}
+            {(form.theme?.logoUrl || form.theme?.headline) && (
+              <div style={{ marginTop: 12, padding: 20, background: '#f8f9fa', borderRadius: 10, textAlign: form.theme?.logoPosition === 'left' ? 'left' : 'center' }}>
+                <span style={{ fontSize: 11, color: '#999', display: 'block', marginBottom: 8 }}>Preview:</span>
+                {form.theme?.logoUrl && <img src={form.theme.logoUrl} alt="Logo" style={{ maxHeight: 48, marginBottom: 8 }} />}
+                {form.theme?.headline && <div style={{ fontSize: 18, fontWeight: 700, color: '#2D3436' }}>{form.theme.headline}</div>}
+                {form.theme?.subline && <div style={{ fontSize: 14, color: '#636E72', marginTop: 4 }}>{form.theme.subline}</div>}
               </div>
+            )}
+          </div>
+
+          {/* Footer Links */}
+          <div className="card">
+            <h3 style={{ marginBottom: 4 }}>Footer Links</h3>
+            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
+              Add up to 3 links below the form (e.g. Privacy Policy, Imprint, Terms).
+            </p>
+            <FooterLinksEditor
+              links={form.theme?.footerLinks || []}
+              onChange={links => setForm({ ...form, theme: { ...form.theme, footerLinks: links } })}
+            />
+          </div>
+
+          {/* Custom CSS */}
+          <div className="card">
+            <h3 style={{ marginBottom: 4 }}>Custom CSS</h3>
+            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
+              Add custom CSS to further customize the form appearance. Applied inside the form container.
+            </p>
+            <div className="input-group">
+              <label>CSS</label>
+              <textarea
+                className="input"
+                rows={6}
+                value={form.theme?.customCss || ''}
+                onChange={e => setForm({ ...form, theme: { ...form.theme, customCss: e.target.value } })}
+                placeholder={`.form-renderer { /* your styles */ }\n.form-btn { background: #ff6600; }`}
+                style={{ fontFamily: 'monospace', fontSize: 13 }}
+              />
             </div>
           </div>
         </div>
@@ -354,7 +430,7 @@ window.addEventListener('message', function(e) {
 /* ===========================
    StepEditor - Collapsible question card
    =========================== */
-function StepEditor({ step, index, total, expanded, onToggle, onChange, onChangeType, onMove, onRemove }) {
+function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange, onChangeType, onMove, onRemove }) {
   const fieldDef = FIELD_TYPE_MAP[step.type];
 
   return (
@@ -457,6 +533,21 @@ function StepEditor({ step, index, total, expanded, onToggle, onChange, onChange
             />
           )}
 
+          {/* File upload config */}
+          {step.type === 'file-upload' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+              <div className="input-group">
+                <label>Accepted File Types</label>
+                <input className="input" value={step.accept || '.pdf,.jpg,.png,.doc,.docx'} onChange={e => onChange({ accept: e.target.value })} placeholder=".pdf,.jpg,.png" />
+                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Comma-separated extensions</span>
+              </div>
+              <div className="input-group">
+                <label>Max File Size (MB)</label>
+                <input className="input" type="number" min={1} max={50} value={step.maxSizeMB || 10} onChange={e => onChange({ maxSizeMB: parseInt(e.target.value) || 10 })} style={{ width: 100 }} />
+              </div>
+            </div>
+          )}
+
           {/* Address sub-fields config */}
           {step.type === 'address' && (
             <div style={{ marginTop: 12, padding: 16, background: '#f8f9fa', borderRadius: 10 }}>
@@ -492,10 +583,20 @@ function StepEditor({ step, index, total, expanded, onToggle, onChange, onChange
             </div>
           )}
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, fontSize: 14 }}>
-            <input type="checkbox" checked={step.required || false} onChange={e => onChange({ required: e.target.checked })} />
-            Required
-          </label>
+          <div style={{ display: 'flex', gap: 24, marginTop: 16 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+              <input type="checkbox" checked={step.required || false} onChange={e => onChange({ required: e.target.checked })} />
+              Required
+            </label>
+          </div>
+
+          {/* Conditional Logic */}
+          <ConditionEditor
+            condition={step.condition}
+            allSteps={allSteps}
+            currentStepId={step.id}
+            onChange={condition => onChange({ condition })}
+          />
         </div>
       )}
     </div>
@@ -586,8 +687,9 @@ function ImageSelectEditor({ options, onChange }) {
                 className="input"
                 value={optObj.image || ''}
                 onChange={e => updateOption(i, { image: e.target.value, icon: e.target.value ? '' : optObj.icon })}
-                placeholder="Image URL (optional)"
-                style={{ fontSize: 12, padding: '8px 10px', width: 160 }}
+                placeholder="Image URL (1:1, min 200x200)"
+                title="Recommended: square image (1:1 ratio), minimum 200x200px. PNG, JPG, SVG or WebP."
+                style={{ fontSize: 12, padding: '8px 10px', width: 200 }}
               />
 
               {/* Controls */}
@@ -621,6 +723,91 @@ function ImageSelectEditor({ options, onChange }) {
       >
         + Add Option
       </button>
+    </div>
+  );
+}
+
+/* ===========================
+   ConditionEditor - Show/hide step based on previous answer
+   =========================== */
+function ConditionEditor({ condition, allSteps, currentStepId, onChange }) {
+  const enabled = !!condition;
+  const previousSteps = allSteps.filter(s => s.id !== currentStepId);
+
+  function toggle() {
+    if (enabled) {
+      onChange(null);
+    } else {
+      onChange({ field: previousSteps[0]?.id || '', op: 'equals', value: '' });
+    }
+  }
+
+  if (previousSteps.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 16, padding: 14, background: '#fafafa', borderRadius: 10, border: '1px solid #eee' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+        <input type="checkbox" checked={enabled} onChange={toggle} />
+        Conditional Logic
+      </label>
+      {enabled && condition && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, color: '#636E72' }}>Show this step only if</span>
+          <select className="input" value={condition.field || ''} onChange={e => onChange({ ...condition, field: e.target.value })} style={{ width: 'auto', minWidth: 140, padding: '6px 10px', fontSize: 13 }}>
+            <option value="">-- Select field --</option>
+            {previousSteps.map(s => (
+              <option key={s.id} value={s.id}>{s.label || s.id}</option>
+            ))}
+          </select>
+          <select className="input" value={condition.op || 'equals'} onChange={e => onChange({ ...condition, op: e.target.value })} style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }}>
+            <option value="equals">equals</option>
+            <option value="not_equals">does not equal</option>
+            <option value="contains">contains</option>
+            <option value="is_set">is answered</option>
+            <option value="is_not_set">is not answered</option>
+          </select>
+          {!['is_set', 'is_not_set'].includes(condition.op) && (
+            <input className="input" value={condition.value || ''} onChange={e => onChange({ ...condition, value: e.target.value })} placeholder="Value" style={{ width: 'auto', minWidth: 120, padding: '6px 10px', fontSize: 13 }} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===========================
+   FooterLinksEditor - Max 3 footer links
+   =========================== */
+function FooterLinksEditor({ links, onChange }) {
+  function updateLink(index, changes) {
+    const updated = [...links];
+    updated[index] = { ...updated[index], ...changes };
+    onChange(updated);
+  }
+
+  function addLink() {
+    if (links.length >= 3) return;
+    onChange([...links, { title: '', url: '' }]);
+  }
+
+  function removeLink(index) {
+    onChange(links.filter((_, i) => i !== index));
+  }
+
+  return (
+    <div>
+      {links.map((link, i) => (
+        <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+          <input className="input" value={link.title || ''} onChange={e => updateLink(i, { title: e.target.value })} placeholder="Link title" style={{ flex: 1 }} />
+          <input className="input" value={link.url || ''} onChange={e => updateLink(i, { url: e.target.value })} placeholder="https://..." style={{ flex: 2 }} />
+          <button className="btn btn-sm btn-danger" onClick={() => removeLink(i)}>x</button>
+        </div>
+      ))}
+      {links.length < 3 && (
+        <button className="btn btn-secondary btn-sm" onClick={addLink} style={{ marginTop: 4 }}>
+          + Add Link
+        </button>
+      )}
     </div>
   );
 }

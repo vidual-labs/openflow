@@ -17,6 +17,7 @@ const FIELD_TYPES = {
   contact: AddressInput, // backward compat
   consent: ConsentInput, // backward compat for old forms
   'image-select': ImageSelectInput,
+  'file-upload': FileUploadInput,
 };
 
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
@@ -28,10 +29,29 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [direction, setDirection] = useState('forward');
   const containerRef = useRef(null);
 
-  const steps = form.steps || [];
+  const allSteps = form.steps || [];
+  const theme = form.theme || {};
+
+  // Conditional logic: filter steps based on answers
+  const steps = allSteps.filter(s => {
+    if (!s.condition) return true;
+    const { field, op, value } = s.condition;
+    if (!field) return true;
+    const ans = answers[field];
+    if (ans === undefined || ans === null) return true; // show if answer not given yet
+    const ansStr = String(ans);
+    switch (op) {
+      case 'equals': return ansStr === value;
+      case 'not_equals': return ansStr !== value;
+      case 'contains': return ansStr.toLowerCase().includes((value || '').toLowerCase());
+      case 'is_set': return ans !== '' && ans !== false;
+      case 'is_not_set': return ans === '' || ans === false || ans === undefined;
+      default: return true;
+    }
+  });
+
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
   const step = steps[currentStep];
-  const theme = form.theme || {};
   const endScreen = form.end_screen || {};
   const isLastStep = currentStep === steps.length - 1;
   const consentRequired = !!endScreen.consentEnabled;
@@ -174,8 +194,22 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const FieldComponent = FIELD_TYPES[step.type] || TextInput;
 
+  const footerLinks = (theme.footerLinks || []).filter(l => l.title && l.url);
+
   return (
     <div className={`form-renderer ${embedded ? 'embedded' : ''}`} style={themeVars} onKeyDown={handleKeyDown} ref={containerRef}>
+      {/* Custom CSS */}
+      {theme.customCss && <style>{theme.customCss}</style>}
+
+      {/* Header / Landing Page */}
+      {(theme.logoUrl || theme.headline) && (
+        <div className="form-header" style={{ textAlign: theme.logoPosition === 'left' ? 'left' : 'center' }}>
+          {theme.logoUrl && <img src={theme.logoUrl} alt="" className="form-logo" />}
+          {theme.headline && <h1 className="form-headline">{theme.headline}</h1>}
+          {theme.subline && <p className="form-subline">{theme.subline}</p>}
+        </div>
+      )}
+
       <div className="form-progress">
         <div className="form-progress-bar" style={{ width: `${progress}%` }} />
       </div>
@@ -215,6 +249,17 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
           {isLastStep ? 'Submit' : 'Next'} &#8594;
         </button>
       </div>
+
+      {/* Footer Links */}
+      {footerLinks.length > 0 && (
+        <div className="form-footer">
+          {footerLinks.map((link, i) => (
+            <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="form-footer-link">
+              {link.title}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -411,6 +456,55 @@ function ConsentInput({ step, value, onChange }) {
       <input type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} />
       <span className="consent-text">{step.consentText || 'I agree to the privacy policy and terms of service.'}</span>
     </label>
+  );
+}
+
+function FileUploadInput({ step, value, onChange }) {
+  const fileRef = useRef();
+  const maxSize = (step.maxSizeMB || 10) * 1024 * 1024;
+  const [fileName, setFileName] = useState(value?.name || '');
+  const [error, setError] = useState('');
+
+  function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError('');
+    if (file.size > maxSize) {
+      setError(`File too large (max ${step.maxSizeMB || 10} MB)`);
+      return;
+    }
+    setFileName(file.name);
+    // Convert to base64 for storage
+    const reader = new FileReader();
+    reader.onload = () => {
+      onChange({ name: file.name, type: file.type, size: file.size, data: reader.result });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div className="form-file-upload">
+      <div
+        className={`file-dropzone ${value ? 'has-file' : ''}`}
+        onClick={() => fileRef.current?.click()}
+      >
+        {value ? (
+          <>
+            <span className="file-icon">&#128206;</span>
+            <span className="file-name">{fileName}</span>
+            <span className="file-size">({(value.size / 1024).toFixed(0)} KB)</span>
+          </>
+        ) : (
+          <>
+            <span className="file-icon">&#128193;</span>
+            <span>Click to upload or drag & drop</span>
+            <span className="file-hint">{step.accept || '.pdf,.jpg,.png'} &middot; Max {step.maxSizeMB || 10} MB</span>
+          </>
+        )}
+      </div>
+      <input ref={fileRef} type="file" accept={step.accept || '*'} onChange={handleFile} style={{ display: 'none' }} />
+      {error && <p className="step-error" style={{ marginTop: 8 }}>{error}</p>}
+    </div>
   );
 }
 

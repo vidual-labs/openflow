@@ -35,6 +35,12 @@ export const api = {
   deleteIntegration: (formId, id) => request(`/integrations/${formId}/${id}`, { method: 'DELETE' }),
   testIntegration: (formId, id) => request(`/integrations/${formId}/${id}/test`, { method: 'POST' }),
 
+  // User management (admin)
+  getUsers: () => request('/auth/users'),
+  createUser: (data) => request('/auth/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser: (id, data) => request(`/auth/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteUser: (id) => request(`/auth/users/${id}`, { method: 'DELETE' }),
+
   getPublicForm: (slug) => request(`/public/form/${slug}`),
   submitForm: (slug, data) => request(`/public/form/${slug}/submit`, { method: 'POST', body: JSON.stringify({ data }) }),
 };

@@ -10,12 +10,17 @@
 
 ### 🎯 Form Builder
 - **Multi-Step Forms** — Typeform-style one-question-at-a-time experience with smooth animations
-- **14 Field Types** — Short Text, Long Text, Number, Date, Single Choice, Multiple Choice, Yes/No, Rating, Image/Icon Select, Email, Phone, Website URL, Address, Consent/GDPR
+- **15 Field Types** — Short Text, Long Text, Number, Date, Single Choice, Multiple Choice, Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Address, Consent/GDPR
+- **Conditional Logic** — Show/hide steps based on previous answers (equals, contains, is set, etc.)
 - **Smart Defaults** — Selecting a field type auto-fills question, label, and placeholder
 - **Visual Editor** — Collapsible question cards, reorder, visual field type picker with icons
 - **Emoji/Icon Picker** — Built-in category-based emoji selector for Image/Icon Select fields
-- **Theme Customization** — Colors and branding per form
-- **GDPR-Ready** — Built-in consent checkbox field with configurable text
+- **Landing Page Mode** — Add logo, headline, and subline on top of the form
+- **Footer Links** — Add up to 3 links (Privacy Policy, Imprint, Terms) below the form
+- **Theme Customization** — Colors, custom CSS, and branding per form
+- **GDPR-Ready** — Consent checkbox auto-appended to the last step (form-level toggle)
+- **Keyboard Navigation** — Arrow keys for all selection fields
+- **File Uploads** — Drag & drop with configurable file types and size limits
 
 ### 📊 Data & Integrations
 - **Webhook Support** — POST/PUT submission data to any URL with optional HMAC signing
@@ -33,6 +38,7 @@
 - **🐳 Docker** — One command to start (`docker compose up -d`)
 - **SQLite** — Zero-config database, no external DB needed
 - **🛡️ Rate Limiting** — Built-in in-memory spam protection
+- **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
 - **Responsive** — Optimized for mobile and desktop
 
 ---
@@ -125,7 +131,8 @@ openflow/
 | ✅ Multiple Choice | Choose multiple options | |
 | 👍 Yes / No | Binary choice | ✓ |
 | ⭐ Rating | Star rating (configurable 3-10) | |
-| 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs | ✓ |
+| 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | ✓ |
+| 📎 File Upload | Drag & drop with configurable types and size limit | |
 
 **Contact & Data Fields:**
 
@@ -244,6 +251,12 @@ Also available as a **WPBakery element** and **Gutenberg block**.
 - `DELETE /api/integrations/:formId/:id` — Delete integration
 - `POST /api/integrations/:formId/:id/test` — Test integration
 
+### User Management (admin only)
+- `GET /api/auth/users` — List all users
+- `POST /api/auth/users` — Create/invite user
+- `PUT /api/auth/users/:id` — Update user role/password
+- `DELETE /api/auth/users/:id` — Delete user
+
 ---
 
 ## 🧑‍💻 Development
@@ -262,9 +275,10 @@ Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 
 ## 🗺️ Roadmap
 
-- ✅ **Phase 1**: Multi-step forms, 14 field types, Admin UI, GTM, iframe embed, CSV export, WordPress plugin
+- ✅ **Phase 1**: Multi-step forms, field types, Admin UI, GTM, iframe embed, CSV export, WordPress plugin
 - ✅ **Phase 2**: Webhook, email notifications, Google Sheets integration
-- 🔜 **Phase 3**: Conditional logic, file uploads, custom CSS per form, multi-user support
+- ✅ **Phase 3**: Conditional logic, file uploads, custom CSS per form, multi-user support, landing page header/footer
+- 🔜 **Phase 4**: A/B testing, analytics dashboard, custom domain support
 
 ---
 
