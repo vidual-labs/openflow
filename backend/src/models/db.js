@@ -59,6 +59,21 @@ function initDb() {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (form_id) REFERENCES forms(id)
     );
+
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      form_id TEXT NOT NULL,
+      event TEXT NOT NULL,
+      session_id TEXT,
+      step_index INTEGER,
+      step_id TEXT,
+      metadata TEXT DEFAULT '{}',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (form_id) REFERENCES forms(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_analytics_form ON analytics_events(form_id, event, created_at);
+    CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(form_id, session_id);
   `);
 
   // Migrate: add role column if missing (existing DBs)

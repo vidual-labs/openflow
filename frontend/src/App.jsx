@@ -6,6 +6,9 @@ import Dashboard from './pages/Dashboard';
 import FormEditor from './pages/FormEditor';
 import Submissions from './pages/Submissions';
 import Users from './pages/Users';
+import Analytics from './pages/Analytics';
+
+const APP_VERSION = '0.6.0';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -36,6 +39,7 @@ export default function App() {
         <h1><span className="logo-icon">&#9830;</span>OpenFlow</h1>
         <nav>
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
+          <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>Analytics</Link>
           {isAdmin && <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>Users</Link>}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
@@ -43,6 +47,9 @@ export default function App() {
           <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 13, padding: '8px 12px', cursor: 'pointer' }}>
             Log out
           </button>
+          <a href="https://github.com/vidual-labs/openflow" target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '8px 12px', textDecoration: 'none' }}>
+            v{APP_VERSION} &middot; GitHub
+          </a>
         </div>
       </aside>
       <main className="admin-main">
@@ -50,6 +57,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/forms/:id" element={<FormEditor />} />
           <Route path="/forms/:id/submissions" element={<Submissions />} />
+          <Route path="/analytics" element={<Analytics />} />
           {isAdmin && <Route path="/users" element={<Users />} />}
         </Routes>
       </main>

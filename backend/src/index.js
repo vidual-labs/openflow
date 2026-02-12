@@ -8,6 +8,7 @@ const formRoutes = require('./routes/forms');
 const submissionRoutes = require('./routes/submissions');
 const publicRoutes = require('./routes/public');
 const integrationRoutes = require('./routes/integrations');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.use('/api/forms', formRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // API 404 handler (must come before static file serving)
 app.all('/api/*', (req, res) => {
@@ -37,7 +39,7 @@ app.get('*', (req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(200).json({ status: 'OpenFlow API running', version: '1.0.0' });
+    res.status(200).json({ status: 'OpenFlow API running', version: '0.6.0' });
   }
 });
 
