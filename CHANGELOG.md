@@ -2,6 +2,21 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.7.2] - 2026-02-13
+
+### Added
+- **Animated Backgrounds** — 4 pure-CSS motion presets: Waves, Bubbles, Aurora, Geometric. Uses primary + accent color.
+- **Button Position** — New theme option to place the "Next" button in the footer bar (default) or inline below the input field
+- **Enter Key Hint** — Optional "press Enter ↵" hint displayed next to the Next button (toggle in Design tab)
+- **Accent Color** — New color picker for the secondary color used in animated backgrounds (auto-derived if empty)
+- **Font Family Picker** — Choose from popular web fonts (Inter, Space Grotesk, DM Sans, Plus Jakarta Sans, Georgia, Courier New)
+
+### Changed
+- **Design tab redesign** — Restructured with icon headers, descriptions, and visual card selectors (inspired by Typeform/Formbricks)
+- Form layout uses proper flex-flow instead of fixed positioning — content centers naturally between header and nav
+- Footer links now render above the navigation bar so controls are always the bottom-most row
+- Progress bar uses absolute positioning (within container) instead of fixed
+
 ## [0.7.1] - 2026-02-12
 
 ### Fixed
