@@ -9,9 +9,6 @@
   overflow: hidden;
 }
 
-.form-renderer.embedded {
-  height: 100%;
-}
 
 /* Header / Landing Page */
 .form-header {
