@@ -237,38 +237,170 @@ export default function FormEditor() {
         <div>
           {/* Colors */}
           <div className="card">
-            <h3 style={{ marginBottom: 16 }}>Colors</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>🎨</span>
+              <div>
+                <h3 style={{ margin: 0 }}>Colors</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Define the look and feel of your form.</p>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
               <div className="input-group">
                 <label>Primary Color</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="color" value={form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, primaryColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
+                  <input type="color" value={form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, primaryColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer', borderRadius: 8 }} />
                   <input className="input" value={form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, primaryColor: e.target.value } })} />
                 </div>
               </div>
               <div className="input-group">
+                <label>Accent Color</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input type="color" value={form.theme?.accentColor || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, accentColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer', borderRadius: 8 }} />
+                  <input className="input" value={form.theme?.accentColor || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, accentColor: e.target.value } })} placeholder="Auto" />
+                </div>
+                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Used for animated backgrounds. Auto-derived if empty.</span>
+              </div>
+              <div className="input-group">
                 <label>Background Color</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="color" value={form.theme?.backgroundColor || '#FFFFFF'} onChange={e => setForm({ ...form, theme: { ...form.theme, backgroundColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
+                  <input type="color" value={form.theme?.backgroundColor || '#FFFFFF'} onChange={e => setForm({ ...form, theme: { ...form.theme, backgroundColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer', borderRadius: 8 }} />
                   <input className="input" value={form.theme?.backgroundColor || '#FFFFFF'} onChange={e => setForm({ ...form, theme: { ...form.theme, backgroundColor: e.target.value } })} />
                 </div>
               </div>
               <div className="input-group">
                 <label>Text Color</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="color" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer' }} />
+                  <input type="color" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer', borderRadius: 8 }} />
                   <input className="input" value={form.theme?.textColor || '#2D3436'} onChange={e => setForm({ ...form, theme: { ...form.theme, textColor: e.target.value } })} />
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Animated Background */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>✨</span>
+              <div>
+                <h3 style={{ margin: 0 }}>Animated Background</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Add subtle motion to make your form feel alive. Uses primary + accent colors.</p>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+              {[
+                { value: 'none', label: 'None', preview: '⊘' },
+                { value: 'waves', label: 'Waves', preview: '🌊' },
+                { value: 'bubbles', label: 'Bubbles', preview: '🫧' },
+                { value: 'aurora', label: 'Aurora', preview: '🌌' },
+                { value: 'geometric', label: 'Geometric', preview: '◆' },
+              ].map(bg => (
+                <button
+                  key={bg.value}
+                  onClick={() => setForm({ ...form, theme: { ...form.theme, backgroundAnimation: bg.value } })}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                    padding: '16px 12px',
+                    border: (form.theme?.backgroundAnimation || 'none') === bg.value ? '2px solid var(--primary, #6C5CE7)' : '2px solid var(--border, #e0e0e0)',
+                    borderRadius: 12,
+                    background: (form.theme?.backgroundAnimation || 'none') === bg.value ? 'rgba(108,92,231,0.08)' : 'var(--card, #fafafa)',
+                    cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    color: (form.theme?.backgroundAnimation || 'none') === bg.value ? 'var(--primary, #6C5CE7)' : 'var(--text, #333)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <span style={{ fontSize: 28 }}>{bg.preview}</span>
+                  {bg.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Button & Navigation */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>🧭</span>
+              <div>
+                <h3 style={{ margin: 0 }}>Button & Navigation</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Control the position of the "Next" button and keyboard hints.</p>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="input-group">
+                <label>Button Position</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[
+                    { value: 'footer', label: 'Footer Bar', desc: 'Fixed navigation bar at the bottom' },
+                    { value: 'inline', label: 'Below Input', desc: 'Directly below the input field' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setForm({ ...form, theme: { ...form.theme, buttonPosition: opt.value } })}
+                      style={{
+                        flex: 1, padding: '12px 14px', textAlign: 'left',
+                        border: (form.theme?.buttonPosition || 'footer') === opt.value ? '2px solid var(--primary, #6C5CE7)' : '2px solid var(--border, #e0e0e0)',
+                        borderRadius: 10,
+                        background: (form.theme?.buttonPosition || 'footer') === opt.value ? 'rgba(108,92,231,0.08)' : 'var(--card, #fafafa)',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: 14, color: (form.theme?.buttonPosition || 'footer') === opt.value ? 'var(--primary, #6C5CE7)' : 'var(--text, #333)' }}>
+                        {opt.label}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-light, #999)', marginTop: 2 }}>{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="input-group">
+                <label>Enter Key Hint</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, cursor: 'pointer', marginTop: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={!!form.theme?.showEnterHint}
+                    onChange={e => setForm({ ...form, theme: { ...form.theme, showEnterHint: e.target.checked } })}
+                    style={{ width: 20, height: 20, accentColor: 'var(--primary)' }}
+                  />
+                  Show "press Enter" hint next to button
+                </label>
+                <span style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'block' }}>
+                  Displays a subtle keyboard shortcut hint (press Enter &#8629;) next to the Next button.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Font */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>🔤</span>
+              <div>
+                <h3 style={{ margin: 0 }}>Typography</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Choose a font family for your form.</p>
+              </div>
+            </div>
+            <div className="input-group">
+              <label>Font Family</label>
+              <select className="input" value={form.theme?.fontFamily || 'inherit'} onChange={e => setForm({ ...form, theme: { ...form.theme, fontFamily: e.target.value } })} style={{ maxWidth: 320 }}>
+                <option value="inherit">System Default</option>
+                <option value="'Inter', sans-serif">Inter</option>
+                <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
+                <option value="'DM Sans', sans-serif">DM Sans</option>
+                <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+                <option value="Georgia, serif">Georgia (Serif)</option>
+                <option value="'Courier New', monospace">Courier New (Mono)</option>
+              </select>
+            </div>
+          </div>
+
           {/* Header / Landing Page */}
           <div className="card">
-            <h3 style={{ marginBottom: 4 }}>Header / Landing Page</h3>
-            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
-              Add a logo and tagline on top of your form to make it work as a standalone landing page.
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>🏷️</span>
+              <div>
+                <h3 style={{ margin: 0 }}>Header / Landing Page</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Add a logo and tagline to make your form a standalone landing page.</p>
+              </div>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="input-group">
                 <label>Logo URL</label>
@@ -293,21 +425,24 @@ export default function FormEditor() {
             </div>
             {/* Preview */}
             {(form.theme?.logoUrl || form.theme?.headline) && (
-              <div style={{ marginTop: 12, padding: 20, background: '#f8f9fa', borderRadius: 10, textAlign: form.theme?.logoPosition === 'left' ? 'left' : 'center' }}>
+              <div style={{ marginTop: 12, padding: 20, background: 'rgba(0,0,0,0.03)', borderRadius: 10, textAlign: form.theme?.logoPosition === 'left' ? 'left' : 'center' }}>
                 <span style={{ fontSize: 11, color: '#999', display: 'block', marginBottom: 8 }}>Preview:</span>
                 {form.theme?.logoUrl && <img src={form.theme.logoUrl} alt="Logo" style={{ maxHeight: 48, marginBottom: 8 }} />}
-                {form.theme?.headline && <div style={{ fontSize: 18, fontWeight: 700, color: '#2D3436' }}>{form.theme.headline}</div>}
-                {form.theme?.subline && <div style={{ fontSize: 14, color: '#636E72', marginTop: 4 }}>{form.theme.subline}</div>}
+                {form.theme?.headline && <div style={{ fontSize: 18, fontWeight: 700 }}>{form.theme.headline}</div>}
+                {form.theme?.subline && <div style={{ fontSize: 14, color: 'var(--text-light)', marginTop: 4 }}>{form.theme.subline}</div>}
               </div>
             )}
           </div>
 
           {/* Footer Links */}
           <div className="card">
-            <h3 style={{ marginBottom: 4 }}>Footer Links</h3>
-            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
-              Add up to 3 links below the form (e.g. Privacy Policy, Imprint, Terms).
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>🔗</span>
+              <div>
+                <h3 style={{ margin: 0 }}>Footer Links</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Add up to 3 links below the form (e.g. Privacy Policy, Imprint, Terms).</p>
+              </div>
+            </div>
             <FooterLinksEditor
               links={form.theme?.footerLinks || []}
               onChange={links => setForm({ ...form, theme: { ...form.theme, footerLinks: links } })}
@@ -316,10 +451,13 @@ export default function FormEditor() {
 
           {/* Custom CSS */}
           <div className="card">
-            <h3 style={{ marginBottom: 4 }}>Custom CSS</h3>
-            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
-              Add custom CSS to further customize the form appearance. Applied inside the form container.
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>💻</span>
+              <div>
+                <h3 style={{ margin: 0 }}>Custom CSS</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Advanced: add custom CSS to override any form styles.</p>
+              </div>
+            </div>
             <div className="input-group">
               <label>CSS</label>
               <textarea

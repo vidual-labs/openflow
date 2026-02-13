@@ -47,6 +47,17 @@ function trackEvent(formId, eventType, meta = {}) {
   } catch {}
 }
 
+// Lighten a hex color by a given amount (0-255)
+function adjustColor(hex, amount) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, (num >> 16) + amount);
+  const g = Math.min(255, ((num >> 8) & 0x00FF) + amount);
+  const b = Math.min(255, (num & 0x0000FF) + amount);
+  return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+}
+
+const BG_SHAPES = { waves: 3, bubbles: 4, aurora: 3, geometric: 4 };
+
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -85,12 +96,18 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const consentRequired = !!endScreen.consentEnabled;
   const consentText = endScreen.consentText || 'I agree to the privacy policy and terms of service.';
 
+  const buttonPosition = theme.buttonPosition || 'footer';
+  const showEnterHint = !!theme.showEnterHint;
+  const bgAnimation = theme.backgroundAnimation || 'none';
+
   const formBg = theme.backgroundColor || '#FFFFFF';
+  const primaryColor = theme.primaryColor || '#6C5CE7';
   const themeVars = {
-    '--form-primary': theme.primaryColor || '#6C5CE7',
+    '--form-primary': primaryColor,
     '--form-bg': formBg,
     '--form-text': theme.textColor || '#2D3436',
     '--form-font': theme.fontFamily || 'inherit',
+    '--form-bg-accent': theme.accentColor || adjustColor(primaryColor, 40),
   };
 
   // Sync body background to form background so no dark-mode bleed-through
@@ -245,10 +262,29 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const footerLinks = (theme.footerLinks || []).filter(l => l.title && l.url);
 
+  const enterHint = showEnterHint && step?.type !== 'textarea' ? (
+    <span className="form-enter-hint">
+      press <kbd>Enter &#8629;</kbd>
+    </span>
+  ) : null;
+
+  const nextButton = (
+    <button className="form-btn" onClick={next}>
+      {isLastStep ? 'Submit' : 'Next'} &#8594;
+    </button>
+  );
+
   return (
     <div className={`form-renderer ${embedded ? 'embedded' : ''}`} style={themeVars} onKeyDown={handleKeyDown} ref={containerRef}>
       {/* Custom CSS */}
       {theme.customCss && <style>{theme.customCss}</style>}
+
+      {/* Animated Background */}
+      {bgAnimation !== 'none' && BG_SHAPES[bgAnimation] && (
+        <div className={`form-bg-animation bg-${bgAnimation}`}>
+          {Array.from({ length: BG_SHAPES[bgAnimation] }, (_, i) => <span key={i} />)}
+        </div>
+      )}
 
       {/* Header / Landing Page */}
       {(theme.logoUrl || theme.headline) && (
@@ -276,6 +312,14 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
               onChange={setAnswer}
             />
           </div>
+
+          {/* Inline button (below input) */}
+          {buttonPosition === 'inline' && (
+            <div className="form-inline-actions">
+              {nextButton}
+              {enterHint}
+            </div>
+          )}
 
           {/* GDPR consent on last step */}
           {isLastStep && consentRequired && (
@@ -305,9 +349,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
           &#8592;
         </button>
         <span className="form-step-count">{currentStep + 1} / {steps.length}</span>
-        <button className="form-btn" onClick={next}>
-          {isLastStep ? 'Submit' : 'Next'} &#8594;
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {buttonPosition === 'footer' && enterHint}
+          {buttonPosition === 'footer' && nextButton}
+          {buttonPosition === 'inline' && <span />}
+        </div>
       </div>
     </div>
   );
