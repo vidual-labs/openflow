@@ -289,16 +289,6 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         </div>
       </div>
 
-      <div className="form-nav">
-        <button className="form-nav-btn" onClick={prev} disabled={currentStep === 0}>
-          &#8592;
-        </button>
-        <span className="form-step-count">{currentStep + 1} / {steps.length}</span>
-        <button className="form-btn" onClick={next}>
-          {isLastStep ? 'Submit' : 'Next'} &#8594;
-        </button>
-      </div>
-
       {/* Footer Links */}
       {footerLinks.length > 0 && (
         <div className="form-footer">
@@ -309,6 +299,16 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
           ))}
         </div>
       )}
+
+      <div className="form-nav">
+        <button className="form-nav-btn" onClick={prev} disabled={currentStep === 0}>
+          &#8592;
+        </button>
+        <span className="form-step-count">{currentStep + 1} / {steps.length}</span>
+        <button className="form-btn" onClick={next}>
+          {isLastStep ? 'Submit' : 'Next'} &#8594;
+        </button>
+      </div>
     </div>
   );
 }
