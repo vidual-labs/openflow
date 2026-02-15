@@ -318,6 +318,8 @@ Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 
 GPL 3.0
 
+Not for use with weapons, fossil fuels or right wing politics.
+
 ---
 
 <p align="center">
