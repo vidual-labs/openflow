@@ -20,6 +20,9 @@
 - **GDPR-Ready** — Consent checkbox auto-appended to the last step (form-level toggle)
 - **File Uploads** — Drag & drop with configurable file types and size limits
 
+<img width="2134" height="1098" alt="grafik" src="https://github.com/user-attachments/assets/55686724-e1f9-4d31-ad3b-a402fe776767" />
+
+
 ### 📊 Data & Integrations
 - **Webhook Support** — POST/PUT submission data to any URL with optional HMAC signing
 - **📧 Email Notifications** — SMTP-based alerts with beautiful HTML submission tables
