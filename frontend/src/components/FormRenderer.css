@@ -685,63 +685,187 @@
   100% { transform: translate(-60px, 40px) scale(1.4); }
 }
 
-/* Geometric */
-.bg-geometric > span {
-  border-radius: 0;
-  opacity: 0.06;
+/* Particles - Floating particles */
+.bg-particles > span {
+  border-radius: 50%;
+  opacity: 0.12;
 }
-.bg-geometric > span:nth-child(1) {
-  width: 300px; height: 300px;
+.bg-particles > span:nth-child(1) {
+  width: 12px; height: 12px;
   background: var(--form-primary, #6C5CE7);
-  top: -5%; right: 10%;
-  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-  animation: bgGeo1 25s linear infinite;
+  top: 20%; left: 15%;
+  animation: particleFloat1 8s ease-in-out infinite;
 }
-.bg-geometric > span:nth-child(2) {
-  width: 200px; height: 200px;
-  border: 3px solid var(--form-bg-accent, #a29bfe);
-  background: transparent;
-  bottom: 10%; left: 8%;
-  opacity: 0.1;
-  animation: bgGeo2 20s linear infinite;
-}
-.bg-geometric > span:nth-child(3) {
-  width: 150px; height: 150px;
+.bg-particles > span:nth-child(2) {
+  width: 8px; height: 8px;
   background: var(--form-bg-accent, #a29bfe);
-  top: 40%; left: 5%;
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  opacity: 0.08;
-  animation: bgGeo3 18s linear infinite;
+  top: 60%; right: 20%;
+  animation: particleFloat2 10s ease-in-out infinite;
 }
-.bg-geometric > span:nth-child(4) {
-  width: 100px; height: 100px;
+.bg-particles > span:nth-child(3) {
+  width: 16px; height: 16px;
   background: var(--form-primary, #6C5CE7);
-  bottom: 30%; right: 15%;
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  opacity: 0.08;
-  animation: bgGeo4 22s linear infinite reverse;
+  bottom: 30%; left: 40%;
+  animation: particleFloat3 12s ease-in-out infinite;
+}
+.bg-particles > span:nth-child(4) {
+  width: 6px; height: 6px;
+  background: var(--form-bg-accent, #a29bfe);
+  top: 40%; left: 70%;
+  animation: particleFloat4 9s ease-in-out infinite;
+}
+.bg-particles > span:nth-child(5) {
+  width: 10px; height: 10px;
+  background: var(--form-primary, #6C5CE7);
+  bottom: 15%; right: 35%;
+  animation: particleFloat5 11s ease-in-out infinite;
+}
+.bg-particles > span:nth-child(6) {
+  width: 14px; height: 14px;
+  background: var(--form-bg-accent, #a29bfe);
+  top: 75%; left: 25%;
+  animation: particleFloat6 7s ease-in-out infinite;
 }
 
-@keyframes bgGeo1 {
-  0% { transform: rotate(0deg) translate(0, 0); }
-  25% { transform: rotate(90deg) translate(30px, -20px); }
-  50% { transform: rotate(180deg) translate(0, 0); }
-  75% { transform: rotate(270deg) translate(-30px, 20px); }
-  100% { transform: rotate(360deg) translate(0, 0); }
+@keyframes particleFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.12; }
+  50% { transform: translate(40px, -30px) scale(1.5); opacity: 0.25; }
 }
-@keyframes bgGeo2 {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+@keyframes particleFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.1; }
+  50% { transform: translate(-50px, 40px) scale(0.7); opacity: 0.2; }
 }
-@keyframes bgGeo3 {
-  0% { transform: rotate(0deg) translateY(0); }
-  50% { transform: rotate(180deg) translateY(-40px); }
-  100% { transform: rotate(360deg) translateY(0); }
+@keyframes particleFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.15; }
+  33% { transform: translate(60px, 20px) scale(1.2); opacity: 0.25; }
+  66% { transform: translate(30px, -40px) scale(0.8); opacity: 0.1; }
 }
-@keyframes bgGeo4 {
-  0% { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.3); }
-  100% { transform: rotate(360deg) scale(1); }
+@keyframes particleFloat4 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.08; }
+  50% { transform: translate(-30px, -50px) scale(1.3); opacity: 0.18; }
+}
+@keyframes particleFloat5 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.12; }
+  33% { transform: translate(-40px, -20px) scale(0.9); opacity: 0.22; }
+  66% { transform: translate(20px, 50px) scale(1.1); opacity: 0.08; }
+}
+@keyframes particleFloat6 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.1; }
+  50% { transform: translate(50px, 30px) scale(1.4); opacity: 0.2; }
+}
+
+/* Sparkle - Twinkling stars */
+.bg-sparkle > span {
+  border-radius: 50%;
+  opacity: 0;
+}
+.bg-sparkle > span:nth-child(1) {
+  width: 4px; height: 4px;
+  background: var(--form-primary, #6C5CE7);
+  top: 15%; left: 20%;
+  animation: sparkle1 4s ease-in-out infinite;
+}
+.bg-sparkle > span:nth-child(2) {
+  width: 3px; height: 3px;
+  background: var(--form-bg-accent, #a29bfe);
+  top: 45%; right: 25%;
+  animation: sparkle2 5s ease-in-out infinite 1s;
+}
+.bg-sparkle > span:nth-child(3) {
+  width: 5px; height: 5px;
+  background: var(--form-primary, #6C5CE7);
+  bottom: 25%; left: 35%;
+  animation: sparkle3 4.5s ease-in-out infinite 0.5s;
+}
+.bg-sparkle > span:nth-child(4) {
+  width: 2px; height: 2px;
+  background: var(--form-bg-accent, #a29bfe);
+  top: 30%; left: 60%;
+  animation: sparkle4 5.5s ease-in-out infinite 2s;
+}
+.bg-sparkle > span:nth-child(5) {
+  width: 4px; height: 4px;
+  background: var(--form-primary, #6C5CE7);
+  bottom: 40%; right: 40%;
+  animation: sparkle5 4s ease-in-out infinite 1.5s;
+}
+.bg-sparkle > span:nth-child(6) {
+  width: 3px; height: 3px;
+  background: var(--form-bg-accent, #a29bfe);
+  top: 65%; left: 10%;
+  animation: sparkle6 5s ease-in-out infinite 0.8s;
+}
+
+@keyframes sparkle1 {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 0.8; transform: scale(1.2); }
+}
+@keyframes sparkle2 {
+  0%, 100% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 0.7; transform: scale(1); }
+}
+@keyframes sparkle3 {
+  0%, 100% { opacity: 0; transform: scale(0.4); }
+  50% { opacity: 0.9; transform: scale(1.3); }
+}
+@keyframes sparkle4 {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+@keyframes sparkle5 {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 0.85; transform: scale(1.4); }
+}
+@keyframes sparkle6 {
+  0%, 100% { opacity: 0; transform: scale(0.4); }
+  50% { opacity: 0.75; transform: scale(1.2); }
+}
+
+/* Flow - Flowing lines */
+.bg-flow > span {
+  border-radius: 0;
+  opacity: 0.08;
+}
+.bg-flow > span:nth-child(1) {
+  width: 200px; height: 2px;
+  background: var(--form-primary, #6C5CE7);
+  top: 30%; left: -10%;
+  animation: flowLine1 12s linear infinite;
+}
+.bg-flow > span:nth-child(2) {
+  width: 150px; height: 3px;
+  background: var(--form-bg-accent, #a29bfe);
+  top: 50%; right: -10%;
+  animation: flowLine2 15s linear infinite;
+}
+.bg-flow > span:nth-child(3) {
+  width: 180px; height: 2px;
+  background: var(--form-primary, #6C5CE7);
+  bottom: 35%; left: -10%;
+  animation: flowLine3 18s linear infinite;
+}
+.bg-flow > span:nth-child(4) {
+  width: 120px; height: 4px;
+  background: var(--form-bg-accent, #a29bfe);
+  bottom: 20%; right: -10%;
+  animation: flowLine4 14s linear infinite;
+}
+
+@keyframes flowLine1 {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(calc(100vw + 100%)); }
+}
+@keyframes flowLine2 {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(calc(-100vw - 100%)); }
+}
+@keyframes flowLine3 {
+  0% { transform: translateX(-100%) rotate(-5deg); }
+  100% { transform: translateX(calc(100vw + 100%)) rotate(-5deg); }
+}
+@keyframes flowLine4 {
+  0% { transform: translateX(100%) rotate(3deg); }
+  100% { transform: translateX(calc(-100vw - 100%)) rotate(3deg); }
 }
 
 /* Animations */
