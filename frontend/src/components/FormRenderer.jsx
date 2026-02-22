@@ -56,7 +56,7 @@ function adjustColor(hex, amount) {
   return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
 }
 
-const BG_SHAPES = { waves: 3, bubbles: 4, aurora: 3, geometric: 4 };
+const BG_SHAPES = { waves: 3, bubbles: 4, aurora: 3, particles: 6, sparkle: 6, flow: 4 };
 
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [currentStep, setCurrentStep] = useState(0);

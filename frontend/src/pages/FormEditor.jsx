@@ -286,13 +286,15 @@ export default function FormEditor() {
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Add subtle motion to make your form feel alive. Uses primary + accent colors.</p>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
               {[
                 { value: 'none', label: 'None', preview: '⊘' },
                 { value: 'waves', label: 'Waves', preview: '🌊' },
                 { value: 'bubbles', label: 'Bubbles', preview: '🫧' },
                 { value: 'aurora', label: 'Aurora', preview: '🌌' },
-                { value: 'geometric', label: 'Geometric', preview: '◆' },
+                { value: 'particles', label: 'Particles', preview: '✦' },
+                { value: 'sparkle', label: 'Sparkle', preview: '✧' },
+                { value: 'flow', label: 'Flow', preview: '≋' },
               ].map(bg => (
                 <button
                   key={bg.value}
