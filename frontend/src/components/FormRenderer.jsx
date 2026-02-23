@@ -229,9 +229,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   }, [currentStep]);
 
-  // Auto-advance for all field types when answer is provided
+  const AUTO_ADVANCE_FIELDS = ['select', 'multi-select', 'yes-no', 'rating', 'image-select'];
+
+  // Auto-advance for choice-based field types when answer is provided
   useEffect(() => {
-    if (step && answers[step.id] !== undefined) {
+    if (step && answers[step.id] !== undefined && !theme?.disableAutoAdvance && AUTO_ADVANCE_FIELDS.includes(step.type)) {
       const timer = setTimeout(() => next(), 400);
       return () => clearTimeout(timer);
     }

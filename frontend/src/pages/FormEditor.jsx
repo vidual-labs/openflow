@@ -332,7 +332,6 @@ export default function FormEditor() {
                   {[
                     { value: 'footer', label: 'Footer Bar', desc: 'Fixed navigation bar at the bottom' },
                     { value: 'inline', label: 'Below Input', desc: 'Button below question & input' },
-                    { value: 'below-input', label: 'Just Below Input', desc: 'Button directly under the input field' },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -366,6 +365,21 @@ export default function FormEditor() {
                 </label>
                 <span style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'block' }}>
                   Displays a subtle keyboard shortcut hint (press Enter &#8629;) next to the Next button.
+                </span>
+              </div>
+              <div className="input-group">
+                <label>Auto-Advance</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, cursor: 'pointer', marginTop: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={!form.theme?.disableAutoAdvance}
+                    onChange={e => setForm({ ...form, theme: { ...form.theme, disableAutoAdvance: !e.target.checked } })}
+                    style={{ width: 20, height: 20, accentColor: 'var(--primary)' }}
+                  />
+                  Automatically advance when answer is selected
+                </label>
+                <span style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'block' }}>
+                  Auto-advance only works for choice-based fields (single choice, multiple choice, yes/no, rating, image select).
                 </span>
               </div>
             </div>
