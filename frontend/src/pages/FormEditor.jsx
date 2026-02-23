@@ -293,7 +293,6 @@ export default function FormEditor() {
                 { value: 'bubbles', label: 'Bubbles', preview: '🫧' },
                 { value: 'aurora', label: 'Aurora', preview: '🌌' },
                 { value: 'particles', label: 'Particles', preview: '✦' },
-                { value: 'sparkle', label: 'Sparkle', preview: '✧' },
                 { value: 'flow', label: 'Flow', preview: '≋' },
               ].map(bg => (
                 <button
@@ -332,7 +331,8 @@ export default function FormEditor() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[
                     { value: 'footer', label: 'Footer Bar', desc: 'Fixed navigation bar at the bottom' },
-                    { value: 'inline', label: 'Below Input', desc: 'Directly below the input field' },
+                    { value: 'inline', label: 'Below Input', desc: 'Button below question & input' },
+                    { value: 'below-input', label: 'Just Below Input', desc: 'Button directly under the input field' },
                   ].map(opt => (
                     <button
                       key={opt.value}

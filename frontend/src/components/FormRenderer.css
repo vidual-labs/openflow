@@ -506,12 +506,20 @@
   color: var(--form-text, #2D3436);
 }
 
-/* Inline button (below input) */
+/* Inline button (below input but after question) */
 .form-inline-actions {
   display: flex;
   align-items: center;
   gap: 16px;
   margin-top: 32px;
+}
+
+/* Below-input button (directly under input field) */
+.form-below-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
 }
 
 .form-enter-hint {
@@ -752,73 +760,6 @@
 @keyframes particleFloat6 {
   0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.1; }
   50% { transform: translate(50px, 30px) scale(1.4); opacity: 0.2; }
-}
-
-/* Sparkle - Twinkling stars */
-.bg-sparkle > span {
-  border-radius: 50%;
-  opacity: 0;
-}
-.bg-sparkle > span:nth-child(1) {
-  width: 4px; height: 4px;
-  background: var(--form-primary, #6C5CE7);
-  top: 15%; left: 20%;
-  animation: sparkle1 4s ease-in-out infinite;
-}
-.bg-sparkle > span:nth-child(2) {
-  width: 3px; height: 3px;
-  background: var(--form-bg-accent, #a29bfe);
-  top: 45%; right: 25%;
-  animation: sparkle2 5s ease-in-out infinite 1s;
-}
-.bg-sparkle > span:nth-child(3) {
-  width: 5px; height: 5px;
-  background: var(--form-primary, #6C5CE7);
-  bottom: 25%; left: 35%;
-  animation: sparkle3 4.5s ease-in-out infinite 0.5s;
-}
-.bg-sparkle > span:nth-child(4) {
-  width: 2px; height: 2px;
-  background: var(--form-bg-accent, #a29bfe);
-  top: 30%; left: 60%;
-  animation: sparkle4 5.5s ease-in-out infinite 2s;
-}
-.bg-sparkle > span:nth-child(5) {
-  width: 4px; height: 4px;
-  background: var(--form-primary, #6C5CE7);
-  bottom: 40%; right: 40%;
-  animation: sparkle5 4s ease-in-out infinite 1.5s;
-}
-.bg-sparkle > span:nth-child(6) {
-  width: 3px; height: 3px;
-  background: var(--form-bg-accent, #a29bfe);
-  top: 65%; left: 10%;
-  animation: sparkle6 5s ease-in-out infinite 0.8s;
-}
-
-@keyframes sparkle1 {
-  0%, 100% { opacity: 0; transform: scale(0.5); }
-  50% { opacity: 0.8; transform: scale(1.2); }
-}
-@keyframes sparkle2 {
-  0%, 100% { opacity: 0; transform: scale(0.3); }
-  50% { opacity: 0.7; transform: scale(1); }
-}
-@keyframes sparkle3 {
-  0%, 100% { opacity: 0; transform: scale(0.4); }
-  50% { opacity: 0.9; transform: scale(1.3); }
-}
-@keyframes sparkle4 {
-  0%, 100% { opacity: 0; transform: scale(0.6); }
-  50% { opacity: 0.6; transform: scale(1.1); }
-}
-@keyframes sparkle5 {
-  0%, 100% { opacity: 0; transform: scale(0.5); }
-  50% { opacity: 0.85; transform: scale(1.4); }
-}
-@keyframes sparkle6 {
-  0%, 100% { opacity: 0; transform: scale(0.4); }
-  50% { opacity: 0.75; transform: scale(1.2); }
 }
 
 /* Flow - Flowing lines */

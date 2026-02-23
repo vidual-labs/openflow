@@ -56,7 +56,7 @@ function adjustColor(hex, amount) {
   return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
 }
 
-const BG_SHAPES = { waves: 3, bubbles: 4, aurora: 3, particles: 6, sparkle: 6, flow: 4 };
+const BG_SHAPES = { waves: 3, bubbles: 4, aurora: 3, particles: 6, flow: 4 };
 
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -229,9 +229,9 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   }, [currentStep]);
 
-  // Auto-advance for single-choice fields
+  // Auto-advance for all field types when answer is provided
   useEffect(() => {
-    if (step && (step.type === 'yes-no' || step.type === 'image-select' || step.type === 'select') && answers[step.id] !== undefined) {
+    if (step && answers[step.id] !== undefined) {
       const timer = setTimeout(() => next(), 400);
       return () => clearTimeout(timer);
     }
@@ -311,9 +311,15 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
               value={answers[step.id]}
               onChange={setAnswer}
             />
+            {buttonPosition === 'below-input' && (
+              <div className="form-below-input-actions">
+                {nextButton}
+                {enterHint}
+              </div>
+            )}
           </div>
 
-          {/* Inline button (below input) */}
+          {/* Inline button (below input but after question) */}
           {buttonPosition === 'inline' && (
             <div className="form-inline-actions">
               {nextButton}
@@ -352,7 +358,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {buttonPosition === 'footer' && enterHint}
           {buttonPosition === 'footer' && nextButton}
-          {buttonPosition === 'inline' && <span />}
+          {(buttonPosition === 'inline' || buttonPosition === 'below-input') && <span />}
         </div>
       </div>
     </div>
