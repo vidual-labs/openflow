@@ -2,16 +2,23 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/openflow.db');
 let db;
 
 function getDb() {
   if (!db) {
+    const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/openflow.db');
     db = new Database(DB_PATH);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
   }
   return db;
+}
+
+function resetDb() {
+  if (db) {
+    db.close();
+    db = null;
+  }
 }
 
 function initDb() {
@@ -99,4 +106,4 @@ function initDb() {
   }
 }
 
-module.exports = { getDb, initDb };
+module.exports = { getDb, initDb, resetDb };
