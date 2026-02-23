@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.7.3] - 2026-02-22
+
+### Changed
+- **WordPress Plugin Refactored** — Improved WordPress integration with shortcode `[openflow]`, WPBakery element, and Gutenberg block support
+- **Animation Improvements** — Enhanced animated backgrounds with smoother transitions
+
 ## [0.7.2] - 2026-02-13
 
 ### Added
