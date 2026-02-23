@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.7.4] - 2026-02-23
+
+### Changed
+- **Version bump** — Updated to reflect latest release
+
 ## [0.7.3] - 2026-02-22
 
 ### Changed
