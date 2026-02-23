@@ -10,7 +10,17 @@ async function request(path, options = {}) {
     window.location.href = '/login';
     return;
   }
-  const data = await res.json();
+  const text = await res.text();
+  if (!text) {
+    if (!res.ok) throw new Error('Request failed');
+    return;
+  }
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error('Invalid JSON response');
+  }
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }
