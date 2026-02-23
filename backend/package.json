@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "test": "jest"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -13,10 +14,14 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^4.21.1",
-    "jsonwebtoken": "^9.0.2",
     "googleapis": "^144.0.0",
+    "jsonwebtoken": "^9.0.2",
     "nanoid": "^3.3.7",
     "nodemailer": "^6.9.16",
     "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "supertest": "^7.2.2"
   }
 }
