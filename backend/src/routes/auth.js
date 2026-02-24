@@ -99,8 +99,8 @@ router.put('/users/:id', authMiddleware, requireAdmin, (req, res) => {
   res.json({ user: updated });
 });
 
-// Delete user
-router.delete('/users/:id', authMiddleware, requireAdmin, (req, res) => {
+// Delete user (any authenticated user can delete, but cannot delete themselves)
+router.delete('/users/:id', authMiddleware, (req, res) => {
   const db = getDb();
   if (req.params.id === req.userId) {
     return res.status(400).json({ error: 'Cannot delete yourself' });
@@ -108,9 +108,6 @@ router.delete('/users/:id', authMiddleware, requireAdmin, (req, res) => {
   const targetUser = db.prepare('SELECT role FROM users WHERE id = ?').get(req.params.id);
   if (!targetUser) {
     return res.status(404).json({ error: 'User not found' });
-  }
-  if (targetUser.role === 'admin') {
-    return res.status(400).json({ error: 'Cannot delete admin user' });
   }
   db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
   res.json({ ok: true });

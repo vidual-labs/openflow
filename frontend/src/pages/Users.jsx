@@ -3,6 +3,7 @@ import { api } from '../api';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,6 +12,7 @@ export default function Users() {
 
   useEffect(() => {
     loadUsers();
+    api.me().then(d => setCurrentUser(d.user)).catch(() => {});
   }, []);
 
   async function loadUsers() {
@@ -114,7 +116,9 @@ export default function Users() {
                     <button className="btn btn-sm btn-secondary" onClick={() => toggleRole(user)} title="Toggle role">
                       {user.role === 'admin' ? 'Demote' : 'Promote'}
                     </button>
-                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(user.id)}>Delete</button>
+                    {currentUser?.id !== user.id && (
+                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(user.id)}>Delete</button>
+                    )}
                   </div>
                 </td>
               </tr>
