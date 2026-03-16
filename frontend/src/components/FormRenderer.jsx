@@ -489,6 +489,7 @@ function AddressInput({ step, value, onChange }) {
   function update(field, val) {
     onChange({ ...data, [field]: val });
   }
+  const customFields = step.customFields || [];
   return (
     <div className="form-address">
       <input className="form-input" type="text" placeholder="Street and house number *" value={data.street || ''} onChange={e => update('street', e.target.value)} autoFocus />
@@ -499,6 +500,40 @@ function AddressInput({ step, value, onChange }) {
       {step.showCountry !== false && (
         <input className="form-input" type="text" placeholder="Country (optional)" value={data.country || ''} onChange={e => update('country', e.target.value)} />
       )}
+      {customFields.map((field, idx) => (
+        <div key={field.id || idx} style={{ marginTop: 12 }}>
+          {field.type === 'text' && (
+            <>
+              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: '#555' }}>{field.label}</label>
+              <input className="form-input" type="text" value={data[field.id] || ''} onChange={e => update(field.id, e.target.value)} />
+            </>
+          )}
+          {field.type === 'dropdown' && (
+            <>
+              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: '#555' }}>{field.label}</label>
+              <select className="form-input" value={data[field.id] || ''} onChange={e => update(field.id, e.target.value)}>
+                <option value="">Select...</option>
+                {(field.options || '').split(',').map((opt, i) => (
+                  <option key={i} value={opt.trim()}>{opt.trim()}</option>
+                ))}
+              </select>
+            </>
+          )}
+          {field.type === 'radio' && (
+            <>
+              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: '#555' }}>{field.label}</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {(field.options || '').split(',').map((opt, i) => (
+                  <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                    <input type="radio" name={field.id} value={opt.trim()} checked={data[field.id] === opt.trim()} onChange={e => update(field.id, e.target.value)} />
+                    {opt.trim()}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

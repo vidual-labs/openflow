@@ -723,6 +723,46 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
                 <input type="checkbox" checked={step.showCountry !== false} onChange={e => onChange({ showCountry: e.target.checked })} />
                 Include country field
               </label>
+
+              {/* Custom fields */}
+              <div style={{ marginTop: 16 }}>
+                <p style={{ fontSize: 13, color: '#636E72', marginBottom: 8 }}>Custom sub-fields:</p>
+                {(step.customFields || []).map((field, idx) => (
+                  <div key={idx} style={{ background: '#fff', padding: 12, borderRadius: 8, marginBottom: 8, border: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      <select className="input" value={field.type} onChange={e => {
+                        const updated = [...(step.customFields || [])];
+                        updated[idx] = { ...field, type: e.target.value };
+                        onChange({ customFields: updated });
+                      }} style={{ width: 120 }}>
+                        <option value="text">Text</option>
+                        <option value="dropdown">Dropdown</option>
+                        <option value="radio">Radio</option>
+                      </select>
+                      <input className="input" value={field.label || ''} onChange={e => {
+                        const updated = [...(step.customFields || [])];
+                        updated[idx] = { ...field, label: e.target.value };
+                        onChange({ customFields: updated });
+                      }} placeholder="Label" style={{ flex: 1 }} />
+                      <button className="btn btn-sm btn-secondary" onClick={() => {
+                        const updated = (step.customFields || []).filter((_, i) => i !== idx);
+                        onChange({ customFields: updated });
+                      }}>×</button>
+                    </div>
+                    {(field.type === 'dropdown' || field.type === 'radio') && (
+                      <input className="input" value={field.options || ''} onChange={e => {
+                        const updated = [...(step.customFields || [])];
+                        updated[idx] = { ...field, options: e.target.value };
+                        onChange({ customFields: updated });
+                      }} placeholder="Options (comma-separated)" style={{ width: '100%' }} />
+                    )}
+                  </div>
+                ))}
+                <button className="btn btn-sm btn-secondary" onClick={() => {
+                  const newField = { type: 'text', label: '', id: `custom_${Date.now()}` };
+                  onChange({ customFields: [...(step.customFields || []), newField] });
+                }}>+ Add custom field</button>
+              </div>
             </div>
           )}
 

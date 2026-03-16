@@ -2,6 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 
+function formatValue(val, step) {
+  if (step.type === 'address' && val && typeof val === 'object') {
+    const parts = [val.street, val.postalCode, val.city, val.country].filter(Boolean);
+    const customParts = (step.customFields || []).map(f => val[f.id]).filter(Boolean);
+    if (customParts.length) parts.push(`(${customParts.join(', ')})`);
+    return parts.join(', ') || '-';
+  }
+  if (Array.isArray(val)) return val.join(', ');
+  if (val && typeof val === 'object') return JSON.stringify(val);
+  return String(val ?? '-');
+}
+
 export default function Submissions() {
   const { id } = useParams();
   const [form, setForm] = useState(null);
@@ -60,7 +72,7 @@ export default function Submissions() {
                     <td style={{ color: '#636E72' }}>{(page - 1) * 20 + i + 1}</td>
                     {steps.map(s => (
                       <td key={s.id}>
-                        {Array.isArray(sub.data[s.id]) ? sub.data[s.id].join(', ') : String(sub.data[s.id] ?? '-')}
+                        {formatValue(sub.data[s.id], s)}
                       </td>
                     ))}
                     <td style={{ fontSize: 13, color: '#636E72', whiteSpace: 'nowrap' }}>
