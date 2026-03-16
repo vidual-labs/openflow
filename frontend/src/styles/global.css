@@ -295,6 +295,20 @@ input, select, textarea {
 }
 
 /* Responsive */
+@media (min-width: 769px) {
+  .admin-layout {
+    align-items: stretch;
+  }
+  .admin-sidebar {
+    height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+  .admin-main {
+    height: 100vh;
+  }
+}
+
 @media (max-width: 768px) {
   .admin-layout {
     flex-direction: column;
