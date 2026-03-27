@@ -20,8 +20,9 @@
 - **GDPR-Ready** — Consent checkbox auto-appended to the last step (form-level toggle)
 - **File Uploads** — Drag & drop with configurable file types and size limits
 
-<img width="2134" height="1098" alt="grafik" src="https://github.com/user-attachments/assets/55686724-e1f9-4d31-ad3b-a402fe776767" />
+
 <img width="1017" height="672" alt="grafik" src="https://github.com/user-attachments/assets/1265603a-4602-44e6-97b0-15c77afb9456" />
+<img width="1502" height="1041" alt="grafik" src="https://github.com/user-attachments/assets/cc4e4a66-ee1b-4147-bd01-e5ae46230132" />
 
 
 ### 📊 Data & Integrations
