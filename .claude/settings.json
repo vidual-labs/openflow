@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/user/openflow && bash -c '\nset -e\n\n# Extract current version from backend/package.json\nCURRENT_VERSION=$(jq -r \".version\" backend/package.json)\necho \"Current version: $CURRENT_VERSION\"\n\n# Split version into parts\nIFS=\".\" read -r MAJOR MINOR PATCH <<< \"$CURRENT_VERSION\"\nPATCH=$((PATCH + 1))\nNEW_VERSION=\"${MAJOR}.${MINOR}.${PATCH}\"\necho \"New version: $NEW_VERSION\"\n\n# Update README.md badge\nsed -i \"s/# 🌊 OpenFlow v.*/# 🌊 OpenFlow v${NEW_VERSION}/\" README.md\necho \"Updated README.md\"\n\n# Update CHANGELOG.md with new entry\nDATE=$(date +\"%Y-%m-%d\")\nCHANGELOG_ENTRY=\"## [${NEW_VERSION}] - ${DATE}\\n\\n### Changed\\n- **Version bump** — Updated to reflect latest release\\n\\n\"\nsed -i \"0,/# Changelog/a \\\n\\n${CHANGELOG_ENTRY}\" CHANGELOG.md\necho \"Updated CHANGELOG.md\"\n\n# Update backend/package.json\njq \".version = \\\"${NEW_VERSION}\\\"\" backend/package.json > backend/package.json.tmp\nmv backend/package.json.tmp backend/package.json\necho \"Updated backend/package.json\"\n\n# Update frontend/package.json\njq \".version = \\\"${NEW_VERSION}\\\"\" frontend/package.json > frontend/package.json.tmp\nmv frontend/package.json.tmp frontend/package.json\necho \"Updated frontend/package.json\"\n\n# Stage all version files\ngit add README.md CHANGELOG.md backend/package.json frontend/package.json\necho \"Staged version files for commit\"\n'\n",
+            "statusMessage": "Bumping version and updating files...",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
