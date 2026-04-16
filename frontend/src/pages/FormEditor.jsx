@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';
+import '../components/FormRenderer.css';
 
 // Field types sorted logically: question types first, then contact/data fields
 const FIELD_TYPES = [
@@ -24,6 +25,19 @@ const FIELD_TYPES = [
 ];
 
 const FIELD_TYPE_MAP = Object.fromEntries(FIELD_TYPES.map(f => [f.value, f]));
+
+// Lighten a hex color by amount (0-255) — mirrors the same helper in FormRenderer
+function adjustColor(hex, amount) {
+  const clean = hex.replace('#', '');
+  if (clean.length !== 6) return hex;
+  const num = parseInt(clean, 16);
+  const r = Math.min(255, (num >> 16) + amount);
+  const g = Math.min(255, ((num >> 8) & 0x00ff) + amount);
+  const b = Math.min(255, (num & 0x0000ff) + amount);
+  return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+}
+
+const BG_SHAPE_COUNTS = { waves: 3, bubbles: 4, aurora: 3, particles: 6, flow: 4 };
 
 // Common emoji categories for the icon picker
 const EMOJI_CATEGORIES = {
@@ -252,6 +266,18 @@ export default function FormEditor() {
       {/* Theme Tab */}
       {activeTab === 'theme' && (
         <div>
+          {/* Live Preview */}
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>👁️</span>
+              <div>
+                <h3 style={{ margin: 0 }}>Live Preview</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Reflects unsaved changes — click <strong>Save</strong> to publish.</p>
+              </div>
+            </div>
+            <ThemePreview theme={form.theme || {}} />
+          </div>
+
           {/* Colors */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -532,7 +558,7 @@ export default function FormEditor() {
 
           {/* GDPR Consent */}
           <div className="card">
-            <h3 style={{ marginBottom: 4 }}>GDPR / Consent</h3>
+            <h3 style={{ marginBottom: 4 }}>GDPR / Submission Consent</h3>
             <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
               When enabled, a consent checkbox is automatically shown on the last step of the form before submission.
             </p>
@@ -555,6 +581,60 @@ export default function FormEditor() {
                   onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentText: e.target.value } })}
                   placeholder="I agree to the privacy policy and terms of service."
                 />
+              </div>
+            )}
+          </div>
+
+          {/* Cookie / Tracking Consent Banner */}
+          <div className="card">
+            <h3 style={{ marginBottom: 4 }}>Cookie / Tracking Consent Banner</h3>
+            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
+              When enabled, a cookie banner is shown to visitors <strong>before</strong> Google Tag Manager is loaded.
+              GTM only fires after the visitor accepts. Consent is stored in the browser so the banner does not re-appear on subsequent visits.
+            </p>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 600, marginBottom: 16, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={!!form.end_screen?.cookieConsentEnabled}
+                onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, cookieConsentEnabled: e.target.checked } })}
+                style={{ width: 20, height: 20, accentColor: 'var(--primary)' }}
+                disabled={!form.gtm_id}
+              />
+              Show cookie consent banner before loading GTM
+            </label>
+            {!form.gtm_id && (
+              <p style={{ fontSize: 13, color: '#E17055', marginBottom: 8 }}>A GTM Container ID must be set above to use this feature.</p>
+            )}
+            {form.end_screen?.cookieConsentEnabled && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Banner Message</label>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    value={form.end_screen?.cookieConsentText || 'We use Google Tag Manager to analyze form interactions and improve your experience. Do you accept?'}
+                    onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, cookieConsentText: e.target.value } })}
+                    placeholder="We use Google Tag Manager to analyze form interactions…"
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Accept Button Label</label>
+                  <input
+                    className="input"
+                    value={form.end_screen?.cookieConsentAcceptLabel || 'Accept'}
+                    onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, cookieConsentAcceptLabel: e.target.value } })}
+                    placeholder="Accept"
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Decline Button Label</label>
+                  <input
+                    className="input"
+                    value={form.end_screen?.cookieConsentDeclineLabel || 'Decline'}
+                    onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, cookieConsentDeclineLabel: e.target.value } })}
+                    placeholder="Decline"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -1094,6 +1174,62 @@ function EmojiPicker({ activeCategory, onCategoryChange, onSelect, onClose }) {
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ===========================
+   ThemePreview - Animated background live preview
+   =========================== */
+function ThemePreview({ theme }) {
+  const bgAnimation = theme.backgroundAnimation || 'none';
+  const primaryColor = theme.primaryColor || '#6C5CE7';
+  const accentColor = theme.accentColor || adjustColor(primaryColor, 40);
+  const bgColor = theme.backgroundColor || '#FFFFFF';
+  const textColor = theme.textColor || '#2D3436';
+
+  const cssVars = {
+    '--form-primary': primaryColor,
+    '--form-bg': bgColor,
+    '--form-text': textColor,
+    '--form-bg-accent': accentColor,
+  };
+
+  return (
+    <div style={{
+      position: 'relative',
+      height: 200,
+      borderRadius: 12,
+      overflow: 'hidden',
+      border: '1px solid var(--border)',
+      background: bgColor,
+      ...cssVars,
+    }}>
+      {/* Animated background shapes */}
+      {bgAnimation !== 'none' && BG_SHAPE_COUNTS[bgAnimation] && (
+        <div className={`form-bg-animation bg-${bgAnimation}`}>
+          {Array.from({ length: BG_SHAPE_COUNTS[bgAnimation] }, (_, i) => <span key={i} />)}
+        </div>
+      )}
+      {/* Placeholder form content */}
+      <div style={{ position: 'relative', zIndex: 1, padding: '28px 32px', color: textColor, fontFamily: theme.fontFamily || 'inherit' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: primaryColor, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10, opacity: 0.8 }}>
+          1 / 3
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>How does your form look?</div>
+        <button style={{
+          background: primaryColor, color: '#fff',
+          border: 'none', padding: '10px 22px',
+          borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'default',
+        }}>
+          Next →
+        </button>
+      </div>
+      {bgAnimation === 'none' && (
+        <div style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 12, color: textColor, opacity: 0.35 }}>
+          No animation selected
+        </div>
+      )}
     </div>
   );
 }
