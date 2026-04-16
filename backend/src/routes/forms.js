@@ -25,9 +25,13 @@ router.get('/:id', (req, res) => {
   const db = getDb();
   const form = db.prepare('SELECT * FROM forms WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!form) return res.status(404).json({ error: 'Form not found' });
-  form.steps = JSON.parse(form.steps);
-  form.end_screen = JSON.parse(form.end_screen);
-  form.theme = JSON.parse(form.theme);
+  try {
+    form.steps = JSON.parse(form.steps);
+    form.end_screen = JSON.parse(form.end_screen);
+    form.theme = JSON.parse(form.theme);
+  } catch {
+    return res.status(500).json({ error: 'Form data is corrupted' });
+  }
   res.json({ form });
 });
 
@@ -52,9 +56,13 @@ router.post('/', (req, res) => {
   );
 
   const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(id);
-  form.steps = JSON.parse(form.steps);
-  form.end_screen = JSON.parse(form.end_screen);
-  form.theme = JSON.parse(form.theme);
+  try {
+    form.steps = JSON.parse(form.steps);
+    form.end_screen = JSON.parse(form.end_screen);
+    form.theme = JSON.parse(form.theme);
+  } catch {
+    return res.status(500).json({ error: 'Failed to read created form' });
+  }
   res.status(201).json({ form });
 });
 
@@ -87,9 +95,13 @@ router.put('/:id', (req, res) => {
   );
 
   const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(req.params.id);
-  form.steps = JSON.parse(form.steps);
-  form.end_screen = JSON.parse(form.end_screen);
-  form.theme = JSON.parse(form.theme);
+  try {
+    form.steps = JSON.parse(form.steps);
+    form.end_screen = JSON.parse(form.end_screen);
+    form.theme = JSON.parse(form.theme);
+  } catch {
+    return res.status(500).json({ error: 'Form data is corrupted' });
+  }
   res.json({ form });
 });
 
@@ -98,10 +110,13 @@ router.delete('/:id', (req, res) => {
   const db = getDb();
   const existing = db.prepare('SELECT id FROM forms WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!existing) return res.status(404).json({ error: 'Form not found' });
-  db.prepare('DELETE FROM analytics_events WHERE form_id = ?').run(req.params.id);
-  db.prepare('DELETE FROM integrations WHERE form_id = ?').run(req.params.id);
-  db.prepare('DELETE FROM submissions WHERE form_id = ?').run(req.params.id);
-  db.prepare('DELETE FROM forms WHERE id = ?').run(req.params.id);
+  const deleteForm = db.transaction((formId) => {
+    db.prepare('DELETE FROM analytics_events WHERE form_id = ?').run(formId);
+    db.prepare('DELETE FROM integrations WHERE form_id = ?').run(formId);
+    db.prepare('DELETE FROM submissions WHERE form_id = ?').run(formId);
+    db.prepare('DELETE FROM forms WHERE id = ?').run(formId);
+  });
+  deleteForm(req.params.id);
   res.json({ ok: true });
 });
 

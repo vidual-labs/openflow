@@ -8,17 +8,22 @@ export default function Analytics() {
   const [detail, setDetail] = useState(null);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getAnalyticsOverview(days).then(d => {
-      setForms(d.forms);
-      setLoading(false);
-    });
+    setLoading(true);
+    setError('');
+    api.getAnalyticsOverview(days)
+      .then(d => setForms(d.forms))
+      .catch(err => setError(err.message || 'Failed to load analytics'))
+      .finally(() => setLoading(false));
   }, [days]);
 
   useEffect(() => {
     if (selected) {
-      api.getAnalyticsDetail(selected, days).then(d => setDetail(d));
+      api.getAnalyticsDetail(selected, days)
+        .then(d => setDetail(d))
+        .catch(() => setDetail(null));
     } else {
       setDetail(null);
     }
@@ -36,6 +41,12 @@ export default function Analytics() {
           <option value={90}>Last 90 days</option>
         </select>
       </div>
+
+      {error && (
+        <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: '#FDEDEC', color: '#E17055', fontSize: 14 }}>
+          {error}
+        </div>
+      )}
 
       {/* Overview cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
@@ -68,7 +79,7 @@ export default function Analytics() {
         ))}
       </div>
 
-      {forms.length === 0 && (
+      {forms.length === 0 && !error && (
         <div className="card" style={{ textAlign: 'center', padding: 60 }}>
           <h3>No analytics data yet</h3>
           <p style={{ color: '#636E72' }}>Publish a form and share it to start collecting analytics.</p>

@@ -13,7 +13,9 @@ router.get('/:formId', (req, res) => {
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
   const integrations = db.prepare('SELECT * FROM integrations WHERE form_id = ? ORDER BY created_at DESC').all(req.params.formId);
-  integrations.forEach(i => { i.config = JSON.parse(i.config); });
+  integrations.forEach(i => {
+    try { i.config = JSON.parse(i.config); } catch { i.config = {}; }
+  });
   res.json({ integrations });
 });
 

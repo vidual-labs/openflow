@@ -13,12 +13,18 @@ export default function IntegrationsPanel({ formId }) {
   const [adding, setAdding] = useState(null);
   const [testing, setTesting] = useState(null);
   const [testResult, setTestResult] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getIntegrations(formId).then(d => setIntegrations(d.integrations));
+    api.getIntegrations(formId)
+      .then(d => setIntegrations(d.integrations))
+      .catch(err => setError(err.message || 'Failed to load integrations'));
   }, [formId]);
 
   async function addIntegration(type) {
+    if (adding) return;
+    setAdding(type);
+    setError('');
     const actualType = type === 'google_sheets_sa' ? 'google_sheets' : type;
     const defaults = {
       webhook: { url: '', secret: '', method: 'POST' },
@@ -26,20 +32,33 @@ export default function IntegrationsPanel({ formId }) {
       google_sheets: { mode: 'apps_script', apps_script_url: '' },
       google_sheets_sa: { mode: 'service_account', credentials_json: '', spreadsheet_id: '', sheet_name: 'Sheet1' },
     };
-    const { integration } = await api.createIntegration(formId, { type: actualType, config: defaults[type] || defaults[actualType] });
-    setIntegrations([integration, ...integrations]);
-    setAdding(null);
+    try {
+      const { integration } = await api.createIntegration(formId, { type: actualType, config: defaults[type] || defaults[actualType] });
+      setIntegrations(prev => [integration, ...prev]);
+    } catch (err) {
+      setError(err.message || 'Failed to add integration');
+    } finally {
+      setAdding(null);
+    }
   }
 
   async function updateIntegration(id, updates) {
-    const { integration } = await api.updateIntegration(formId, id, updates);
-    setIntegrations(integrations.map(i => i.id === id ? integration : i));
+    try {
+      const { integration } = await api.updateIntegration(formId, id, updates);
+      setIntegrations(prev => prev.map(i => i.id === id ? integration : i));
+    } catch (err) {
+      setError(err.message || 'Failed to update integration');
+    }
   }
 
   async function deleteIntegration(id) {
     if (!confirm('Delete this integration?')) return;
-    await api.deleteIntegration(formId, id);
-    setIntegrations(integrations.filter(i => i.id !== id));
+    try {
+      await api.deleteIntegration(formId, id);
+      setIntegrations(prev => prev.filter(i => i.id !== id));
+    } catch (err) {
+      setError(err.message || 'Failed to delete integration');
+    }
   }
 
   async function testIntegration(id) {
@@ -47,11 +66,13 @@ export default function IntegrationsPanel({ formId }) {
     setTestResult(null);
     try {
       const result = await api.testIntegration(formId, id);
-      setTestResult({ id, ok: result.results?.[0]?.ok, error: result.results?.[0]?.error });
+      const first = result.results?.[0];
+      setTestResult({ id, ok: first?.ok ?? false, error: first?.error });
     } catch (err) {
       setTestResult({ id, ok: false, error: err.message });
+    } finally {
+      setTesting(null);
     }
-    setTesting(null);
   }
 
   function updateConfig(id, key, value) {
@@ -63,16 +84,25 @@ export default function IntegrationsPanel({ formId }) {
 
   return (
     <div>
-      {/* Add new integration */}
-      {!adding ? (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-          {INTEGRATION_TYPES.map(t => (
-            <button key={t.value} className="btn btn-secondary" onClick={() => addIntegration(t.value)}>
-              <span>{t.icon}</span> Add {t.label}
-            </button>
-          ))}
+      {error && (
+        <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: '#FDEDEC', color: '#E17055', fontSize: 14 }}>
+          {error}
         </div>
-      ) : null}
+      )}
+
+      {/* Add new integration */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+        {INTEGRATION_TYPES.map(t => (
+          <button
+            key={t.value}
+            className="btn btn-secondary"
+            onClick={() => addIntegration(t.value)}
+            disabled={adding !== null}
+          >
+            <span>{t.icon}</span> {adding === t.value ? 'Adding...' : `Add ${t.label}`}
+          </button>
+        ))}
+      </div>
 
       {integrations.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: 48 }}>
@@ -117,7 +147,7 @@ export default function IntegrationsPanel({ formId }) {
               background: testResult.ok ? '#E8F8F5' : '#FDEDEC',
               color: testResult.ok ? '#00B894' : '#E17055',
             }}>
-              {testResult.ok ? 'Test successful!' : `Test failed: ${testResult.error}`}
+              {testResult.ok ? 'Test successful!' : `Test failed: ${testResult.error || 'Unknown error'}`}
             </div>
           )}
 

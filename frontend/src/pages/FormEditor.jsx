@@ -40,20 +40,31 @@ const EMOJI_CATEGORIES = {
 export default function FormEditor() {
   const { id } = useParams();
   const [form, setForm] = useState(null);
+  const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [activeTab, setActiveTab] = useState('steps');
   const [expandedStep, setExpandedStep] = useState(null);
 
   useEffect(() => {
-    api.getForm(id).then(d => setForm(d.form));
+    setLoadError('');
+    api.getForm(id)
+      .then(d => setForm(d.form))
+      .catch(err => setLoadError(err.message || 'Failed to load form'));
   }, [id]);
 
+  if (loadError) return (
+    <div style={{ padding: 40, textAlign: 'center', color: '#E17055' }}>
+      <p>{loadError}</p>
+    </div>
+  );
   if (!form) return <div>Loading...</div>;
 
   async function save(updates = {}) {
     setSaving(true);
     setSaved(false);
+    setSaveError('');
     const payload = {
       title: form.title,
       steps: form.steps,
@@ -63,11 +74,16 @@ export default function FormEditor() {
       published: form.published,
       ...updates,
     };
-    const { form: updated } = await api.updateForm(id, payload);
-    setForm(updated);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      const { form: updated } = await api.updateForm(id, payload);
+      setForm(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setSaveError(err.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function updateStep(index, changes) {
@@ -148,6 +164,7 @@ export default function FormEditor() {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {saved && <span style={{ color: '#00B894', fontSize: 13 }}>Saved!</span>}
+          {saveError && <span style={{ color: '#E17055', fontSize: 13 }}>{saveError}</span>}
           {form.published ? (
             <a
               href={`${baseUrl}/embed/${form.slug}`}

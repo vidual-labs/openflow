@@ -67,6 +67,9 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [direction, setDirection] = useState('forward');
   const containerRef = useRef(null);
   const trackedRef = useRef(false);
+  // Always-current ref so auto-advance timer can check if user navigated away
+  const currentStepRef = useRef(currentStep);
+  useEffect(() => { currentStepRef.current = currentStep; }, [currentStep]);
 
   const allSteps = form.steps || [];
   const theme = form.theme || {};
@@ -231,12 +234,18 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const AUTO_ADVANCE_FIELDS = ['select', 'multi-select', 'yes-no', 'rating', 'image-select'];
 
-  // Auto-advance for choice-based field types when answer is provided
+  // Auto-advance for choice-based field types when answer is provided.
+  // Capture the step index at schedule time and compare against the ref at
+  // fire time so we don't advance if the user has already navigated away.
   useEffect(() => {
     if (step && answers[step.id] !== undefined && !theme?.disableAutoAdvance && AUTO_ADVANCE_FIELDS.includes(step.type)) {
-      const timer = setTimeout(() => next(), 400);
+      const stepAtSchedule = currentStep;
+      const timer = setTimeout(() => {
+        if (currentStepRef.current === stepAtSchedule) next();
+      }, 400);
       return () => clearTimeout(timer);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers[step?.id]]);
 
   if (submitted) {

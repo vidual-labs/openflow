@@ -7,8 +7,8 @@ async function request(path, options = {}) {
     ...options,
   });
   if (res.status === 401 && !path.includes('/auth/')) {
-    window.location.href = '/login';
-    return;
+    window.location.replace('/login');
+    throw new Error('Session expired');
   }
   const text = await res.text();
   if (!text) {
