@@ -2,6 +2,15 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.7.6] - 2026-04-16
+
+### Added
+- **GTM Cookie Consent Banner** — When a GTM Container ID is configured, admins can now enable a cookie/tracking consent banner in the GTM / GDPR tab. GTM is only injected after the visitor accepts. All banner texts are fully editable per form: message, Accept button label, and Decline button label. Consent is persisted in localStorage so the banner doesn't reappear.
+- **Live Theme Preview in Design tab** — The Design tab now shows a live preview panel that immediately reflects color and animated-background changes without needing to save or open the published form. This makes it easy to verify that animations are configured and working before publishing.
+
+### Fixed
+- **Backend: submissions DELETE returns 404** — `DELETE /submissions/:formId/:submissionId` previously returned `200 { ok: true }` even when the submission ID did not exist. It now returns `404 { error: "Submission not found" }` when no row was deleted.
+
 ## [0.7.5] - 2026-04-16
 
 ### Fixed
