@@ -20,21 +20,26 @@ export default function Submissions() {
   const [submissions, setSubmissions] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getForm(id).then(d => setForm(d.form));
+    api.getForm(id)
+      .then(d => setForm(d.form))
+      .catch(err => setError(err.message || 'Failed to load form'));
   }, [id]);
 
   useEffect(() => {
-    api.getSubmissions(id, page).then(d => {
-      setSubmissions(d.submissions);
-      setTotal(d.total);
-    });
+    api.getSubmissions(id, page)
+      .then(d => {
+        setSubmissions(d.submissions);
+        setTotal(d.total);
+      })
+      .catch(err => setError(err.message || 'Failed to load submissions'));
   }, [id, page]);
 
-  if (!form) return <div>Loading...</div>;
+  if (!form && !error) return <div>Loading...</div>;
 
-  const steps = form.steps || [];
+  const steps = form?.steps || [];
   const totalPages = Math.ceil(total / 20);
 
   return (
@@ -42,13 +47,19 @@ export default function Submissions() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <Link to={`/forms/${id}`} style={{ color: '#636E72', textDecoration: 'none', fontSize: 13 }}>&larr; Back to form</Link>
-          <h2 style={{ marginTop: 8 }}>Responses: {form.title}</h2>
+          <h2 style={{ marginTop: 8 }}>Responses: {form?.title}</h2>
           <p style={{ color: '#636E72', fontSize: 14 }}>{total} entries</p>
         </div>
         <a href={api.exportSubmissions(id)} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
           Export CSV
         </a>
       </div>
+
+      {error && (
+        <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: '#FDEDEC', color: '#E17055', fontSize: 14 }}>
+          {error}
+        </div>
+      )}
 
       {submissions.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: 60 }}>

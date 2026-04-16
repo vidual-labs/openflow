@@ -14,16 +14,20 @@ router.get('/form/:slug', (req, res) => {
 
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
-  form.steps = JSON.parse(form.steps);
-  form.end_screen = JSON.parse(form.end_screen);
-  form.theme = JSON.parse(form.theme);
+  try {
+    form.steps = JSON.parse(form.steps);
+    form.end_screen = JSON.parse(form.end_screen);
+    form.theme = JSON.parse(form.theme);
+  } catch {
+    return res.status(500).json({ error: 'Form data is corrupted' });
+  }
   res.json({ form });
 });
 
 // Submit form response (public)
 router.post('/form/:slug/submit', async (req, res) => {
   // Rate limit: 10 submissions per IP per minute
-  const ip = req.ip || req.connection.remoteAddress;
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || req.socket?.remoteAddress;
   const allowed = checkRateLimit(`submit:${ip}`, 10, 60);
   if (!allowed) {
     return res.status(429).json({ error: 'Too many submissions, please try again later' });
@@ -69,7 +73,7 @@ router.post('/form/:slug/submit', async (req, res) => {
 
 // Track analytics event (public, rate limited)
 router.post('/track', (req, res) => {
-  const ip = req.ip || req.connection.remoteAddress;
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || req.socket?.remoteAddress;
   const allowed = checkRateLimit(`track:${ip}`, 100, 60);
   if (!allowed) return res.status(429).json({ error: 'Rate limited' });
 
@@ -80,11 +84,16 @@ router.post('/track', (req, res) => {
   if (!validEvents.includes(event)) return res.status(400).json({ error: 'Invalid event type' });
 
   const db = getDb();
+  const formExists = db.prepare('SELECT id FROM forms WHERE id = ?').get(formId);
+  if (!formExists) return res.status(404).json({ error: 'Form not found' });
+
   try {
     db.prepare(
       'INSERT INTO analytics_events (form_id, event, session_id, step_index, step_id) VALUES (?, ?, ?, ?, ?)'
     ).run(formId, event, sessionId || null, stepIndex ?? null, stepId || null);
-  } catch {}
+  } catch (err) {
+    console.error('Analytics event insert failed:', err.message);
+  }
 
   res.json({ ok: true });
 });

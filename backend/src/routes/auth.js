@@ -99,8 +99,8 @@ router.put('/users/:id', authMiddleware, requireAdmin, (req, res) => {
   res.json({ user: updated });
 });
 
-// Delete user (any authenticated user can delete, but cannot delete themselves)
-router.delete('/users/:id', authMiddleware, (req, res) => {
+// Delete user (admin only)
+router.delete('/users/:id', authMiddleware, requireAdmin, (req, res) => {
   try {
     const db = getDb();
     if (req.params.id === req.userId) {

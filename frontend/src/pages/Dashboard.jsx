@@ -4,23 +4,32 @@ import { api } from '../api';
 
 export default function Dashboard() {
   const [forms, setForms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.getForms().then(d => setForms(d.forms));
+    api.getForms()
+      .then(d => setForms(d.forms))
+      .catch(err => setError(err.message || 'Failed to load forms'))
+      .finally(() => setLoading(false));
   }, []);
 
   async function createForm() {
-    const { form } = await api.createForm({
-      title: 'New Form',
-      steps: [
-        { id: 'name', type: 'text', question: 'What is your name?', label: 'Name', required: true, placeholder: 'First and last name' },
-        { id: 'email', type: 'email', question: 'What is your email address?', label: 'Email', required: true },
-        { id: 'interest', type: 'select', question: 'What are you interested in?', label: 'Interest', required: true, options: ['Product A', 'Product B', 'Consulting', 'Other'] },
-      ],
-      end_screen: { title: 'Thank you!', message: 'We will get back to you shortly.' },
-    });
-    navigate(`/forms/${form.id}`);
+    try {
+      const { form } = await api.createForm({
+        title: 'New Form',
+        steps: [
+          { id: 'name', type: 'text', question: 'What is your name?', label: 'Name', required: true, placeholder: 'First and last name' },
+          { id: 'email', type: 'email', question: 'What is your email address?', label: 'Email', required: true },
+          { id: 'interest', type: 'select', question: 'What are you interested in?', label: 'Interest', required: true, options: ['Product A', 'Product B', 'Consulting', 'Other'] },
+        ],
+        end_screen: { title: 'Thank you!', message: 'We will get back to you shortly.' },
+      });
+      navigate(`/forms/${form.id}`);
+    } catch (err) {
+      setError(err.message || 'Failed to create form');
+    }
   }
 
   async function deleteForm(id) {
@@ -35,9 +44,15 @@ export default function Dashboard() {
     } else {
       if (!confirm('Are you sure you want to delete this form?')) return;
     }
-    await api.deleteForm(id);
-    setForms(forms.filter(f => f.id !== id));
+    try {
+      await api.deleteForm(id);
+      setForms(forms.filter(f => f.id !== id));
+    } catch (err) {
+      setError(err.message || 'Failed to delete form');
+    }
   }
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
 
   return (
     <div>
@@ -45,6 +60,12 @@ export default function Dashboard() {
         <h2>Forms</h2>
         <button className="btn btn-primary" onClick={createForm}>+ New Form</button>
       </div>
+
+      {error && (
+        <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: '#FDEDEC', color: '#E17055', fontSize: 14 }}>
+          {error}
+        </div>
+      )}
 
       {forms.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: 60 }}>
