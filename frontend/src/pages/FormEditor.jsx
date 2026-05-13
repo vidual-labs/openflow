@@ -1117,7 +1117,7 @@ function PricingOptionsEditor({ options, onChange }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 28px', gap: 6, fontSize: 12, color: '#888', marginBottom: 2 }}>
         <span>Option label</span>
-        <span>Max budget (€)</span>
+        <span>Max value</span>
         <span />
       </div>
       {normalized.map((opt, i) => (
@@ -1143,7 +1143,7 @@ function PricingOptionsEditor({ options, onChange }) {
       ))}
       <button className="btn btn-secondary btn-sm" onClick={addOption} style={{ marginTop: 4, alignSelf: 'flex-start' }}>+ Add option</button>
       <p style={{ fontSize: 11, color: '#999', margin: '4px 0 0' }}>
-        Set the upper bound of each budget range. Options whose ceiling is below the calculated minimum cost will be hidden.
+        Set the upper bound for each option. Options whose ceiling falls below the calculated minimum (quantity × rate) will be hidden.
       </p>
     </div>
   );
@@ -1177,10 +1177,10 @@ function PricingFilterEditor({ pricingFilter, allSteps, currentStepId, options, 
       {enabled && pricingFilter && (
         <div style={{ marginTop: 10 }}>
           <p style={{ fontSize: 12, color: '#636E72', marginBottom: 10 }}>
-            Automatically hide budget options that cannot cover the minimum cost (guests × rate per person).
+            Automatically hide options whose maximum value falls below <em>quantity × rate</em>. Useful any time a choice depends on a calculated minimum (e.g. price per person, price per item).
           </p>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: '#636E72' }}>Guest count field</span>
+            <span style={{ fontSize: 13, color: '#636E72' }}>Quantity field</span>
             <select
               className="input"
               value={pricingFilter.field || ''}
@@ -1201,7 +1201,7 @@ function PricingFilterEditor({ pricingFilter, allSteps, currentStepId, options, 
               onChange={e => onChange({ ...pricingFilter, rate: Number(e.target.value) || 40 })}
               style={{ width: 80, padding: '6px 10px', fontSize: 13 }}
             />
-            <span style={{ fontSize: 13, color: '#636E72' }}>€/person</span>
+            <span style={{ fontSize: 13, color: '#636E72' }}>per unit</span>
           </div>
         </div>
       )}
