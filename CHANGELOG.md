@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.7.9] - 2026-05-13
+
+### Added
+- **Form language setting (EN / DE)** — A new "Form Language" dropdown in the Design tab → "Button & Navigation" lets admins switch the public form UI to German. All respondent-facing strings are translated: button labels (Next/Weiter, Submit/Absenden), validation errors, Yes/No choices, address field placeholders, file upload prompts, the end-screen thank-you message, the Enter-key hint, and the consent checkbox default text. English is the default; the custom Next/Submit button label fields still take precedence over locale defaults. New translations can be added to `frontend/src/locales.js`.
+
 ## [0.7.8] - 2026-05-13
 
 ### Added

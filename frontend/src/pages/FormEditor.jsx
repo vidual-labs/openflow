@@ -370,6 +370,18 @@ export default function FormEditor() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="input-group">
+                <label>Form Language</label>
+                <select
+                  className="input"
+                  value={form.theme?.language || 'en'}
+                  onChange={e => setForm({ ...form, theme: { ...form.theme, language: e.target.value } })}
+                >
+                  <option value="en">English</option>
+                  <option value="de">Deutsch (German)</option>
+                </select>
+                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Sets the language for all built-in UI text shown to respondents.</span>
+              </div>
+              <div className="input-group">
                 <label>Button Position</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[
