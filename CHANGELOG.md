@@ -2,6 +2,14 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.7.8] - 2026-05-13
+
+### Added
+- **Editable Next/Submit button labels** — The Design tab's "Button & Navigation" section now exposes "Next Button Label" and "Submit Button Label" fields. Leave blank to keep the defaults ("Next →" / "Submit →"). Labels are stored in the form theme and reflected immediately in the live preview.
+
+### Fixed
+- **Choice option editing — cannot re-add deleted lines** — Deleting all characters from a choice option line and pressing Enter to add a new option was silently no-oped because `filter(Boolean)` stripped the trailing blank line before the textarea re-rendered. The options editor now uses local state so trailing newlines are preserved while typing, allowing new options to be added freely again.
+
 ## [0.7.7] - 2026-05-13
 
 ### Added

@@ -308,7 +308,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const nextButton = (
     <button className="form-btn" onClick={next}>
-      {isLastStep ? 'Submit' : 'Next'} &#8594;
+      {isLastStep ? (theme.submitButtonLabel || 'Submit') : (theme.nextButtonLabel || 'Next')} &#8594;
     </button>
   );
 

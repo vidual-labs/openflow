@@ -425,6 +425,26 @@ export default function FormEditor() {
                   Auto-advance only works for choice-based fields (single choice, multiple choice, yes/no, rating, image select).
                 </span>
               </div>
+              <div className="input-group">
+                <label>Next Button Label</label>
+                <input
+                  className="input"
+                  value={form.theme?.nextButtonLabel || ''}
+                  onChange={e => setForm({ ...form, theme: { ...form.theme, nextButtonLabel: e.target.value } })}
+                  placeholder="Next"
+                />
+                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Leave blank to use the default "Next →"</span>
+              </div>
+              <div className="input-group">
+                <label>Submit Button Label</label>
+                <input
+                  className="input"
+                  value={form.theme?.submitButtonLabel || ''}
+                  onChange={e => setForm({ ...form, theme: { ...form.theme, submitButtonLabel: e.target.value } })}
+                  placeholder="Submit"
+                />
+                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Leave blank to use the default "Submit →"</span>
+              </div>
             </div>
           </div>
 
@@ -784,13 +804,7 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
                     onChange={options => onChange({ options })}
                   />
                 ) : (
-                  <textarea
-                    className="input"
-                    rows={4}
-                    value={(step.options || []).map(o => typeof o === 'string' ? o : o.label).join('\n')}
-                    onChange={e => onChange({ options: e.target.value.split('\n').filter(Boolean) })}
-                    placeholder={"Option 1\nOption 2\nOption 3"}
-                  />
+                  <OptionsTextarea options={step.options || []} onChange={onChange} />
                 )}
               </div>
               <PricingFilterEditor
@@ -918,6 +932,39 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
         </div>
       )}
     </div>
+  );
+}
+
+/* ===========================
+   OptionsTextarea - Textarea for editing select/multi-select options
+   Uses local state so trailing newlines are preserved while typing
+   =========================== */
+function OptionsTextarea({ options, onChange }) {
+  const toText = opts => (opts || []).map(o => typeof o === 'string' ? o : o.label).join('\n');
+  const [text, setText] = useState(() => toText(options));
+  const prevText = useRef(text);
+
+  // Sync if parent changes options externally (e.g. switching steps)
+  const canonicalText = toText(options);
+  if (canonicalText !== toText(prevText.current.split('\n').filter(Boolean))) {
+    if (text.split('\n').filter(Boolean).join('\n') !== canonicalText) {
+      setText(canonicalText);
+    }
+  }
+
+  return (
+    <textarea
+      className="input"
+      rows={4}
+      value={text}
+      onChange={e => {
+        const val = e.target.value;
+        setText(val);
+        prevText.current = val;
+        onChange({ options: val.split('\n').filter(Boolean) });
+      }}
+      placeholder={"Option 1\nOption 2\nOption 3"}
+    />
   );
 }
 
@@ -1354,7 +1401,7 @@ function ThemePreview({ theme }) {
           border: 'none', padding: '10px 22px',
           borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'default',
         }}>
-          Next →
+          {theme.nextButtonLabel || 'Next'} →
         </button>
       </div>
       {bgAnimation === 'none' && (
