@@ -775,16 +775,32 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
 
           {/* Options for select types */}
           {(step.type === 'select' || step.type === 'multi-select') && (
-            <div className="input-group" style={{ marginTop: 12 }}>
-              <label>Options (one per line)</label>
-              <textarea
-                className="input"
-                rows={4}
-                value={(step.options || []).join('\n')}
-                onChange={e => onChange({ options: e.target.value.split('\n').filter(Boolean) })}
-                placeholder={"Option 1\nOption 2\nOption 3"}
+            <>
+              <div className="input-group" style={{ marginTop: 12 }}>
+                <label>Options</label>
+                {step.pricingFilter?.enabled ? (
+                  <PricingOptionsEditor
+                    options={step.options || []}
+                    onChange={options => onChange({ options })}
+                  />
+                ) : (
+                  <textarea
+                    className="input"
+                    rows={4}
+                    value={(step.options || []).map(o => typeof o === 'string' ? o : o.label).join('\n')}
+                    onChange={e => onChange({ options: e.target.value.split('\n').filter(Boolean) })}
+                    placeholder={"Option 1\nOption 2\nOption 3"}
+                  />
+                )}
+              </div>
+              <PricingFilterEditor
+                pricingFilter={step.pricingFilter}
+                allSteps={allSteps}
+                currentStepId={step.id}
+                options={step.options || []}
+                onChange={(pf, opts) => onChange({ pricingFilter: pf, ...(opts !== undefined ? { options: opts } : {}) })}
               />
-            </div>
+            </>
           )}
 
           {/* Image/Icon Select - visual editor */}
@@ -1071,6 +1087,122 @@ function ConditionEditor({ condition, allSteps, currentStepId, onChange }) {
           {!['is_set', 'is_not_set'].includes(condition.op) && (
             <input className="input" value={condition.value || ''} onChange={e => onChange({ ...condition, value: e.target.value })} placeholder="Value" style={{ width: 'auto', minWidth: 120, padding: '6px 10px', fontSize: 13 }} />
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===========================
+   PricingOptionsEditor - Per-option label + maxBudget when pricing filter is on
+   =========================== */
+function PricingOptionsEditor({ options, onChange }) {
+  function updateOption(i, changes) {
+    const updated = [...options];
+    updated[i] = { ...updated[i], ...changes };
+    onChange(updated);
+  }
+
+  function addOption() {
+    onChange([...options, { label: '', maxBudget: '' }]);
+  }
+
+  function removeOption(i) {
+    onChange(options.filter((_, idx) => idx !== i));
+  }
+
+  const normalized = options.map(o => typeof o === 'string' ? { label: o, maxBudget: '' } : o);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 28px', gap: 6, fontSize: 12, color: '#888', marginBottom: 2 }}>
+        <span>Option label</span>
+        <span>Max budget (€)</span>
+        <span />
+      </div>
+      {normalized.map((opt, i) => (
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 28px', gap: 6, alignItems: 'center' }}>
+          <input
+            className="input"
+            value={opt.label || ''}
+            onChange={e => updateOption(i, { label: e.target.value })}
+            placeholder="e.g. 1000–2000€"
+            style={{ fontSize: 13 }}
+          />
+          <input
+            className="input"
+            type="number"
+            min={0}
+            value={opt.maxBudget === '' || opt.maxBudget === undefined ? '' : opt.maxBudget}
+            onChange={e => updateOption(i, { maxBudget: e.target.value === '' ? '' : Number(e.target.value) })}
+            placeholder="upper bound"
+            style={{ fontSize: 13 }}
+          />
+          <button className="btn btn-sm btn-danger" onClick={() => removeOption(i)} style={{ padding: '4px 8px' }}>×</button>
+        </div>
+      ))}
+      <button className="btn btn-secondary btn-sm" onClick={addOption} style={{ marginTop: 4, alignSelf: 'flex-start' }}>+ Add option</button>
+      <p style={{ fontSize: 11, color: '#999', margin: '4px 0 0' }}>
+        Set the upper bound of each budget range. Options whose ceiling is below the calculated minimum cost will be hidden.
+      </p>
+    </div>
+  );
+}
+
+/* ===========================
+   PricingFilterEditor - Flat-rate pricing filter config for select fields
+   =========================== */
+function PricingFilterEditor({ pricingFilter, allSteps, currentStepId, options, onChange }) {
+  const enabled = !!pricingFilter?.enabled;
+  const otherSteps = allSteps.filter(s => s.id !== currentStepId);
+
+  function toggle() {
+    if (enabled) {
+      // Convert options back to plain strings when disabling
+      const plainOptions = options.map(o => typeof o === 'string' ? o : (o.label || ''));
+      onChange(null, plainOptions);
+    } else {
+      // Convert options to extended objects when enabling
+      const extOptions = options.map(o => typeof o === 'string' ? { label: o, maxBudget: '' } : o);
+      onChange({ enabled: true, field: otherSteps[0]?.id || '', rate: 40 }, extOptions);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 12, padding: 14, background: '#fafafa', borderRadius: 10, border: '1px solid #eee' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+        <input type="checkbox" checked={enabled} onChange={toggle} />
+        Flat-rate Pricing Filter
+      </label>
+      {enabled && pricingFilter && (
+        <div style={{ marginTop: 10 }}>
+          <p style={{ fontSize: 12, color: '#636E72', marginBottom: 10 }}>
+            Automatically hide budget options that cannot cover the minimum cost (guests × rate per person).
+          </p>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: '#636E72' }}>Guest count field</span>
+            <select
+              className="input"
+              value={pricingFilter.field || ''}
+              onChange={e => onChange({ ...pricingFilter, field: e.target.value })}
+              style={{ width: 'auto', minWidth: 140, padding: '6px 10px', fontSize: 13 }}
+            >
+              <option value="">-- Select field --</option>
+              {otherSteps.map(s => (
+                <option key={s.id} value={s.id}>{s.label || s.question || s.id}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: 13, color: '#636E72' }}>× rate</span>
+            <input
+              className="input"
+              type="number"
+              min={1}
+              value={pricingFilter.rate ?? 40}
+              onChange={e => onChange({ ...pricingFilter, rate: Number(e.target.value) || 40 })}
+              style={{ width: 80, padding: '6px 10px', fontSize: 13 }}
+            />
+            <span style={{ fontSize: 13, color: '#636E72' }}>€/person</span>
+          </div>
         </div>
       )}
     </div>

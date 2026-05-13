@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.7.7] - 2026-05-13
+
+### Added
+- **Flat-rate Pricing Filter** — Select/single-choice fields now support a "Flat-rate Pricing Filter" option in the form editor. When enabled, you link the field to a guest-count (or quantity) field and set a price-per-person rate (e.g. 40 €/person). Budget options whose upper bound falls below the calculated minimum cost (guests × rate) are automatically hidden from respondents. Each option gets a configurable "Max budget" ceiling in the editor. Plain string options (no ceiling set) are always shown, ensuring full backward compatibility.
+
 ## [0.7.6] - 2026-04-16
 
 ### Added
