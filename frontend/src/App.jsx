@@ -8,7 +8,7 @@ import Submissions from './pages/Submissions';
 import Users from './pages/Users';
 import Analytics from './pages/Analytics';
 
-const APP_VERSION = '0.7.6';
+const APP_VERSION = '0.7.9';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
@@ -73,6 +73,7 @@ export default function App() {
             Log out
           </button>
           <a href="https://github.com/vidual-labs/openflow" target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '8px 12px', textDecoration: 'none' }}>
+            <img src="/vidual-logo.png" alt="Vidual" style={{ height: 18, opacity: 0.4, display: 'block', marginBottom: 4 }} />
             v{APP_VERSION} &middot; GitHub
           </a>
         </div>

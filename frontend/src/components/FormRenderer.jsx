@@ -1,5 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import './FormRenderer.css';
+import { LOCALES } from '../locales';
+
+const LocaleContext = createContext(LOCALES.en);
+function useLocale() { return useContext(LocaleContext); }
 
 // Extract the highest number from a string like "51-100 guests" → 100, or "100+" → 100
 function parseGuestCount(answer) {
@@ -97,6 +101,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const allSteps = form.steps || [];
   const theme = form.theme || {};
+  const locale = LOCALES[theme.language] || LOCALES.en;
 
   // Conditional logic: filter steps based on answers
   const steps = allSteps.filter(s => {
@@ -121,7 +126,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const endScreen = form.end_screen || {};
   const isLastStep = currentStep === steps.length - 1;
   const consentRequired = !!endScreen.consentEnabled;
-  const consentText = endScreen.consentText || 'I agree to the privacy policy and terms of service.';
+  const consentText = endScreen.consentText || locale.consentDefault;
 
   const buttonPosition = theme.buttonPosition || 'footer';
   const showEnterHint = !!theme.showEnterHint;
@@ -160,31 +165,31 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const next = useCallback(function next() {
     if (!canProceed()) {
-      setError('Please answer this question.');
+      setError(locale.errorRequired);
       return;
     }
     if (step.type === 'email' && answers[step.id] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers[step.id])) {
-      setError('Please enter a valid email address.');
+      setError(locale.errorEmail);
       return;
     }
     if (step.type === 'website' && answers[step.id] && !/^https?:\/\/.+\..+/.test(answers[step.id])) {
-      setError('Please enter a valid URL (starting with http:// or https://).');
+      setError(locale.errorUrl);
       return;
     }
     if (step.type === 'consent' && step.required && !answers[step.id]) {
-      setError('You must agree to continue.');
+      setError(locale.errorConsent);
       return;
     }
     if ((step.type === 'address' || step.type === 'contact') && step.required) {
       const c = answers[step.id] || {};
       if (!c.street || !c.postalCode || !c.city) {
-        setError('Please fill in street, postal code, and city.');
+        setError(locale.errorAddress);
         return;
       }
     }
     // Check consent on last step
     if (isLastStep && consentRequired && !consentGiven) {
-      setError('You must agree to the consent to submit.');
+      setError(locale.errorConsentSubmit);
       return;
     }
     if (currentStep < steps.length - 1) {
@@ -221,7 +226,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         });
       }
     } catch (err) {
-      setError(err.message || 'Submission failed');
+      setError(err.message || locale.errorSubmitFailed);
     }
   }
 
@@ -274,23 +279,25 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   if (submitted) {
     return (
-      <div className="form-renderer" style={themeVars} ref={containerRef}>
-        <div className="form-end-screen slide-in-forward">
-          <div className="end-icon">&#10003;</div>
-          <h2>{endScreen.title || 'Thank you!'}</h2>
-          <p>{endScreen.message || 'Your responses have been submitted successfully.'}</p>
-          {endScreen.redirectUrl && (
-            <a href={endScreen.redirectUrl} className="form-btn" style={{ marginTop: 24 }}>
-              Continue
-            </a>
-          )}
+      <LocaleContext.Provider value={locale}>
+        <div className="form-renderer" style={themeVars} ref={containerRef}>
+          <div className="form-end-screen slide-in-forward">
+            <div className="end-icon">&#10003;</div>
+            <h2>{endScreen.title || locale.thankYou}</h2>
+            <p>{endScreen.message || locale.submittedMessage}</p>
+            {endScreen.redirectUrl && (
+              <a href={endScreen.redirectUrl} className="form-btn" style={{ marginTop: 24 }}>
+                {locale.continueBtn}
+              </a>
+            )}
+          </div>
         </div>
-      </div>
+      </LocaleContext.Provider>
     );
   }
 
   if (!step) {
-    return <div className="form-renderer" style={themeVars}><p>No questions configured.</p></div>;
+    return <div className="form-renderer" style={themeVars}><p>{locale.noQuestions}</p></div>;
   }
 
   const FieldComponent = FIELD_TYPES[step.type] || TextInput;
@@ -302,17 +309,18 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const enterHint = showEnterHint && step?.type !== 'textarea' ? (
     <span className="form-enter-hint">
-      press <kbd>Enter &#8629;</kbd>
+      {locale.enterHintBefore}<kbd>Enter &#8629;</kbd>{locale.enterHintAfter}
     </span>
   ) : null;
 
   const nextButton = (
     <button className="form-btn" onClick={next}>
-      {isLastStep ? (theme.submitButtonLabel || 'Submit') : (theme.nextButtonLabel || 'Next')} &#8594;
+      {isLastStep ? (theme.submitButtonLabel || locale.submit) : (theme.nextButtonLabel || locale.next)} &#8594;
     </button>
   );
 
   return (
+    <LocaleContext.Provider value={locale}>
     <div className={`form-renderer ${embedded ? 'embedded' : ''}`} style={themeVars} onKeyDown={handleKeyDown} ref={containerRef}>
       {/* Custom CSS */}
       {theme.customCss && <style>{theme.customCss}</style>}
@@ -400,6 +408,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         </div>
       </div>
     </div>
+    </LocaleContext.Provider>
   );
 }
 
@@ -408,26 +417,30 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
    ======================== */
 
 function TextInput({ step, value, onChange }) {
+  const locale = useLocale();
   return (
-    <input className="form-input" type="text" placeholder={step.placeholder || 'Type your answer...'} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
+    <input className="form-input" type="text" placeholder={step.placeholder || locale.placeholderText} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
   );
 }
 
 function EmailInput({ step, value, onChange }) {
+  const locale = useLocale();
   return (
-    <input className="form-input" type="email" placeholder={step.placeholder || 'name@example.com'} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
+    <input className="form-input" type="email" placeholder={step.placeholder || locale.placeholderEmail} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
   );
 }
 
 function PhoneInput({ step, value, onChange }) {
+  const locale = useLocale();
   return (
-    <input className="form-input" type="tel" placeholder={step.placeholder || '+1 234 567890'} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
+    <input className="form-input" type="tel" placeholder={step.placeholder || locale.placeholderPhone} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
   );
 }
 
 function TextareaInput({ step, value, onChange }) {
+  const locale = useLocale();
   return (
-    <textarea className="form-input form-textarea" placeholder={step.placeholder || 'Type your answer...'} value={value || ''} onChange={e => onChange(e.target.value)} rows={4} autoFocus />
+    <textarea className="form-input form-textarea" placeholder={step.placeholder || locale.placeholderText} value={value || ''} onChange={e => onChange(e.target.value)} rows={4} autoFocus />
   );
 }
 
@@ -489,13 +502,14 @@ function MultiSelectInput({ step, value, onChange }) {
 }
 
 function YesNoInput({ step, value, onChange }) {
+  const locale = useLocale();
   return (
     <div className="form-options form-yesno">
       <button className={`form-option ${value === 'yes' ? 'selected' : ''}`} onClick={() => onChange('yes')}>
-        Yes
+        {locale.yes}
       </button>
       <button className={`form-option ${value === 'no' ? 'selected' : ''}`} onClick={() => onChange('no')}>
-        No
+        {locale.no}
       </button>
     </div>
   );
@@ -515,12 +529,14 @@ function RatingInput({ step, value, onChange }) {
 }
 
 function WebsiteInput({ step, value, onChange }) {
+  const locale = useLocale();
   return (
-    <input className="form-input" type="url" placeholder={step.placeholder || 'https://example.com'} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
+    <input className="form-input" type="url" placeholder={step.placeholder || locale.placeholderUrl} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
   );
 }
 
 function AddressInput({ step, value, onChange }) {
+  const locale = useLocale();
   const data = value || {};
   function update(field, val) {
     onChange({ ...data, [field]: val });
@@ -528,13 +544,13 @@ function AddressInput({ step, value, onChange }) {
   const customFields = step.customFields || [];
   return (
     <div className="form-address">
-      <input className="form-input" type="text" placeholder="Street and house number *" value={data.street || ''} onChange={e => update('street', e.target.value)} autoFocus />
+      <input className="form-input" type="text" placeholder={locale.addressStreet} value={data.street || ''} onChange={e => update('street', e.target.value)} autoFocus />
       <div className="form-address-row">
-        <input className="form-input" type="text" placeholder="Postal code *" value={data.postalCode || ''} onChange={e => update('postalCode', e.target.value)} />
-        <input className="form-input" type="text" placeholder="City *" value={data.city || ''} onChange={e => update('city', e.target.value)} />
+        <input className="form-input" type="text" placeholder={locale.addressPostal} value={data.postalCode || ''} onChange={e => update('postalCode', e.target.value)} />
+        <input className="form-input" type="text" placeholder={locale.addressCity} value={data.city || ''} onChange={e => update('city', e.target.value)} />
       </div>
       {step.showCountry !== false && (
-        <input className="form-input" type="text" placeholder="Country (optional)" value={data.country || ''} onChange={e => update('country', e.target.value)} />
+        <input className="form-input" type="text" placeholder={locale.addressCountry} value={data.country || ''} onChange={e => update('country', e.target.value)} />
       )}
       {customFields.map((field, idx) => (
         <div key={field.id || idx} style={{ marginTop: 12 }}>
@@ -548,7 +564,7 @@ function AddressInput({ step, value, onChange }) {
             <>
               <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: '#555' }}>{field.label}</label>
               <select className="form-input" value={data[field.id] || ''} onChange={e => update(field.id, e.target.value)}>
-                <option value="">Select...</option>
+                <option value="">{locale.addressSelect}</option>
                 {(field.options || '').split(',').map((opt, i) => (
                   <option key={i} value={opt.trim()}>{opt.trim()}</option>
                 ))}
@@ -575,15 +591,17 @@ function AddressInput({ step, value, onChange }) {
 }
 
 function ConsentInput({ step, value, onChange }) {
+  const locale = useLocale();
   return (
     <label className="form-consent">
       <input type="checkbox" checked={!!value} onChange={e => onChange(e.target.checked)} />
-      <span className="consent-text">{step.consentText || 'I agree to the privacy policy and terms of service.'}</span>
+      <span className="consent-text">{step.consentText || locale.consentDefault}</span>
     </label>
   );
 }
 
 function FileUploadInput({ step, value, onChange }) {
+  const locale = useLocale();
   const fileRef = useRef();
   const maxSize = (step.maxSizeMB || 10) * 1024 * 1024;
   const [fileName, setFileName] = useState(value?.name || '');
@@ -594,7 +612,7 @@ function FileUploadInput({ step, value, onChange }) {
     if (!file) return;
     setError('');
     if (file.size > maxSize) {
-      setError(`File too large (max ${step.maxSizeMB || 10} MB)`);
+      setError(locale.fileTooLarge(step.maxSizeMB || 10));
       return;
     }
     setFileName(file.name);
@@ -621,7 +639,7 @@ function FileUploadInput({ step, value, onChange }) {
         ) : (
           <>
             <span className="file-icon">&#128193;</span>
-            <span>Click to upload or drag & drop</span>
+            <span>{locale.fileUploadPrompt}</span>
             <span className="file-hint">{step.accept || '.pdf,.jpg,.png'} &middot; Max {step.maxSizeMB || 10} MB</span>
           </>
         )}
