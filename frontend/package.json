@@ -1,6 +1,6 @@
 {
   "name": "openflow-frontend",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "type": "module",
   "scripts": {
     "dev": "vite",

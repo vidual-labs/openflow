@@ -1,6 +1,30 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './FormRenderer.css';
 
+// Extract the highest number from a string like "51-100 guests" → 100, or "100+" → 100
+function parseGuestCount(answer) {
+  if (answer === undefined || answer === null || answer === '') return null;
+  if (typeof answer === 'number') return answer;
+  const nums = String(answer).match(/\d+/g);
+  if (!nums || nums.length === 0) return null;
+  return Math.max(...nums.map(Number));
+}
+
+// Filter select/multi-select options based on flat-rate pricing (e.g. 40€/person).
+// Options with a maxBudget below (guestCount × rate) are hidden.
+function applyPricingFilter(step, answers) {
+  const pf = step.pricingFilter;
+  if (!pf?.enabled || !pf.field || !pf.rate) return step;
+  const guestCount = parseGuestCount(answers[pf.field]);
+  if (guestCount === null) return step;
+  const minRequired = guestCount * pf.rate;
+  const filteredOptions = (step.options || []).filter(opt => {
+    if (typeof opt === 'string') return true;
+    return !opt.maxBudget || opt.maxBudget >= minRequired;
+  });
+  return { ...step, options: filteredOptions };
+}
+
 const FIELD_TYPES = {
   text: TextInput,
   email: EmailInput,
@@ -271,6 +295,9 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const FieldComponent = FIELD_TYPES[step.type] || TextInput;
 
+  // Flat-rate pricing filter: hide budget options that can't cover the minimum cost
+  const displayStep = applyPricingFilter(step, answers);
+
   const footerLinks = (theme.footerLinks || []).filter(l => l.title && l.url);
 
   const enterHint = showEnterHint && step?.type !== 'textarea' ? (
@@ -318,7 +345,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
           <div className="step-field">
             <FieldComponent
-              step={step}
+              step={displayStep}
               value={answers[step.id]}
               onChange={setAnswer}
             />
