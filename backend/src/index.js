@@ -9,6 +9,7 @@ const submissionRoutes = require('./routes/submissions');
 const publicRoutes = require('./routes/public');
 const integrationRoutes = require('./routes/integrations');
 const analyticsRoutes = require('./routes/analytics');
+const settingsRoutes = require('./routes/settings');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +25,7 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // API 404 handler (must come before static file serving)
 app.all('/api/*', (req, res) => {
