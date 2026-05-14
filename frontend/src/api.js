@@ -55,6 +55,9 @@ export const api = {
   getAnalyticsOverview: (days = 30) => request(`/analytics/overview?days=${days}`),
   getAnalyticsDetail: (formId, days = 30) => request(`/analytics/${formId}?days=${days}`),
 
+  getSettings: () => request('/settings'),
+  updateSettings: (key, value) => request(`/settings/${key}`, { method: 'PUT', body: JSON.stringify(value) }),
+
   getPublicForm: (slug) => request(`/public/form/${slug}`),
   submitForm: (slug, data) => request(`/public/form/${slug}/submit`, { method: 'POST', body: JSON.stringify({ data }) }),
 };

@@ -7,8 +7,9 @@ import FormEditor from './pages/FormEditor';
 import Submissions from './pages/Submissions';
 import Users from './pages/Users';
 import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 
-const APP_VERSION = '0.7.9';
+const APP_VERSION = '0.8.0';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
@@ -18,11 +19,15 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(getInitialTheme);
+  const [branding, setBranding] = useState({ logoVisible: true, logoUrl: '' });
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    api.me().then(d => setUser(d.user)).catch(() => setUser(null)).finally(() => setLoading(false));
+    Promise.all([
+      api.me().then(d => setUser(d.user)).catch(() => setUser(null)),
+      api.getSettings().then(d => { if (d.settings?.branding) setBranding(b => ({ ...b, ...d.settings.branding })); }).catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -63,6 +68,7 @@ export default function App() {
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
           <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>Analytics</Link>
           {isAdmin && <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>Users</Link>}
+          {isAdmin && <Link to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>Settings</Link>}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
           <span style={{ fontSize: 13, opacity: 0.5, display: 'block', padding: '0 12px', marginBottom: 8 }}>{user.email}</span>
@@ -73,7 +79,13 @@ export default function App() {
             Log out
           </button>
           <a href="https://github.com/vidual-labs/openflow" target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '8px 12px', textDecoration: 'none' }}>
-            <img src="/vidual-logo.png" alt="Vidual" style={{ height: 18, opacity: 0.4, display: 'block', marginBottom: 4 }} />
+            {branding.logoVisible && (
+              <img
+                src={branding.logoUrl || '/vidual-logo.png'}
+                alt="Logo"
+                style={{ height: 18, opacity: 0.4, display: 'block', marginBottom: 4, maxWidth: 120, objectFit: 'contain' }}
+              />
+            )}
             v{APP_VERSION} &middot; GitHub
           </a>
         </div>
@@ -85,6 +97,7 @@ export default function App() {
           <Route path="/forms/:id/submissions" element={<Submissions />} />
           <Route path="/analytics" element={<Analytics />} />
           {isAdmin && <Route path="/users" element={<Users />} />}
+          {isAdmin && <Route path="/settings" element={<Settings />} />}
         </Routes>
       </main>
     </div>

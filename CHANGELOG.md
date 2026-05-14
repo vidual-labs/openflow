@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.8.0] - 2026-05-14
+
+### Added
+- **White-label branding settings** — A new admin-only "Settings" page (sidebar → Settings) lets admins customise the sidebar logo: replace it with any custom logo URL, or hide it entirely. Settings are persisted in a new `site_settings` database table and served via `GET /api/settings` (public) / `PUT /api/settings/:key` (admin-only). The sidebar logo in `App.jsx` is now fully dynamic.
+
 ## [0.7.9] - 2026-05-13
 
 ### Added

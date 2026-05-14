@@ -81,6 +81,11 @@ function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_analytics_form ON analytics_events(form_id, event, created_at);
     CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics_events(form_id, session_id);
+
+    CREATE TABLE IF NOT EXISTS site_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT '{}'
+    );
   `);
 
   // Migrate: add role column if missing (existing DBs)
