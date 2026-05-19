@@ -461,7 +461,7 @@ function SelectInput({ step, value, onChange }) {
   return (
     <div className="form-options">
       {options.map((opt, i) => {
-        const optValue = typeof opt === 'string' ? opt : opt.value;
+        const optValue = typeof opt === 'string' ? opt : (opt.value ?? opt.label);
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
           <button key={i} className={`form-option ${value === optValue ? 'selected' : ''}`} onClick={() => onChange(optValue)}>
@@ -488,7 +488,7 @@ function MultiSelectInput({ step, value, onChange }) {
   return (
     <div className="form-options">
       {options.map((opt, i) => {
-        const optValue = typeof opt === 'string' ? opt : opt.value;
+        const optValue = typeof opt === 'string' ? opt : (opt.value ?? opt.label);
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
           <button key={i} className={`form-option ${selected.includes(optValue) ? 'selected' : ''}`} onClick={() => toggle(optValue)}>

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const { version } = require('../package.json');
 const { initDb } = require('./models/db');
 const authRoutes = require('./routes/auth');
 const formRoutes = require('./routes/forms');
@@ -41,7 +42,7 @@ app.get('*', (req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(200).json({ status: 'OpenFlow API running', version: '0.7.6' });
+    res.status(200).json({ status: 'OpenFlow API running', version });
   }
 });
 
