@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.8.1] - 2026-05-19
+
+### Fixed
+- **Flat-rate pricing filter — options appeared pre-selected and unclickable** — When the flat-rate pricing filter was enabled on a select/multi-select field, every option in the live form rendered with the "selected" highlight and clicking a choice never advanced the form. Options stored in pricing-filter mode are `{ label, maxBudget }` objects with no `value` field, so `opt.value` was `undefined` for every option; `value === undefined` then matched every button and `onChange(undefined)` failed the required-field check. `SelectInput` and `MultiSelectInput` now fall back to `opt.label` when `opt.value` is absent.
+- **Backend status endpoint reported stale version** — `GET /` returned a hardcoded `0.7.6` even though the project was at 0.8.0. The version is now read from `package.json` so it can never drift again.
+
 ## [0.8.0] - 2026-05-14
 
 ### Added
