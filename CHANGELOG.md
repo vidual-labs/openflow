@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.8.2] - 2026-05-19
+
+### Added
+- **Custom address field labels** — Form builders can now set their own placeholder text for each core address sub-field (Street, Postal Code, City, Country) directly in the field editor. Labels fall back to the locale defaults when left blank, so existing forms are unaffected.
+
 ## [0.8.1] - 2026-05-19
 
 ### Fixed

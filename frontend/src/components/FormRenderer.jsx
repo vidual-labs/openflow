@@ -542,15 +542,16 @@ function AddressInput({ step, value, onChange }) {
     onChange({ ...data, [field]: val });
   }
   const customFields = step.customFields || [];
+  const al = step.addressLabels || {};
   return (
     <div className="form-address">
-      <input className="form-input" type="text" placeholder={locale.addressStreet} value={data.street || ''} onChange={e => update('street', e.target.value)} autoFocus />
+      <input className="form-input" type="text" placeholder={al.street || locale.addressStreet} value={data.street || ''} onChange={e => update('street', e.target.value)} autoFocus />
       <div className="form-address-row">
-        <input className="form-input" type="text" placeholder={locale.addressPostal} value={data.postalCode || ''} onChange={e => update('postalCode', e.target.value)} />
-        <input className="form-input" type="text" placeholder={locale.addressCity} value={data.city || ''} onChange={e => update('city', e.target.value)} />
+        <input className="form-input" type="text" placeholder={al.postalCode || locale.addressPostal} value={data.postalCode || ''} onChange={e => update('postalCode', e.target.value)} />
+        <input className="form-input" type="text" placeholder={al.city || locale.addressCity} value={data.city || ''} onChange={e => update('city', e.target.value)} />
       </div>
       {step.showCountry !== false && (
-        <input className="form-input" type="text" placeholder={locale.addressCountry} value={data.country || ''} onChange={e => update('country', e.target.value)} />
+        <input className="form-input" type="text" placeholder={al.country || locale.addressCountry} value={data.country || ''} onChange={e => update('country', e.target.value)} />
       )}
       {customFields.map((field, idx) => (
         <div key={field.id || idx} style={{ marginTop: 12 }}>
