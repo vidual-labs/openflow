@@ -858,6 +858,18 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
               <p style={{ fontSize: 13, color: '#636E72', marginBottom: 8 }}>
                 This field automatically collects: <strong>Street</strong>, <strong>Postal Code</strong>, <strong>City</strong>, and optionally <strong>Country</strong>.
               </p>
+
+              {/* Custom placeholder labels for core sub-fields */}
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontSize: 13, color: '#636E72', marginBottom: 8 }}>Field labels (leave blank to use defaults):</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input className="input" value={(step.addressLabels || {}).street || ''} onChange={e => onChange({ addressLabels: { ...(step.addressLabels || {}), street: e.target.value } })} placeholder="Street and house number *" />
+                  <input className="input" value={(step.addressLabels || {}).postalCode || ''} onChange={e => onChange({ addressLabels: { ...(step.addressLabels || {}), postalCode: e.target.value } })} placeholder="Postal code *" />
+                  <input className="input" value={(step.addressLabels || {}).city || ''} onChange={e => onChange({ addressLabels: { ...(step.addressLabels || {}), city: e.target.value } })} placeholder="City *" />
+                  <input className="input" value={(step.addressLabels || {}).country || ''} onChange={e => onChange({ addressLabels: { ...(step.addressLabels || {}), country: e.target.value } })} placeholder="Country (optional)" />
+                </div>
+              </div>
+
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
                 <input type="checkbox" checked={step.showCountry !== false} onChange={e => onChange({ showCountry: e.target.checked })} />
                 Include country field
