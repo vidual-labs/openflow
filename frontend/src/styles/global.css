@@ -89,6 +89,11 @@ input, select, textarea {
   padding: 0 8px;
 }
 
+.sidebar-logo {
+  margin-bottom: 32px;
+  padding: 0 8px;
+}
+
 .admin-sidebar h1 .logo-icon {
   display: inline-block;
   width: 28px;

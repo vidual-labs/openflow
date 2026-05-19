@@ -9,7 +9,7 @@ import Users from './pages/Users';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.8.2';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
@@ -63,7 +63,9 @@ export default function App() {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <h1><span className="logo-icon">&#9830;</span>OpenFlow</h1>
+        <div className="sidebar-logo">
+          <img src="/lodgely-logo.png" alt="Lodgely" style={{ height: '3rem', objectFit: 'contain' }} />
+        </div>
         <nav>
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
           <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>Analytics</Link>

@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.8.2] - 2026-05-19
+
+### Changed
+- **Sidebar logo** — Replaced the text-based OpenFlow logo in the admin sidebar header with the Lodgely logo image (`/lodgely-logo.png`) at 3rem height.
+
 ## [0.8.1] - 2026-05-19
 
 ### Fixed
