@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer';
 import { api } from '../api';
 
@@ -45,6 +45,7 @@ function CookieBanner({ form, onAccept, onDecline }) {
 
 export default function FormView() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
   // null = not yet determined, true = accepted, false = declined, 'pending' = needs banner
@@ -62,8 +63,17 @@ export default function FormView() {
   }, []);
 
   useEffect(() => {
-    api.getPublicForm(slug).then(d => setForm(d.form)).catch(e => setError(e.message));
-  }, [slug]);
+    api.getPublicForm(slug)
+      .then(d => {
+        // If the requested slug is an old alias, swap the URL bar to the canonical one.
+        if (d.form && d.form.slug && d.form.slug !== slug) {
+          navigate(`/f/${d.form.slug}`, { replace: true });
+          return;
+        }
+        setForm(d.form);
+      })
+      .catch(e => setError(e.message));
+  }, [slug, navigate]);
 
   // Determine cookie consent state once form is loaded
   useEffect(() => {

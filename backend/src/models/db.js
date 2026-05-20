@@ -86,6 +86,15 @@ function initDb() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL DEFAULT '{}'
     );
+
+    CREATE TABLE IF NOT EXISTS slug_history (
+      old_slug TEXT PRIMARY KEY,
+      form_id TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (form_id) REFERENCES forms(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_slug_history_form ON slug_history(form_id);
   `);
 
   // Migrate: add role column if missing (existing DBs)

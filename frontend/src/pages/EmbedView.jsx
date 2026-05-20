@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer';
 import { api } from '../api';
 
@@ -45,6 +45,7 @@ function CookieBanner({ form, onAccept, onDecline }) {
 
 export default function EmbedView() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
   const [cookieConsent, setCookieConsent] = useState(null);
@@ -61,8 +62,16 @@ export default function EmbedView() {
   }, []);
 
   useEffect(() => {
-    api.getPublicForm(slug).then(d => setForm(d.form)).catch(e => setError(e.message));
-  }, [slug]);
+    api.getPublicForm(slug)
+      .then(d => {
+        if (d.form && d.form.slug && d.form.slug !== slug) {
+          navigate(`/embed/${d.form.slug}`, { replace: true });
+          return;
+        }
+        setForm(d.form);
+      })
+      .catch(e => setError(e.message));
+  }, [slug, navigate]);
 
   // Determine cookie consent state once form is loaded
   useEffect(() => {
