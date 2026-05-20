@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.9.0] - 2026-05-20
+
+### Added
+- **Editable form URL slug** — Form owners can now change the URL slug under the Embed tab (e.g. `/f/spring-2026-launch` instead of the auto-generated 8-character code). Slugs accept lowercase letters, digits, and hyphens, must be 3–60 characters, and a reserved-word blocklist (`admin`, `api`, `login`, etc.) prevents conflicts. Previously shared URLs keep working: when a slug is changed, the old one is recorded in a new `slug_history` table and the public form route transparently serves the form via either alias, with the response always carrying the current canonical slug so `/f/...` and `/embed/...` redirect to the new URL.
+
 ## [0.8.2] - 2026-05-19
 
 ### Added

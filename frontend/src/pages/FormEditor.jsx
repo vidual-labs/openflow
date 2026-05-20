@@ -686,6 +686,12 @@ export default function FormEditor() {
             Copy the code and paste it into your landing page.
           </p>
 
+          <SlugEditor
+            form={form}
+            onUpdated={(updated) => setForm(updated)}
+            baseUrl={baseUrl}
+          />
+
           <div className="input-group">
             <label>Direct Link</label>
             <input className="input" readOnly value={`${baseUrl}/f/${form.slug}`} onClick={e => { e.target.select(); navigator.clipboard?.writeText(e.target.value); }} />
@@ -955,6 +961,105 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
           />
         </div>
       )}
+    </div>
+  );
+}
+
+/* ===========================
+   SlugEditor - editable form URL slug
+   =========================== */
+const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const SLUG_MIN = 3;
+const SLUG_MAX = 60;
+const SLUG_RESERVED = new Set([
+  'admin', 'api', 'login', 'logout', 'embed', 'f',
+  'dashboard', 'forms', 'public', 'assets', 'static',
+  'settings', 'auth', 'signup', 'signin', 'register',
+  'health', 'robots', 'sitemap', 'favicon', 'www',
+]);
+
+function validateSlugClient(slug) {
+  if (slug.length < SLUG_MIN) return `At least ${SLUG_MIN} characters required.`;
+  if (slug.length > SLUG_MAX) return `At most ${SLUG_MAX} characters allowed.`;
+  if (!SLUG_REGEX.test(slug)) return 'Use only lowercase letters, digits, and hyphens (no leading/trailing or consecutive hyphens).';
+  if (SLUG_RESERVED.has(slug)) return `"${slug}" is reserved and cannot be used.`;
+  return '';
+}
+
+function SlugEditor({ form, onUpdated, baseUrl }) {
+  const [value, setValue] = useState(form.slug);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => { setValue(form.slug); }, [form.slug]);
+
+  const trimmed = value.trim();
+  const clientError = trimmed && trimmed !== form.slug ? validateSlugClient(trimmed) : '';
+  const dirty = trimmed !== form.slug;
+  const canSave = dirty && !clientError && !saving;
+
+  async function save() {
+    setError('');
+    setSaved(false);
+    setSaving(true);
+    try {
+      const { form: updated } = await api.updateForm(form.id, { slug: trimmed });
+      onUpdated(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err.message || 'Failed to update URL');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const displayError = error || clientError;
+
+  return (
+    <div className="input-group">
+      <label>Form URL</label>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', padding: '0 12px',
+          background: 'rgba(0,0,0,0.04)', border: '1px solid var(--border, #e0e0e0)',
+          borderRight: 'none', borderRadius: '8px 0 0 8px',
+          color: 'var(--text-light)', fontSize: 14, whiteSpace: 'nowrap',
+        }}>
+          {baseUrl}/f/
+        </div>
+        <input
+          className="input"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          spellCheck={false}
+          style={{
+            borderRadius: '0 8px 8px 0',
+            borderLeft: 'none',
+            flex: 1,
+            fontFamily: 'monospace',
+          }}
+          onKeyDown={e => { if (e.key === 'Enter' && canSave) save(); }}
+        />
+        <button
+          className="btn btn-primary"
+          onClick={save}
+          disabled={!canSave}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {saving ? 'Saving...' : 'Update URL'}
+        </button>
+      </div>
+      <div style={{ marginTop: 6, minHeight: 18, fontSize: 12 }}>
+        {displayError ? (
+          <span style={{ color: '#E17055' }}>{displayError}</span>
+        ) : saved ? (
+          <span style={{ color: '#00B894' }}>URL updated. The previous URL will redirect to the new one.</span>
+        ) : (
+          <span style={{ color: '#999' }}>Lowercase letters, digits and hyphens. 3–60 characters.</span>
+        )}
+      </div>
     </div>
   );
 }

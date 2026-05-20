@@ -8,9 +8,20 @@ const router = Router();
 // Get published form by slug (public)
 router.get('/form/:slug', (req, res) => {
   const db = getDb();
-  const form = db.prepare(
+  let form = db.prepare(
     'SELECT id, title, slug, steps, end_screen, theme, gtm_id FROM forms WHERE slug = ? AND published = 1'
   ).get(req.params.slug);
+
+  // Fall back to slug history so previously shared URLs keep working after a rename.
+  // The response still carries the canonical slug — the client should swap the URL.
+  if (!form) {
+    const historic = db.prepare('SELECT form_id FROM slug_history WHERE old_slug = ?').get(req.params.slug);
+    if (historic) {
+      form = db.prepare(
+        'SELECT id, title, slug, steps, end_screen, theme, gtm_id FROM forms WHERE id = ? AND published = 1'
+      ).get(historic.form_id);
+    }
+  }
 
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
@@ -34,7 +45,13 @@ router.post('/form/:slug/submit', async (req, res) => {
   }
 
   const db = getDb();
-  const form = db.prepare('SELECT id, title, steps FROM forms WHERE slug = ? AND published = 1').get(req.params.slug);
+  let form = db.prepare('SELECT id, title, steps FROM forms WHERE slug = ? AND published = 1').get(req.params.slug);
+  if (!form) {
+    const historic = db.prepare('SELECT form_id FROM slug_history WHERE old_slug = ?').get(req.params.slug);
+    if (historic) {
+      form = db.prepare('SELECT id, title, steps FROM forms WHERE id = ? AND published = 1').get(historic.form_id);
+    }
+  }
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
   const steps = JSON.parse(form.steps);

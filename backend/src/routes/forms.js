@@ -3,6 +3,7 @@ const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
 const { v4: uuid } = require('uuid');
 const { customAlphabet } = require('nanoid');
+const { validateSlug } = require('../utils/slug');
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
 const router = Router();
@@ -72,7 +73,41 @@ router.put('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM forms WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!existing) return res.status(404).json({ error: 'Form not found' });
 
-  const { title, steps, end_screen, theme, gtm_id, published } = req.body;
+  const { title, slug, steps, end_screen, theme, gtm_id, published } = req.body;
+
+  // Handle slug change separately: validate, check uniqueness, archive old slug.
+  if (slug !== undefined && slug !== existing.slug) {
+    const v = validateSlug(slug);
+    if (!v.ok) return res.status(400).json({ error: v.error });
+
+    const slugTaken = db.prepare(
+      'SELECT id FROM forms WHERE slug = ? AND id != ?'
+    ).get(slug, req.params.id);
+    if (slugTaken) return res.status(409).json({ error: 'That URL is already in use by another form' });
+
+    const historyTaken = db.prepare(
+      'SELECT form_id FROM slug_history WHERE old_slug = ? AND form_id != ?'
+    ).get(slug, req.params.id);
+    if (historyTaken) return res.status(409).json({ error: 'That URL was previously used by another form and cannot be reused' });
+
+    const updateSlug = db.transaction(() => {
+      // Record the current slug as historical (skip if already an alias of this form).
+      db.prepare(
+        'INSERT OR IGNORE INTO slug_history (old_slug, form_id) VALUES (?, ?)'
+      ).run(existing.slug, req.params.id);
+      // If the new slug was previously an alias of THIS form, remove it from history so it's free as canonical.
+      db.prepare('DELETE FROM slug_history WHERE old_slug = ?').run(slug);
+      db.prepare('UPDATE forms SET slug = ?, updated_at = datetime(\'now\') WHERE id = ?').run(slug, req.params.id);
+    });
+    try {
+      updateSlug();
+    } catch (err) {
+      if (err && err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        return res.status(409).json({ error: 'That URL is already in use' });
+      }
+      throw err;
+    }
+  }
 
   db.prepare(`
     UPDATE forms SET
