@@ -41,6 +41,8 @@
 
 ### 🔌 Embedding & Tracking
 - **iframe Embed** — Drop forms into any landing page (with auto-resize)
+- **Editable URL Slug** — Rename a form's URL anytime (`/f/spring-launch` instead of the auto-generated 8-char code); old links keep working via 301-style redirect
+- **Custom Subdomain** — Host each form on its own subdomain of a domain you control (e.g. `acme.forms.example.com`), backed by a single wildcard TLS cert
 - **🏷️ GTM Integration** — Google Tag Manager per form, with step and submit events
 - **WordPress Plugin** — Shortcode `[openflow]`, WPBakery element, and Gutenberg block
 
@@ -257,6 +259,17 @@ window.addEventListener('message', function(e) {
 ```
 
 Also available as a **WPBakery element** and **Gutenberg block**.
+
+### Custom URL Slug
+
+Every form is reachable at `/f/<slug>`. Open the form's **Embed** tab to rename the slug from the auto-generated 8-character code to anything memorable (e.g. `/f/spring-launch`). Rules:
+
+- Lowercase letters, digits, hyphens. 3–60 characters.
+- No leading/trailing or consecutive hyphens.
+- Reserved labels (`admin`, `api`, `login`, `embed`, `f`, `dashboard`, …) are rejected.
+- Must be unique across all forms.
+
+Previously shared URLs keep working: when you change a slug, the old one is recorded in a history table and visits to it transparently load the form at its current slug. The browser URL bar is updated to the canonical address so subsequent shares use the new URL.
 
 ### Custom Subdomains
 
