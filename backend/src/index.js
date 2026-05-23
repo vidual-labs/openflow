@@ -16,9 +16,12 @@ const { createSubdomainMiddleware } = require('./middleware/subdomain');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Trust X-Forwarded-* headers so req.hostname reflects the Host header
-// that Caddy (or any other reverse proxy) saw from the client.
-app.set('trust proxy', true);
+// Trust X-Forwarded-* headers only when this deployment is fronted by a
+// reverse proxy (subdomain routing requires one). Trusting in unproxied
+// setups would let any client spoof req.ip via X-Forwarded-For.
+if (process.env.OPENFLOW_PRIMARY_HOST) {
+  app.set('trust proxy', 1);
+}
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));

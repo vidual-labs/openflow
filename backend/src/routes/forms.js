@@ -174,6 +174,9 @@ router.delete('/:id', (req, res) => {
     db.prepare('DELETE FROM analytics_events WHERE form_id = ?').run(formId);
     db.prepare('DELETE FROM integrations WHERE form_id = ?').run(formId);
     db.prepare('DELETE FROM submissions WHERE form_id = ?').run(formId);
+    // Without this, orphaned rows lock the deleted form's old slugs out
+    // of reuse — other forms hit a 409 from the history-conflict check.
+    db.prepare('DELETE FROM slug_history WHERE form_id = ?').run(formId);
     db.prepare('DELETE FROM forms WHERE id = ?').run(formId);
   });
   deleteForm(req.params.id);

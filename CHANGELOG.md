@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.10.1] - 2026-05-23
+
+### Fixed
+- **Deleted forms locked their old slugs forever** — `DELETE /api/forms/:id` did not clean up the `slug_history` table, so rows referencing a deleted form remained behind and caused the rename-conflict check to return 409 for any other form trying to reuse those slugs. The delete transaction now removes the form's history rows.
+- **`trust proxy` was set unconditionally** — Setting `trust proxy: true` when no reverse proxy is in front allows any client to spoof `req.ip` via `X-Forwarded-For`, which affects in-memory rate limiting. The setting is now enabled only when `OPENFLOW_PRIMARY_HOST` is configured (the same condition that triggers subdomain routing, which requires Caddy in front).
+
 ## [0.10.0] - 2026-05-23
 
 ### Added

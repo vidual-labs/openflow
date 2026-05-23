@@ -161,6 +161,25 @@ describe('Slug editing & history (integration)', () => {
     expect(res.status).toBe(409);
   });
 
+  it('frees a deleted form\'s old slugs for reuse by other forms', async () => {
+    // Rename a form to give it some history, then delete it. Another form
+    // should be able to claim those previously-used slugs.
+    await request(app).put(`/api/forms/${formId}`).set('Cookie', cookie).send({ slug: 'will-be-deleted' });
+    await request(app).put(`/api/forms/${formId}`).set('Cookie', cookie).send({ slug: 'also-history' });
+    await request(app).delete(`/api/forms/${formId}`).set('Cookie', cookie);
+
+    const db = require('../src/models/db').getDb();
+    const remaining = db.prepare('SELECT COUNT(*) as n FROM slug_history WHERE form_id = ?').get(formId);
+    expect(remaining.n).toBe(0);
+
+    const other = await request(app).post('/api/forms').set('Cookie', cookie).send({ title: 'Reusing' });
+    const reclaim = await request(app)
+      .put(`/api/forms/${other.body.form.id}`)
+      .set('Cookie', cookie)
+      .send({ slug: 'will-be-deleted' });
+    expect(reclaim.status).toBe(200);
+  });
+
   it('lets a form reclaim its own previous slug', async () => {
     await request(app).put(`/api/forms/${formId}`).set('Cookie', cookie).send({ slug: 'alpha' });
     await request(app).put(`/api/forms/${formId}`).set('Cookie', cookie).send({ slug: 'beta' });
