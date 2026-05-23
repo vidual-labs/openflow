@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.10.0] - 2026-05-23
+
+### Added
+- **Per-form subdomain hosting** — Each form can now be served on its own subdomain of an operator-controlled parent host (e.g. `acme.forms.example.com`). Set `OPENFLOW_PRIMARY_HOST` and the Embed tab gains a "Custom subdomain" field next to the form URL. Requests to a configured subdomain receive an injected form identity in `index.html`; the SPA boots in form-only mode, admin APIs return 404, and the URL bar stays at `/`. A new `Caddyfile` plus opt-in `docker-compose.subdomains.yml` overlay terminates TLS with a single wildcard certificate via the Let's Encrypt DNS-01 challenge — one cert covers every form, no per-tenant verification or on-demand TLS required. Validation reuses the slug grammar `[a-z0-9-]{3,60}` and applies a hostname-specific reserved-word blocklist (`www`, `api`, `admin`, `mail`, …) to prevent conflicts.
+
 ## [0.9.0] - 2026-05-20
 
 ### Added

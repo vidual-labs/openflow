@@ -1,0 +1,45 @@
+# Overlay that adds Caddy as a wildcard-TLS reverse proxy in front of the
+# OpenFlow backend. Use together with the base file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.subdomains.yml up -d --build
+#
+# Required env vars (see .env.example):
+#   OPENFLOW_PRIMARY_HOST   — apex host you control (e.g. forms.example.com)
+#   CADDY_DNS_PROVIDER      — Caddy DNS provider plugin name (e.g. cloudflare, route53)
+#   CADDY_DNS_TOKEN         — API token for that provider, scoped to the zone
+#
+# The Caddy image must include the matching DNS plugin. The default
+# `caddy:2-alpine` does NOT — see https://hub.docker.com/_/caddy for the
+# `caddy/caddy:2-builder` recipe, or use a community image such as
+# `slothcroissant/caddy-cloudflaredns`.
+
+services:
+  app:
+    # Drop the public 3000 binding; Caddy is the only ingress.
+    ports: !reset []
+    expose:
+      - "3000"
+    environment:
+      - OPENFLOW_PRIMARY_HOST=${OPENFLOW_PRIMARY_HOST}
+
+  caddy:
+    image: ${CADDY_IMAGE:-caddy:2-alpine}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - OPENFLOW_PRIMARY_HOST=${OPENFLOW_PRIMARY_HOST}
+      - CADDY_DNS_PROVIDER=${CADDY_DNS_PROVIDER}
+      - CADDY_DNS_TOKEN=${CADDY_DNS_TOKEN}
+      - CADDY_ACME_EMAIL=${CADDY_ACME_EMAIL:-admin@openflow.local}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy-data:
+  caddy-config:

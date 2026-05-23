@@ -43,8 +43,9 @@ function CookieBanner({ form, onAccept, onDecline }) {
   );
 }
 
-export default function FormView() {
-  const { slug } = useParams();
+export default function FormView({ slugProp, hostMode = false }) {
+  const params = useParams();
+  const slug = slugProp || params.slug;
   const navigate = useNavigate();
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
@@ -65,15 +66,16 @@ export default function FormView() {
   useEffect(() => {
     api.getPublicForm(slug)
       .then(d => {
-        // If the requested slug is an old alias, swap the URL bar to the canonical one.
-        if (d.form && d.form.slug && d.form.slug !== slug) {
+        // On a per-form subdomain the canonical URL is just "/" — never
+        // navigate away from it even after a slug rename.
+        if (!hostMode && d.form && d.form.slug && d.form.slug !== slug) {
           navigate(`/f/${d.form.slug}`, { replace: true });
           return;
         }
         setForm(d.form);
       })
       .catch(e => setError(e.message));
-  }, [slug, navigate]);
+  }, [slug, navigate, hostMode]);
 
   // Determine cookie consent state once form is loaded
   useEffect(() => {

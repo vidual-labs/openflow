@@ -4,6 +4,7 @@ const { authMiddleware } = require('../middleware/auth');
 const { v4: uuid } = require('uuid');
 const { customAlphabet } = require('nanoid');
 const { validateSlug } = require('../utils/slug');
+const { validateSubdomain } = require('../utils/subdomain');
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
 const router = Router();
@@ -73,7 +74,31 @@ router.put('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM forms WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!existing) return res.status(404).json({ error: 'Form not found' });
 
-  const { title, slug, steps, end_screen, theme, gtm_id, published } = req.body;
+  const { title, slug, subdomain, steps, end_screen, theme, gtm_id, published } = req.body;
+
+  // Handle subdomain change separately: validate, check uniqueness.
+  // null/empty string clears it.
+  if (subdomain !== undefined) {
+    const normalised = subdomain === null || subdomain === '' ? null : String(subdomain).trim().toLowerCase();
+    if (normalised !== (existing.subdomain || null)) {
+      if (normalised !== null) {
+        const v = validateSubdomain(normalised);
+        if (!v.ok) return res.status(400).json({ error: v.error });
+        const taken = db.prepare(
+          'SELECT id FROM forms WHERE subdomain = ? AND id != ?'
+        ).get(normalised, req.params.id);
+        if (taken) return res.status(409).json({ error: 'That subdomain is already in use by another form' });
+      }
+      try {
+        db.prepare('UPDATE forms SET subdomain = ?, updated_at = datetime(\'now\') WHERE id = ?').run(normalised, req.params.id);
+      } catch (err) {
+        if (err && err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+          return res.status(409).json({ error: 'That subdomain is already in use' });
+        }
+        throw err;
+      }
+    }
+  }
 
   // Handle slug change separately: validate, check uniqueness, archive old slug.
   if (slug !== undefined && slug !== existing.slug) {
