@@ -11,13 +11,23 @@ const publicRoutes = require('./routes/public');
 const integrationRoutes = require('./routes/integrations');
 const analyticsRoutes = require('./routes/analytics');
 const settingsRoutes = require('./routes/settings');
+const { createSubdomainMiddleware } = require('./middleware/subdomain');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust X-Forwarded-* headers so req.hostname reflects the Host header
+// that Caddy (or any other reverse proxy) saw from the client.
+app.set('trust proxy', true);
+
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
+
+// Resolve the per-form subdomain (if any) before any other route runs so
+// admin APIs can be blocked and the catch-all can inject the form slug
+// into index.html.
+app.use(createSubdomainMiddleware());
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -36,14 +46,43 @@ app.all('/api/*', (req, res) => {
 // Serve frontend
 const fs = require('fs');
 const publicDir = path.join(__dirname, '../public');
-app.use(express.static(publicDir));
-app.get('*', (req, res) => {
+// Disable static's automatic index.html serving so the catch-all below can
+// inject window.__OPENFLOW_HOST_FORM__ on subdomain hosts. Other assets
+// (JS, CSS, images) still get served by the static middleware.
+app.use(express.static(publicDir, { index: false }));
+
+// Cache the unmodified index.html bytes so we don't hit disk on every SPA route.
+let cachedIndexHtml = null;
+function readIndexHtml() {
+  if (cachedIndexHtml !== null) return cachedIndexHtml;
   const indexPath = path.join(publicDir, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(200).json({ status: 'OpenFlow API running', version });
+  if (!fs.existsSync(indexPath)) return null;
+  cachedIndexHtml = fs.readFileSync(indexPath, 'utf8');
+  return cachedIndexHtml;
+}
+
+function escapeForJsString(s) {
+  // Only safe characters end up here (slugs are [a-z0-9-]), but escape
+  // defensively so a future change can't smuggle JS into the page.
+  return String(s).replace(/[\\'"<>&]/g, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
+}
+
+function injectSubdomainForm(html, form) {
+  const payload = `{"slug":"${escapeForJsString(form.slug)}","id":"${escapeForJsString(form.id)}"}`;
+  const tag = `<script>window.__OPENFLOW_HOST_FORM__=${payload};</script>`;
+  if (html.includes('</head>')) return html.replace('</head>', `${tag}</head>`);
+  return tag + html;
+}
+
+app.get('*', (req, res) => {
+  const html = readIndexHtml();
+  if (!html) {
+    return res.status(200).json({ status: 'OpenFlow API running', version });
   }
+  if (req.subdomainForm) {
+    return res.type('html').send(injectSubdomainForm(html, req.subdomainForm));
+  }
+  res.type('html').send(html);
 });
 
 async function start() {

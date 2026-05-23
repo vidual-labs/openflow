@@ -19,7 +19,10 @@ router.get('/', (req, res) => {
   for (const row of rows) {
     settings[row.key] = JSON.parse(row.value);
   }
-  res.json({ settings });
+  // Expose the operator-configured primary host so the form editor can render
+  // a correct subdomain preview ("<your-subdomain>.openflow.example.com").
+  const primaryHost = process.env.OPENFLOW_PRIMARY_HOST || null;
+  res.json({ settings, primaryHost });
 });
 
 // PUT /api/settings/:key — admin only

@@ -105,6 +105,17 @@ function initDb() {
     console.log('Migration: added role column to users');
   }
 
+  // Migrate: add subdomain column to forms (existing DBs).
+  // SQLite can't add a column with a UNIQUE constraint inline, so we add the
+  // column nullable and enforce uniqueness with a partial unique index.
+  try {
+    db.prepare('SELECT subdomain FROM forms LIMIT 1').get();
+  } catch {
+    db.exec('ALTER TABLE forms ADD COLUMN subdomain TEXT');
+    console.log('Migration: added subdomain column to forms');
+  }
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_forms_subdomain ON forms(subdomain) WHERE subdomain IS NOT NULL');
+
   // Seed admin user
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@openflow.local';
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';

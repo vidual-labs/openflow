@@ -49,6 +49,7 @@ function createTestApp() {
   const publicRoutes = require('../src/routes/public');
   const integrationRoutes = require('../src/routes/integrations');
   const analyticsRoutes = require('../src/routes/analytics');
+  const settingsRoutes = require('../src/routes/settings');
 
   app.use('/api/auth', authRoutes);
   app.use('/api/forms', formRoutes);
@@ -56,6 +57,7 @@ function createTestApp() {
   app.use('/api/public', publicRoutes);
   app.use('/api/integrations', integrationRoutes);
   app.use('/api/analytics', analyticsRoutes);
+  app.use('/api/settings', settingsRoutes);
 
   app.all('/api/*', (req, res) => {
     res.status(404).json({ error: 'API endpoint not found' });

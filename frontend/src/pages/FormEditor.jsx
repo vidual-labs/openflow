@@ -54,12 +54,18 @@ const EMOJI_CATEGORIES = {
 export default function FormEditor() {
   const { id } = useParams();
   const [form, setForm] = useState(null);
+  const [primaryHost, setPrimaryHost] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [activeTab, setActiveTab] = useState('steps');
   const [expandedStep, setExpandedStep] = useState(null);
+
+  useEffect(() => {
+    // Fetch site config once so we know whether subdomain hosting is configured.
+    api.getSettings().then(d => setPrimaryHost(d.primaryHost || null)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoadError('');
@@ -692,6 +698,14 @@ export default function FormEditor() {
             baseUrl={baseUrl}
           />
 
+          {primaryHost && (
+            <SubdomainEditor
+              form={form}
+              primaryHost={primaryHost}
+              onUpdated={(updated) => setForm(updated)}
+            />
+          )}
+
           <div className="input-group">
             <label>Direct Link</label>
             <input className="input" readOnly value={`${baseUrl}/f/${form.slug}`} onClick={e => { e.target.select(); navigator.clipboard?.writeText(e.target.value); }} />
@@ -1058,6 +1072,124 @@ function SlugEditor({ form, onUpdated, baseUrl }) {
           <span style={{ color: '#00B894' }}>URL updated. The previous URL will redirect to the new one.</span>
         ) : (
           <span style={{ color: '#999' }}>Lowercase letters, digits and hyphens. 3–60 characters.</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ===========================
+   SubdomainEditor - bind a form to a vanity subdomain of the operator host
+   =========================== */
+const SUBDOMAIN_RESERVED = new Set([
+  'www', 'api', 'admin', 'app', 'mail', 'ftp', 'dashboard',
+  'auth', 'login', 'logout', 'status', 'blog', 'docs', 'help',
+  'support', 'cdn', 'static', 'assets', 'embed', 'public',
+  'mx', 'smtp', 'imap', 'pop', 'pop3', 'ns', 'ns1', 'ns2',
+  'autodiscover', 'autoconfig', 'webmail',
+]);
+
+function validateSubdomainClient(value) {
+  if (value.length < SLUG_MIN) return `At least ${SLUG_MIN} characters required.`;
+  if (value.length > SLUG_MAX) return `At most ${SLUG_MAX} characters allowed.`;
+  if (!SLUG_REGEX.test(value)) return 'Use only lowercase letters, digits, and hyphens (no leading/trailing or consecutive hyphens).';
+  if (SUBDOMAIN_RESERVED.has(value)) return `"${value}" is reserved and cannot be used as a subdomain.`;
+  return '';
+}
+
+function SubdomainEditor({ form, primaryHost, onUpdated }) {
+  const current = form.subdomain || '';
+  const [value, setValue] = useState(current);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => { setValue(form.subdomain || ''); }, [form.subdomain]);
+
+  const trimmed = value.trim().toLowerCase();
+  const dirty = trimmed !== (current || '');
+  const clientError = trimmed && dirty ? validateSubdomainClient(trimmed) : '';
+  const canSave = dirty && !clientError && !saving;
+
+  async function save(newValue) {
+    setError('');
+    setSaved(false);
+    setSaving(true);
+    try {
+      const { form: updated } = await api.updateForm(form.id, { subdomain: newValue || null });
+      onUpdated(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err.message || 'Failed to update subdomain');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const displayError = error || clientError;
+
+  return (
+    <div className="input-group">
+      <label>Custom subdomain (optional)</label>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+        <input
+          className="input"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          placeholder="acme"
+          spellCheck={false}
+          style={{
+            borderRadius: '8px 0 0 8px',
+            flex: 1,
+            fontFamily: 'monospace',
+          }}
+          onKeyDown={e => { if (e.key === 'Enter' && canSave) save(trimmed); }}
+        />
+        <div style={{
+          display: 'flex', alignItems: 'center', padding: '0 12px',
+          background: 'rgba(0,0,0,0.04)', border: '1px solid var(--border, #e0e0e0)',
+          borderLeft: 'none', borderRadius: '0 8px 8px 0',
+          color: 'var(--text-light)', fontSize: 14, whiteSpace: 'nowrap',
+        }}>
+          .{primaryHost}
+        </div>
+        <button
+          className="btn btn-primary"
+          onClick={() => save(trimmed)}
+          disabled={!canSave}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {saving ? 'Saving...' : 'Update'}
+        </button>
+        {current && !dirty && (
+          <button
+            className="btn btn-secondary"
+            onClick={() => { setValue(''); save(''); }}
+            disabled={saving}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      <div style={{ marginTop: 6, minHeight: 18, fontSize: 12 }}>
+        {displayError ? (
+          <span style={{ color: '#E17055' }}>{displayError}</span>
+        ) : saved ? (
+          <span style={{ color: '#00B894' }}>
+            {trimmed ? `Your form is now reachable at https://${trimmed}.${primaryHost}` : 'Custom subdomain removed.'}
+          </span>
+        ) : current ? (
+          <span style={{ color: '#999' }}>
+            Live at <a href={`https://${current}.${primaryHost}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
+              https://{current}.{primaryHost}
+            </a>. Publish the form for it to be reachable.
+          </span>
+        ) : (
+          <span style={{ color: '#999' }}>
+            Serve this form at its own subdomain of <code>{primaryHost}</code>. Requires a wildcard DNS record to be configured by the operator.
+          </span>
         )}
       </div>
     </div>

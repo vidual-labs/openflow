@@ -1,0 +1,22 @@
+# OpenFlow Caddyfile — fronts the backend with TLS for the primary host
+# and a single wildcard cert that covers every per-form subdomain.
+#
+# The wildcard cert is issued via the DNS-01 ACME challenge, which is the
+# only Let's Encrypt challenge type that can produce a *.<domain> cert.
+# This requires a Caddy build that includes a DNS-provider plugin for the
+# zone hosting OPENFLOW_PRIMARY_HOST (see docker-compose.subdomains.yml).
+
+{
+	# Email is optional but recommended — Let's Encrypt sends expiry warnings here.
+	email {$CADDY_ACME_EMAIL:admin@openflow.local}
+}
+
+# Match the primary host and every single-label subdomain underneath it.
+*.{$OPENFLOW_PRIMARY_HOST}, {$OPENFLOW_PRIMARY_HOST} {
+	tls {
+		dns {$CADDY_DNS_PROVIDER} {$CADDY_DNS_TOKEN}
+	}
+
+	encode zstd gzip
+	reverse_proxy app:3000
+}

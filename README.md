@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.9.0
+# 🌊 OpenFlow v0.10.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 
@@ -257,6 +257,27 @@ window.addEventListener('message', function(e) {
 ```
 
 Also available as a **WPBakery element** and **Gutenberg block**.
+
+### Custom Subdomains
+
+Serve each form on its own subdomain of a host you control (e.g. `acme.forms.example.com`). Every form gets a vanity URL that's friendlier than `/f/<slug>` and looks tenant-owned.
+
+**One-time operator setup:**
+
+1. Set `OPENFLOW_PRIMARY_HOST` to the apex you control (e.g. `forms.example.com`) in `.env`.
+2. Add a wildcard DNS record at your provider: `*.forms.example.com → <your server IP>` (A/AAAA).
+3. Choose a DNS provider that has a Caddy plugin (Cloudflare, Route53, DigitalOcean, …). Create an API token scoped to the zone and set `CADDY_DNS_PROVIDER` and `CADDY_DNS_TOKEN` in `.env`.
+4. Use the subdomain-aware compose overlay:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.subdomains.yml up -d --build
+```
+
+Caddy fronts the app on ports 80/443 and provisions a **single wildcard certificate** via Let's Encrypt's DNS-01 challenge. The cert covers every form forever; renewal is automatic.
+
+> **Note**: the default `caddy:2-alpine` image does not include DNS provider plugins. Either use a community image such as `slothcroissant/caddy-cloudflaredns` (set `CADDY_IMAGE` in `.env`) or build your own with `xcaddy`.
+
+**Per form:** open the form's Embed tab → enter a subdomain label (lowercase letters, digits, hyphens; 3–60 chars; not `www`, `api`, `admin`, etc.). Publish the form. Visitors at `https://<label>.<your-host>` see the form; admin paths return 404 on the subdomain.
 
 ---
 
