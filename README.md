@@ -1,6 +1,27 @@
 # 🌊 OpenFlow v0.10.1
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
+## 📚 Table of Contents
+
+- [✨ Features](#-features)
+- [🚀 Quick Start](#-quick-start)
+- [🔄 Updating](#-updating)
+- [⚙️ Configuration](#-configuration)
+- [🏗️ Architecture](#-architecture)
+- [📋 Field Types](#-field-types)
+- [🔗 Integrations](#-integrations)
+- [📈 Analytics](#-analytics)
+- [🏷️ GTM Events](#-gtm-events)
+- [🔌 Embedding](#-embedding)
+  - [Simple iFrame](#simple-iframe)
+  - [iFrame with Auto-Resize](#iframe-with-auto-resize)
+  - [WordPress](#wordpress)
+  - [Custom URL Slug](#custom-url-slug)
+  - [Custom Subdomains](#custom-subdomains)
+- [📡 API Endpoints](#-api-endpoints)
+- [🧑‍💻 Development](#-development)
+- [🗺️ Roadmap](#-roadmap)
+- [📄 License](#-license)
 
 ## ✨ Features
 
