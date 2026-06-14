@@ -8,8 +8,9 @@ import Submissions from './pages/Submissions';
 import Users from './pages/Users';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Backup from './pages/Backup';
 
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.11.0';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
@@ -69,6 +70,7 @@ export default function App() {
           <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>Analytics</Link>
           {isAdmin && <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>Users</Link>}
           {isAdmin && <Link to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>Settings</Link>}
+          {isAdmin && <Link to="/backup" className={location.pathname === '/backup' ? 'active' : ''}>Backup</Link>}
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
           <span style={{ fontSize: 13, opacity: 0.5, display: 'block', padding: '0 12px', marginBottom: 8 }}>{user.email}</span>
@@ -98,6 +100,7 @@ export default function App() {
           <Route path="/analytics" element={<Analytics />} />
           {isAdmin && <Route path="/users" element={<Users />} />}
           {isAdmin && <Route path="/settings" element={<Settings />} />}
+          {isAdmin && <Route path="/backup" element={<Backup />} />}
         </Routes>
       </main>
     </div>

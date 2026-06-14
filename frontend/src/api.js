@@ -58,6 +58,21 @@ export const api = {
   getSettings: () => request('/settings'),
   updateSettings: (key, value) => request(`/settings/${key}`, { method: 'PUT', body: JSON.stringify(value) }),
 
+  // Backup & restore (admin only)
+  getBackupInfo: () => request('/admin/backup/info'),
+  downloadBackup: async () => {
+    const res = await fetch(`${BASE}/admin/backup`, { credentials: 'include' });
+    if (!res.ok) {
+      let message = 'Backup download failed';
+      try { message = (await res.json()).error || message; } catch { /* non-JSON */ }
+      throw new Error(message);
+    }
+    const disposition = res.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    return { blob: await res.blob(), filename: match ? match[1] : 'openflow-backup.json' };
+  },
+  restoreBackup: (backup) => request('/admin/restore', { method: 'POST', body: JSON.stringify(backup) }),
+
   getPublicForm: (slug) => request(`/public/form/${slug}`),
   submitForm: (slug, data) => request(`/public/form/${slug}/submit`, { method: 'POST', body: JSON.stringify({ data }) }),
 };

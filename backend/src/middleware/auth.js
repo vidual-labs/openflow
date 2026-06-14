@@ -23,4 +23,15 @@ function signToken(userId) {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
 }
 
-module.exports = { authMiddleware, signToken };
+// Must run after authMiddleware (relies on req.userId). Rejects non-admins.
+function requireAdmin(req, res, next) {
+  const { getDb } = require('../models/db');
+  const db = getDb();
+  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId);
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+}
+
+module.exports = { authMiddleware, signToken, requireAdmin };
