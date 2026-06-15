@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.11.1] - 2026-06-15
+
+### Added
+- **Restore can't lock you out** — When an administrator restores a backup, their own account is now preserved: it is re-inserted with its original id and credentials and keeps the admin role, even if the backup omits it or contains a conflicting account. This guarantees the admin performing the restore stays logged in and can still reach the admin panel afterwards.
+
 ## [0.11.0] - 2026-06-14
 
 ### Added

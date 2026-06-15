@@ -108,6 +108,50 @@ describe('Admin backup & restore', () => {
       expect(forms[0].title).toBe('Original');
     });
 
+    it('preserves the acting admin even when the backup omits them', async () => {
+      seedUsers();
+      const cookie = await login(app, 'admin@test.com', 'adminpass');
+
+      // A backup that contains a totally different set of users.
+      const otherAdminId = uuid();
+      const backup = {
+        openflow_backup: true,
+        version: 1,
+        tables: {
+          users: [
+            { id: otherAdminId, email: 'someone@else.com', password_hash: bcrypt.hashSync('x', 10), role: 'admin' },
+          ],
+        },
+      };
+
+      const res = await request(app).post('/api/admin/restore').set('Cookie', cookie).send(backup);
+      expect(res.status).toBe(200);
+      expect(res.body.adminPreserved).toBe(true);
+
+      const db = getDb();
+      const me = db.prepare("SELECT role FROM users WHERE email = 'admin@test.com'").get();
+      expect(me).toBeDefined();
+      expect(me.role).toBe('admin');
+
+      // The acting admin can still log in with their original credentials.
+      const relogin = await request(app).post('/api/auth/login').send({ email: 'admin@test.com', password: 'adminpass' });
+      expect(relogin.status).toBe(200);
+    });
+
+    it('does not duplicate the admin when the backup already contains them', async () => {
+      seedUsers();
+      const cookie = await login(app, 'admin@test.com', 'adminpass');
+      const backupRes = await request(app).get('/api/admin/backup').set('Cookie', cookie);
+      const backup = JSON.parse(backupRes.text);
+
+      const res = await request(app).post('/api/admin/restore').set('Cookie', cookie).send(backup);
+      expect(res.status).toBe(200);
+
+      const db = getDb();
+      const admins = db.prepare("SELECT COUNT(*) AS n FROM users WHERE email = 'admin@test.com'").get();
+      expect(admins.n).toBe(1);
+    });
+
     it('rejects a non-OpenFlow file', async () => {
       seedUsers();
       const cookie = await login(app, 'admin@test.com', 'adminpass');

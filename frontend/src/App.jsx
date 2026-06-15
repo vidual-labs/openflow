@@ -10,7 +10,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
 
-const APP_VERSION = '0.11.0';
+const APP_VERSION = '0.11.1';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';

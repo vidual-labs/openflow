@@ -27,7 +27,12 @@ router.get('/backup', (req, res) => {
 // transaction — a malformed file leaves existing data untouched.
 router.post('/restore', (req, res) => {
   try {
-    const result = restoreBackup(getDb(), req.body);
+    const db = getDb();
+    // Preserve the acting admin so a restore can never lock them out.
+    const me = db
+      .prepare('SELECT id, email, password_hash, role, created_at FROM users WHERE id = ?')
+      .get(req.userId);
+    const result = restoreBackup(db, req.body, { preserveUser: me });
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(400).json({ error: err.message || 'Restore failed' });

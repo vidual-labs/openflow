@@ -137,14 +137,21 @@ function normalizeValue(v) {
 // Replace the entire database contents with the backup. Runs inside a single
 // transaction so a failure leaves the existing data untouched. Returns a
 // summary of what was restored.
-function restoreBackup(db, rawBackup) {
+//
+// `options.preserveUser` is the account performing the restore (its full row
+// from the users table). It is re-inserted after the wipe so an admin can
+// never lock themselves out by restoring a backup that lacks their account —
+// they keep their existing credentials, id (so the active session stays
+// valid) and admin role.
+function restoreBackup(db, rawBackup, options = {}) {
   const migrated = migrateBackup(validateBackup(rawBackup));
+  const preserveUser = options.preserveUser || null;
 
   // foreign_keys is a no-op inside a transaction, so toggle it outside.
   const fkPrevious = db.pragma('foreign_keys', { simple: true });
   db.pragma('foreign_keys = OFF');
 
-  let restored = { tables: 0, rows: 0 };
+  let restored = { tables: 0, rows: 0, adminPreserved: false };
   try {
     const run = db.transaction(() => {
       const present = listTables(db);
@@ -173,7 +180,29 @@ function restoreBackup(db, rawBackup) {
           rowCount += 1;
         }
       }
-      return { tables: tableCount, rows: rowCount };
+
+      // Re-assert the acting admin so the restore can't lock them out. Drop any
+      // restored row that would collide on id or email first, then re-insert
+      // their original credentials with the admin role.
+      let adminPreserved = false;
+      if (preserveUser && preserveUser.id && preserveUser.email) {
+        db.prepare('DELETE FROM users WHERE id = ? OR email = ?').run(
+          preserveUser.id,
+          preserveUser.email
+        );
+        db.prepare(
+          'INSERT INTO users (id, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)'
+        ).run(
+          preserveUser.id,
+          preserveUser.email,
+          preserveUser.password_hash,
+          'admin',
+          preserveUser.created_at || new Date().toISOString()
+        );
+        adminPreserved = true;
+      }
+
+      return { tables: tableCount, rows: rowCount, adminPreserved };
     });
     restored = run();
   } finally {

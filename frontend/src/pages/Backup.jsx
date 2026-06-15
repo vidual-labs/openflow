@@ -64,6 +64,7 @@ export default function Backup() {
       `Restore from "${file.name}"?\n\n` +
       'This REPLACES all current data (forms, submissions, users, settings) ' +
       `with the contents of the backup${totals != null ? ` (${totals} rows)` : ''}.\n\n` +
+      'Your own admin account is preserved so you stay logged in.\n\n' +
       'This cannot be undone. Continue?'
     );
     if (!confirmed) return;
@@ -135,6 +136,7 @@ export default function Backup() {
             <h3 style={{ margin: 0 }}>Restore from Backup</h3>
             <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>
               Replaces <strong>all</strong> current data with the contents of the uploaded file. This cannot be undone.
+              Your own admin account is always kept so you stay logged in.
             </p>
           </div>
         </div>
