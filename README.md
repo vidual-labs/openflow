@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.10.1
+# 🌊 OpenFlow v0.11.1
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -72,6 +72,7 @@
 - **SQLite** — Zero-config database, no external DB needed
 - **🛡️ Rate Limiting** — Built-in in-memory spam protection
 - **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
+- **💾 Backup & Restore** — Admins can download a full JSON snapshot of the database and restore it later; older backups are auto-migrated to the current format on restore
 - **🌙 Dark Mode** — Auto/light/dark theme toggle for the admin interface
 - **🛡️ Delete Protection** — Published forms require typing the form name to confirm deletion
 - **Responsive** — Optimized for mobile and desktop

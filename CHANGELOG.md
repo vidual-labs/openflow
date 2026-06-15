@@ -2,6 +2,17 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.11.1] - 2026-06-15
+
+### Added
+- **Restore can't lock you out** — When an administrator restores a backup, their own account is now preserved: it is re-inserted with its original id and credentials and keeps the admin role, even if the backup omits it or contains a conflicting account. This guarantees the admin performing the restore stays logged in and can still reach the admin panel afterwards.
+
+## [0.11.0] - 2026-06-14
+
+### Added
+- **Full database backup & restore (admin only)** — A new **Backup** tab in the admin sidebar lets administrators download a complete JSON snapshot of the database (forms, submissions, integrations, analytics, users, settings and slug history) and restore from a previous snapshot. Restore runs inside a single transaction, so a malformed or partial file leaves existing data untouched. New admin-only endpoints: `GET /api/admin/backup` (download), `GET /api/admin/backup/info` (row-count summary) and `POST /api/admin/restore`.
+- **Backup format migrations** — Backups carry a format version and are migrated up to the current schema on restore, so a snapshot taken on an older release can be restored on a newer one. Legacy versionless backups are upgraded by filling in defaults (e.g. the `role` column), and during insert each row is matched against the live table columns so added/removed columns are tolerated. Restoring a backup created by a *newer* server is refused with a clear error.
+
 ## [0.10.1] - 2026-05-23
 
 ### Fixed
