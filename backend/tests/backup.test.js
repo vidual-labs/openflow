@@ -152,6 +152,38 @@ describe('Admin backup & restore', () => {
       expect(admins.n).toBe(1);
     });
 
+    it('reassigns forms to the acting admin when the backup used a different user id', async () => {
+      // Simulate restoring to a fresh deployment: the admin signs up with the
+      // same email but gets a new UUID. The backup contains forms owned by the
+      // old UUID. After restore those forms must be visible to the new admin.
+      const { adminId } = seedUsers();
+      const cookie = await login(app, 'admin@test.com', 'adminpass');
+      const db = getDb();
+
+      const oldAdminId = uuid(); // id the admin had in the source deployment
+      const formId = uuid();
+      const backup = {
+        openflow_backup: true,
+        version: 1,
+        tables: {
+          users: [
+            { id: oldAdminId, email: 'admin@test.com', password_hash: bcrypt.hashSync('adminpass', 10), role: 'admin' },
+          ],
+          forms: [
+            { id: formId, user_id: oldAdminId, title: 'Migrated Form', slug: 'migrated-form', published: 0, theme: '{}', integrations: '{}', fields: '[]' },
+          ],
+        },
+      };
+
+      const res = await request(app).post('/api/admin/restore').set('Cookie', cookie).send(backup);
+      expect(res.status).toBe(200);
+
+      // The form must now be owned by the acting admin's current id.
+      const form = db.prepare('SELECT user_id FROM forms WHERE id = ?').get(formId);
+      expect(form).toBeDefined();
+      expect(form.user_id).toBe(adminId);
+    });
+
     it('rejects a non-OpenFlow file', async () => {
       seedUsers();
       const cookie = await login(app, 'admin@test.com', 'adminpass');

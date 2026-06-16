@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.11.2] - 2026-06-16
+
+### Fixed
+- **Restored forms invisible after cross-deployment restore** — When an admin restored a backup onto a fresh deployment where their account had a different UUID, all their forms were orphaned (the `user_id` still pointed to the old UUID). The restore logic now detects this ID mismatch and reassigns the forms to the acting admin's current UUID automatically.
+
 ## [0.11.1] - 2026-06-15
 
 ### Added
