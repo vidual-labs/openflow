@@ -186,6 +186,14 @@ function restoreBackup(db, rawBackup, options = {}) {
       // their original credentials with the admin role.
       let adminPreserved = false;
       if (preserveUser && preserveUser.id && preserveUser.email) {
+        // Capture the backup's user id for this email before deleting it.
+        // When restoring to a fresh deployment the backup user may have a
+        // different id than the acting admin (UUIDs are regenerated on first
+        // sign-up). Their forms would otherwise be orphaned because the
+        // forms.user_id still points to the now-deleted backup id.
+        const backupUser = db.prepare('SELECT id FROM users WHERE email = ?').get(preserveUser.email);
+        const backupUserId = backupUser ? backupUser.id : null;
+
         db.prepare('DELETE FROM users WHERE id = ? OR email = ?').run(
           preserveUser.id,
           preserveUser.email
@@ -199,6 +207,16 @@ function restoreBackup(db, rawBackup, options = {}) {
           'admin',
           preserveUser.created_at || new Date().toISOString()
         );
+
+        // If the backup had a matching user under a different id, their forms
+        // are now orphaned. Reassign them so the admin can see them immediately.
+        if (backupUserId && backupUserId !== preserveUser.id) {
+          db.prepare('UPDATE forms SET user_id = ? WHERE user_id = ?').run(
+            preserveUser.id,
+            backupUserId
+          );
+        }
+
         adminPreserved = true;
       }
 
