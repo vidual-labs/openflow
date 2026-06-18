@@ -48,6 +48,45 @@ const FIELD_TYPES = {
   'file-upload': FileUploadInput,
 };
 
+// Validate a single field's value. Returns an error string, or null if valid.
+// Shared by normal steps and the sub-fields of a combined "group" step.
+function validateField(field, value, locale) {
+  const empty = value === undefined || value === null || value === ''
+    || (Array.isArray(value) && value.length === 0);
+  if (field.required && empty) return locale.errorRequired;
+  if (field.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return locale.errorEmail;
+  if (field.type === 'website' && value && !/^https?:\/\/.+\..+/.test(value)) return locale.errorUrl;
+  if (field.type === 'consent' && field.required && !value) return locale.errorConsent;
+  if ((field.type === 'address' || field.type === 'contact') && field.required) {
+    const c = value || {};
+    if (!c.street || !c.postalCode || !c.city) return locale.errorAddress;
+  }
+  return null;
+}
+
+// Renders the sub-fields of a combined ("group") step stacked vertically.
+// Each sub-field keeps its own id, so answers stay keyed per field.
+function GroupInput({ step, answers, setFieldAnswer }) {
+  return (
+    <div className="form-group-fields">
+      {(step.fields || []).map((field, idx) => {
+        const Field = FIELD_TYPES[field.type] || TextInput;
+        const display = applyPricingFilter(field, answers);
+        return (
+          <div key={field.id} className="form-group-field" style={idx > 0 ? { marginTop: 24 } : undefined}>
+            {field.label && <span className="step-label">{field.label}</span>}
+            {field.question && <h3 className="step-question group-subquestion">{field.question}</h3>}
+            {field.description && <p className="step-description">{field.description}</p>}
+            <div className="step-field">
+              <Field step={display} value={answers[field.id]} onChange={(v) => setFieldAnswer(field.id, v)} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Generate a unique session ID for analytics
 function getSessionId() {
   let sid = sessionStorage.getItem('of_sid');
@@ -149,41 +188,26 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     return () => { document.body.style.background = prev; };
   }, [formBg]);
 
-  function setAnswer(value) {
-    setAnswers(prev => ({ ...prev, [step.id]: value }));
+  function setFieldAnswer(fieldId, value) {
+    setAnswers(prev => ({ ...prev, [fieldId]: value }));
     setError('');
   }
 
-  function canProceed() {
-    if (!step) return false;
-    if (!step.required) return true;
-    const val = answers[step.id];
-    if (val === undefined || val === null || val === '') return false;
-    if (Array.isArray(val) && val.length === 0) return false;
-    return true;
+  function setAnswer(value) {
+    setFieldAnswer(step.id, value);
+  }
+
+  // A combined ("group") step validates each of its sub-fields; a normal step
+  // validates itself.
+  function stepFields(s) {
+    return s.type === 'group' && Array.isArray(s.fields) ? s.fields : [s];
   }
 
   const next = useCallback(function next() {
-    if (!canProceed()) {
-      setError(locale.errorRequired);
-      return;
-    }
-    if (step.type === 'email' && answers[step.id] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers[step.id])) {
-      setError(locale.errorEmail);
-      return;
-    }
-    if (step.type === 'website' && answers[step.id] && !/^https?:\/\/.+\..+/.test(answers[step.id])) {
-      setError(locale.errorUrl);
-      return;
-    }
-    if (step.type === 'consent' && step.required && !answers[step.id]) {
-      setError(locale.errorConsent);
-      return;
-    }
-    if ((step.type === 'address' || step.type === 'contact') && step.required) {
-      const c = answers[step.id] || {};
-      if (!c.street || !c.postalCode || !c.city) {
-        setError(locale.errorAddress);
+    for (const field of stepFields(step)) {
+      const err = validateField(field, answers[field.id], locale);
+      if (err) {
+        setError(err);
         return;
       }
     }
@@ -347,30 +371,44 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
       <div className="form-content">
         <div className={`form-step ${direction === 'forward' ? 'slide-in-forward' : 'slide-in-back'}`} key={currentStep}>
-          {step.label && <span className="step-label">{step.label}</span>}
-          <h2 className="step-question">{step.question}</h2>
-          {step.description && <p className="step-description">{step.description}</p>}
+          {step.type === 'group' ? (
+            <>
+              <GroupInput step={step} answers={answers} setFieldAnswer={setFieldAnswer} />
+              {(buttonPosition === 'below-input' || buttonPosition === 'inline') && (
+                <div className={buttonPosition === 'below-input' ? 'form-below-input-actions' : 'form-inline-actions'}>
+                  {nextButton}
+                  {enterHint}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {step.label && <span className="step-label">{step.label}</span>}
+              <h2 className="step-question">{step.question}</h2>
+              {step.description && <p className="step-description">{step.description}</p>}
 
-          <div className="step-field">
-            <FieldComponent
-              step={displayStep}
-              value={answers[step.id]}
-              onChange={setAnswer}
-            />
-            {buttonPosition === 'below-input' && (
-              <div className="form-below-input-actions">
-                {nextButton}
-                {enterHint}
+              <div className="step-field">
+                <FieldComponent
+                  step={displayStep}
+                  value={answers[step.id]}
+                  onChange={setAnswer}
+                />
+                {buttonPosition === 'below-input' && (
+                  <div className="form-below-input-actions">
+                    {nextButton}
+                    {enterHint}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Inline button (below input but after question) */}
-          {buttonPosition === 'inline' && (
-            <div className="form-inline-actions">
-              {nextButton}
-              {enterHint}
-            </div>
+              {/* Inline button (below input but after question) */}
+              {buttonPosition === 'inline' && (
+                <div className="form-inline-actions">
+                  {nextButton}
+                  {enterHint}
+                </div>
+              )}
+            </>
           )}
 
           {/* GDPR consent on last step */}

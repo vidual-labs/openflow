@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { PageHeader, Alert, EmptyState, Loading } from '../components/AdminUI';
 
 export default function Dashboard() {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [cloningId, setCloningId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,6 +34,19 @@ export default function Dashboard() {
     }
   }
 
+  async function cloneForm(id) {
+    setError('');
+    setCloningId(id);
+    try {
+      const { form } = await api.cloneForm(id);
+      setForms(prev => [form, ...prev]);
+    } catch (err) {
+      setError(err.message || 'Failed to clone form');
+    } finally {
+      setCloningId(null);
+    }
+  }
+
   async function deleteForm(id) {
     const form = forms.find(f => f.id === id);
     if (!form) return;
@@ -52,64 +67,64 @@ export default function Dashboard() {
     }
   }
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
+  if (loading) return <Loading />;
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2>Forms</h2>
+      <PageHeader title="Forms">
         <button className="btn btn-primary" onClick={createForm}>+ New Form</button>
-      </div>
+      </PageHeader>
 
-      {error && (
-        <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: '#FDEDEC', color: '#E17055', fontSize: 14 }}>
-          {error}
-        </div>
-      )}
+      <Alert type="error">{error}</Alert>
 
       {forms.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: 60 }}>
-          <h3 style={{ marginBottom: 8 }}>No forms yet</h3>
-          <p style={{ color: '#636E72', marginBottom: 24 }}>Create your first lead generation form.</p>
+        <EmptyState title="No forms yet" message="Create your first lead generation form.">
           <button className="btn btn-primary" onClick={createForm}>Create Form</button>
-        </div>
+        </EmptyState>
       ) : (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Responses</th>
-                <th>Created</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {forms.map(form => (
-                <tr key={form.id}>
-                  <td>
-                    <Link to={`/forms/${form.id}`} style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>
-                      {form.title}
-                    </Link>
-                  </td>
-                  <td>
-                    <span className={`badge ${form.published ? 'badge-published' : 'badge-draft'}`}>
-                      {form.published ? 'Live' : 'Draft'}
-                    </span>
-                  </td>
-                  <td>{form.submission_count}</td>
-                  <td style={{ fontSize: 13, color: '#636E72' }}>{new Date(form.created_at).toLocaleDateString('en')}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <Link to={`/forms/${form.id}/submissions`} className="btn btn-sm btn-secondary" style={{ marginRight: 8, textDecoration: 'none' }}>
-                      Responses
-                    </Link>
-                    <button className="btn btn-sm btn-danger" onClick={() => deleteForm(form.id)}>Delete</button>
-                  </td>
+        <div className="card" style={{ padding: 0 }}>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Status</th>
+                  <th>Responses</th>
+                  <th>Created</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {forms.map(form => (
+                  <tr key={form.id}>
+                    <td>
+                      <Link to={`/forms/${form.id}`} style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>
+                        {form.title}
+                      </Link>
+                    </td>
+                    <td>
+                      <span className={`badge ${form.published ? 'badge-published' : 'badge-draft'}`}>
+                        {form.published ? 'Live' : 'Draft'}
+                      </span>
+                    </td>
+                    <td>{form.submission_count}</td>
+                    <td style={{ fontSize: 13, color: 'var(--text-light)' }}>{new Date(form.created_at).toLocaleDateString('en')}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <Link to={`/forms/${form.id}/submissions`} className="btn btn-sm btn-secondary" style={{ textDecoration: 'none' }}>
+                          Responses
+                        </Link>
+                        <button className="btn btn-sm btn-secondary" onClick={() => cloneForm(form.id)} disabled={cloningId === form.id}>
+                          {cloningId === form.id ? 'Duplicating…' : 'Duplicate'}
+                        </button>
+                        <button className="btn btn-sm btn-danger" onClick={() => deleteForm(form.id)}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

@@ -9,8 +9,9 @@ import Users from './pages/Users';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
+import { LogoMark, Loading } from './components/AdminUI';
 
-const APP_VERSION = '0.11.1';
+const APP_VERSION = '0.12.0';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
@@ -48,7 +49,7 @@ export default function App() {
   const themeIcon = theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '🖥️';
   const themeLabel = theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'Auto';
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
+  if (loading) return <Loading />;
 
   if (!user) {
     return <Login onLogin={(u) => { setUser(u); navigate('/'); }} />;
@@ -64,7 +65,7 @@ export default function App() {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <h1><span className="logo-icon">&#9830;</span>OpenFlow</h1>
+        <h1><LogoMark size={28} className="logo-mark" />OpenFlow</h1>
         <nav>
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
           <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>Analytics</Link>

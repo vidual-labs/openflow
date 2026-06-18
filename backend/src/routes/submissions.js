@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
+const { flattenFields } = require('../utils/steps');
 
 const router = Router();
 
@@ -40,11 +41,12 @@ router.get('/:formId/export', (req, res) => {
     'SELECT * FROM submissions WHERE form_id = ? ORDER BY created_at DESC'
   ).all(req.params.formId);
 
-  const steps = JSON.parse(form.steps);
-  const headers = ['Submitted At', ...steps.map(s => s.label || s.question || s.id)];
+  // Flatten combined "group" steps to one column per underlying field.
+  const fields = flattenFields(JSON.parse(form.steps));
+  const headers = ['Submitted At', ...fields.map(f => f.label || f.question || f.id)];
   const rows = submissions.map(s => {
     const data = JSON.parse(s.data);
-    return [s.created_at, ...steps.map(step => data[step.id] ?? '')];
+    return [s.created_at, ...fields.map(f => data[f.id] ?? '')];
   });
 
   const csv = [headers, ...rows].map(row =>

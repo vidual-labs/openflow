@@ -2,6 +2,16 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.12.0] - 2026-06-18
+
+### Added
+- **Clone a form** — A new **Duplicate** action on the Forms dashboard copies a form's structure (questions, theme, end screen) and its integrations in one click via `POST /api/forms/:id/clone`. The copy is created as a draft with a fresh URL and a "(Copy)" title; submissions and analytics are never carried over, and copied integrations are created **disabled** so a clone can't send leads to live destinations until you review and re-enable them.
+- **Combine two questions into one step** — Questions can now be merged so two fields (e.g. email + phone) appear on a single screen. Use the **Combine** buttons in the editor to group a question with the one above or below it, and **Split** to separate them again — fully reversible. Combined steps validate every field before advancing, and each field keeps its own column in the submissions table, CSV export and integrations.
+
+### Changed
+- **Refreshed, more consistent admin UI** — Page headers, alert banners, and empty/loading states are now shared components for a consistent look across every admin page; content is centred on wide screens, the active sidebar item is clearer, hardcoded colours were replaced with theme tokens (better dark mode), and the form-title field no longer overflows on small screens.
+- **New OpenFlow logo mark** — A custom "flow" icon replaces the old glyph in the sidebar and login screen, and ships as the browser favicon.
+
 ## [0.11.2] - 2026-06-16
 
 ### Fixed

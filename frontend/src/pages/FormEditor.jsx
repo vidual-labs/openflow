@@ -164,18 +164,46 @@ export default function FormEditor() {
     else if (expandedStep === target) setExpandedStep(index);
   }
 
+  // Merge an adjacent pair of single questions into one combined "group" step
+  // (max two questions per step). dir = -1 combines with the question above,
+  // dir = +1 with the one below. Reversible via splitGroup.
+  function combineSteps(index, dir) {
+    const topIndex = dir === -1 ? index - 1 : index;
+    const a = form.steps[topIndex];
+    const b = form.steps[topIndex + 1];
+    if (!a || !b || a.type === 'group' || b.type === 'group') return;
+    const group = { id: `group_${Date.now()}`, type: 'group', fields: [a, b] };
+    // Lift a sub-field condition up to the group so visibility logic still
+    // applies while combined; the original is preserved for a lossless split.
+    if (a.condition || b.condition) group.condition = a.condition || b.condition;
+    const steps = [...form.steps];
+    steps.splice(topIndex, 2, group);
+    setForm({ ...form, steps });
+    setExpandedStep(topIndex);
+  }
+
+  // Split a combined step back into its two separate questions.
+  function splitGroup(index) {
+    const group = form.steps[index];
+    if (!group || group.type !== 'group') return;
+    const steps = [...form.steps];
+    steps.splice(index, 1, ...(group.fields || []));
+    setForm({ ...form, steps });
+    setExpandedStep(index);
+  }
+
   const baseUrl = window.location.origin;
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <Link to="/" style={{ color: '#636E72', textDecoration: 'none', fontSize: 13 }}>&larr; Back</Link>
+          <Link to="/" className="back-link">&larr; Back</Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
             <input
               value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
-              style={{ fontSize: 24, fontWeight: 700, border: 'none', background: 'none', padding: 0, outline: 'none', width: 400, color: 'var(--text)' }}
+              style={{ fontSize: 24, fontWeight: 700, border: 'none', background: 'none', padding: 0, outline: 'none', flex: 1, minWidth: 0, maxWidth: 480, color: 'var(--text)' }}
             />
             <span className={`badge ${form.published ? 'badge-published' : 'badge-draft'}`}>
               {form.published ? 'Live' : 'Draft'}
@@ -183,8 +211,8 @@ export default function FormEditor() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {saved && <span style={{ color: '#00B894', fontSize: 13 }}>Saved!</span>}
-          {saveError && <span style={{ color: '#E17055', fontSize: 13 }}>{saveError}</span>}
+          {saved && <span style={{ color: 'var(--success)', fontSize: 13 }}>Saved!</span>}
+          {saveError && <span style={{ color: 'var(--danger)', fontSize: 13 }}>{saveError}</span>}
           {form.published ? (
             <a
               href={`${baseUrl}/embed/${form.slug}`}
@@ -241,6 +269,8 @@ export default function FormEditor() {
               onChange={(changes) => updateStep(i, changes)}
               onChangeType={(type) => changeFieldType(i, type)}
               onMove={(dir) => moveStep(i, dir)}
+              onCombine={(dir) => combineSteps(i, dir)}
+              onSplit={() => splitGroup(i)}
               onRemove={() => removeStep(i)}
             />
           ))}
@@ -744,8 +774,15 @@ window.addEventListener('message', function(e) {
 /* ===========================
    StepEditor - Collapsible question card
    =========================== */
-function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange, onChangeType, onMove, onRemove }) {
-  const fieldDef = FIELD_TYPE_MAP[step.type];
+function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange, onChangeType, onMove, onCombine, onSplit, onRemove }) {
+  const isGroup = step.type === 'group';
+  const fieldDef = isGroup ? null : FIELD_TYPE_MAP[step.type];
+  // Combining is only offered between two adjacent single questions (max 2 per step).
+  const canCombineAbove = !isGroup && index > 0 && allSteps[index - 1]?.type !== 'group';
+  const canCombineBelow = !isGroup && index < total - 1 && allSteps[index + 1]?.type !== 'group';
+  const groupSummary = isGroup
+    ? (step.fields || []).map(f => f.label || f.question || f.type).join('  +  ')
+    : '';
 
   return (
     <div className="card" style={{ position: 'relative', marginBottom: 12 }}>
@@ -758,26 +795,38 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
           borderBottom: expanded ? '1px solid var(--border, #eee)' : 'none',
         }}
       >
-        <span style={{ fontSize: 20 }}>{fieldDef?.icon || '📝'}</span>
-        <div style={{ flex: 1 }}>
+        <span style={{ fontSize: 20 }}>{isGroup ? '🔗' : (fieldDef?.icon || '📝')}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            {index + 1}. {fieldDef?.label || step.type}
+            {index + 1}. {isGroup ? 'Combined Step' : (fieldDef?.label || step.type)}
           </span>
-          <div style={{ fontSize: 14, color: '#636E72', marginTop: 2 }}>
-            {step.question || <em style={{ opacity: 0.5 }}>No question set</em>}
+          <div style={{ fontSize: 14, color: 'var(--text-light)', marginTop: 2 }}>
+            {isGroup ? groupSummary : (step.question || <em style={{ opacity: 0.5 }}>No question set</em>)}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
           <button className="btn btn-sm btn-secondary" onClick={() => onMove(-1)} disabled={index === 0} title="Move up">&uarr;</button>
           <button className="btn btn-sm btn-secondary" onClick={() => onMove(1)} disabled={index === total - 1} title="Move down">&darr;</button>
+          {canCombineAbove && (
+            <button className="btn btn-sm btn-secondary" onClick={() => onCombine(-1)} title="Combine with the question above">&uarr; Combine</button>
+          )}
+          {canCombineBelow && (
+            <button className="btn btn-sm btn-secondary" onClick={() => onCombine(1)} title="Combine with the question below">&darr; Combine</button>
+          )}
+          {isGroup && (
+            <button className="btn btn-sm btn-secondary" onClick={onSplit} title="Split back into separate questions">Split</button>
+          )}
           <button className="btn btn-sm btn-danger" onClick={onRemove}>Remove</button>
         </div>
-        <span style={{ fontSize: 18, color: '#aaa', marginLeft: 4 }}>{expanded ? '▲' : '▼'}</span>
+        <span style={{ fontSize: 18, color: 'var(--text-light)', marginLeft: 4 }}>{expanded ? '▲' : '▼'}</span>
       </div>
 
       {/* Expanded content */}
       {expanded && (
         <div style={{ paddingTop: 16 }}>
+          {isGroup ? (
+            <GroupFieldsEditor step={step} allSteps={allSteps} onChange={onChange} />
+          ) : (<>
           {/* Field Type Selector - visual grid */}
           <div className="input-group">
             <label>Field Type</label>
@@ -791,11 +840,11 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '10px 12px',
-                    border: step.type === ft.value ? '2px solid var(--primary, #6C5CE7)' : '2px solid #e0e0e0',
+                    border: step.type === ft.value ? '2px solid var(--primary)' : '2px solid var(--border)',
                     borderRadius: 10,
-                    background: step.type === ft.value ? 'rgba(108,92,231,0.08)' : '#fafafa',
+                    background: step.type === ft.value ? 'rgba(108,92,231,0.08)' : 'transparent',
                     cursor: 'pointer', fontSize: 13, fontWeight: step.type === ft.value ? 700 : 500,
-                    color: step.type === ft.value ? 'var(--primary, #6C5CE7)' : '#333',
+                    color: step.type === ft.value ? 'var(--primary)' : 'var(--text)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -973,9 +1022,129 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
             currentStepId={step.id}
             onChange={condition => onChange({ condition })}
           />
+          </>)}
         </div>
       )}
     </div>
+  );
+}
+
+/* ===========================
+   GroupFieldsEditor - edits the two sub-fields of a combined step
+   =========================== */
+function GroupFieldsEditor({ step, allSteps, onChange }) {
+  const fields = step.fields || [];
+
+  function updateField(i, changes) {
+    onChange({ fields: fields.map((f, idx) => (idx === i ? { ...f, ...changes } : f)) });
+  }
+
+  function changeFieldType(i, newType) {
+    const def = FIELD_TYPE_MAP[newType];
+    const d = def?.defaults || {};
+    onChange({
+      fields: fields.map((f, idx) => (idx === i ? {
+        id: f.id,
+        type: newType,
+        question: d.question || '',
+        label: d.label || '',
+        placeholder: d.placeholder || '',
+        required: f.required || false,
+        ...(d.options ? { options: d.options } : {}),
+      } : f)),
+    });
+  }
+
+  return (
+    <>
+      <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 16 }}>
+        This step shows two questions on one screen. Use <strong>Split</strong> on the step header to separate them again.
+      </p>
+      {fields.map((f, i) => (
+        <div key={f.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+            Question {i + 1}
+          </div>
+          <SubFieldEditor
+            field={f}
+            onChange={changes => updateField(i, changes)}
+            onChangeType={type => changeFieldType(i, type)}
+          />
+        </div>
+      ))}
+      {/* The combined step is shown/hidden as a unit via a group-level condition. */}
+      <ConditionEditor
+        condition={step.condition}
+        allSteps={allSteps}
+        currentStepId={step.id}
+        onChange={condition => onChange({ condition })}
+      />
+    </>
+  );
+}
+
+/* ===========================
+   SubFieldEditor - compact editor for a single field inside a combined step
+   =========================== */
+function SubFieldEditor({ field, onChange, onChangeType }) {
+  return (
+    <>
+      <div className="input-group">
+        <label>Field Type</label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginTop: 4 }}>
+          {FIELD_TYPES.map(ft => (
+            <button
+              key={ft.value}
+              onClick={() => onChangeType(ft.value)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+                border: field.type === ft.value ? '2px solid var(--primary)' : '2px solid var(--border)',
+                borderRadius: 10,
+                background: field.type === ft.value ? 'rgba(108,92,231,0.08)' : 'transparent',
+                cursor: 'pointer', fontSize: 13, fontWeight: field.type === ft.value ? 700 : 500,
+                color: field.type === ft.value ? 'var(--primary)' : 'var(--text)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{ft.icon}</span>
+              {ft.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+        <div className="input-group">
+          <label>Question</label>
+          <input className="input" value={field.question || ''} onChange={e => onChange({ question: e.target.value })} placeholder="Your question..." />
+        </div>
+        <div className="input-group">
+          <label>Label / ID</label>
+          <input className="input" value={field.label || ''} onChange={e => onChange({ label: e.target.value })} placeholder="e.g. Name, Email..." />
+        </div>
+      </div>
+
+      {!['select', 'multi-select', 'yes-no', 'rating', 'image-select', 'address'].includes(field.type) && (
+        <div className="input-group" style={{ marginTop: 12 }}>
+          <label>Placeholder</label>
+          <input className="input" value={field.placeholder || ''} onChange={e => onChange({ placeholder: e.target.value })} placeholder="Placeholder text..." />
+        </div>
+      )}
+
+      {(field.type === 'select' || field.type === 'multi-select') && (
+        <div className="input-group" style={{ marginTop: 12 }}>
+          <label>Options</label>
+          <OptionsTextarea options={field.options || []} onChange={onChange} />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 24, marginTop: 16 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+          <input type="checkbox" checked={field.required || false} onChange={e => onChange({ required: e.target.checked })} />
+          Required
+        </label>
+      </div>
+    </>
   );
 }
 
@@ -1358,31 +1527,41 @@ function ImageSelectEditor({ options, onChange }) {
    =========================== */
 function ConditionEditor({ condition, allSteps, currentStepId, onChange }) {
   const enabled = !!condition;
-  const previousSteps = allSteps.filter(s => s.id !== currentStepId);
+  // Build the list of referenceable fields, expanding combined steps into their
+  // individual sub-fields and excluding the current step (and its own sub-fields).
+  const fieldOptions = [];
+  for (const s of allSteps) {
+    if (s.id === currentStepId) continue;
+    if (s.type === 'group' && Array.isArray(s.fields)) {
+      for (const f of s.fields) fieldOptions.push({ id: f.id, label: f.label || f.id });
+    } else {
+      fieldOptions.push({ id: s.id, label: s.label || s.id });
+    }
+  }
 
   function toggle() {
     if (enabled) {
       onChange(null);
     } else {
-      onChange({ field: previousSteps[0]?.id || '', op: 'equals', value: '' });
+      onChange({ field: fieldOptions[0]?.id || '', op: 'equals', value: '' });
     }
   }
 
-  if (previousSteps.length === 0) return null;
+  if (fieldOptions.length === 0) return null;
 
   return (
-    <div style={{ marginTop: 16, padding: 14, background: '#fafafa', borderRadius: 10, border: '1px solid #eee' }}>
+    <div style={{ marginTop: 16, padding: 14, background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
         <input type="checkbox" checked={enabled} onChange={toggle} />
         Conditional Logic
       </label>
       {enabled && condition && (
         <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, color: '#636E72' }}>Show this step only if</span>
+          <span style={{ fontSize: 13, color: 'var(--text-light)' }}>Show this step only if</span>
           <select className="input" value={condition.field || ''} onChange={e => onChange({ ...condition, field: e.target.value })} style={{ width: 'auto', minWidth: 140, padding: '6px 10px', fontSize: 13 }}>
             <option value="">-- Select field --</option>
-            {previousSteps.map(s => (
-              <option key={s.id} value={s.id}>{s.label || s.id}</option>
+            {fieldOptions.map(o => (
+              <option key={o.id} value={o.id}>{o.label}</option>
             ))}
           </select>
           <select className="input" value={condition.op || 'equals'} onChange={e => onChange({ ...condition, op: e.target.value })} style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }}>

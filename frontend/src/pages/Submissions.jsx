@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
+import { PageHeader, Alert, EmptyState, Loading } from '../components/AdminUI';
+import { flattenFields } from '../utils/steps';
 
 function formatValue(val, step) {
   if (step.type === 'address' && val && typeof val === 'object') {
@@ -37,35 +39,29 @@ export default function Submissions() {
       .catch(err => setError(err.message || 'Failed to load submissions'));
   }, [id, page]);
 
-  if (!form && !error) return <div>Loading...</div>;
+  if (!form && !error) return <Loading />;
 
-  const steps = form?.steps || [];
+  // Flatten combined "group" steps so each underlying field gets its own column.
+  const fields = flattenFields(form?.steps || []);
   const totalPages = Math.ceil(total / 20);
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <Link to={`/forms/${id}`} style={{ color: '#636E72', textDecoration: 'none', fontSize: 13 }}>&larr; Back to form</Link>
-          <h2 style={{ marginTop: 8 }}>Responses: {form?.title}</h2>
-          <p style={{ color: '#636E72', fontSize: 14 }}>{total} entries</p>
-        </div>
+      <PageHeader
+        title={`Responses: ${form?.title || ''}`}
+        subtitle={`${total} entries`}
+        backTo={`/forms/${id}`}
+        backLabel="← Back to form"
+      >
         <a href={api.exportSubmissions(id)} className="btn btn-secondary" style={{ textDecoration: 'none' }}>
           Export CSV
         </a>
-      </div>
+      </PageHeader>
 
-      {error && (
-        <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: '#FDEDEC', color: '#E17055', fontSize: 14 }}>
-          {error}
-        </div>
-      )}
+      <Alert type="error">{error}</Alert>
 
       {submissions.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: 60 }}>
-          <h3>No responses yet</h3>
-          <p style={{ color: '#636E72' }}>Publish and share your form to start collecting responses.</p>
-        </div>
+        <EmptyState title="No responses yet" message="Publish and share your form to start collecting responses." />
       ) : (
         <>
           <div className="card" style={{ padding: 0, overflow: 'auto' }}>
@@ -73,20 +69,20 @@ export default function Submissions() {
               <thead>
                 <tr>
                   <th>#</th>
-                  {steps.map(s => <th key={s.id}>{s.label || s.question}</th>)}
+                  {fields.map(s => <th key={s.id}>{s.label || s.question}</th>)}
                   <th>Date</th>
                 </tr>
               </thead>
               <tbody>
                 {submissions.map((sub, i) => (
                   <tr key={sub.id}>
-                    <td style={{ color: '#636E72' }}>{(page - 1) * 20 + i + 1}</td>
-                    {steps.map(s => (
+                    <td style={{ color: 'var(--text-light)' }}>{(page - 1) * 20 + i + 1}</td>
+                    {fields.map(s => (
                       <td key={s.id}>
                         {formatValue(sub.data[s.id], s)}
                       </td>
                     ))}
-                    <td style={{ fontSize: 13, color: '#636E72', whiteSpace: 'nowrap' }}>
+                    <td style={{ fontSize: 13, color: 'var(--text-light)', whiteSpace: 'nowrap' }}>
                       {new Date(sub.created_at).toLocaleString('en')}
                     </td>
                   </tr>

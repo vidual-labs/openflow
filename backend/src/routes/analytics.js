@@ -94,12 +94,18 @@ router.get('/:formId', (req, res) => {
       conversionRate: views > 0 ? Math.round((completions / views) * 100) : 0,
       startRate: views > 0 ? Math.round((starts / views) * 100) : 0,
     },
-    stepDropoff: stepEvents.map(se => ({
-      stepIndex: se.step_index,
-      stepId: se.step_id,
-      label: steps[se.step_index]?.label || steps[se.step_index]?.question || `Step ${se.step_index + 1}`,
-      sessions: se.sessions,
-    })),
+    stepDropoff: stepEvents.map(se => {
+      const s = steps[se.step_index];
+      const label = s?.type === 'group' && Array.isArray(s.fields)
+        ? s.fields.map(f => f.label || f.question).filter(Boolean).join(' + ') || `Step ${se.step_index + 1}`
+        : s?.label || s?.question || `Step ${se.step_index + 1}`;
+      return {
+        stepIndex: se.step_index,
+        stepId: se.step_id,
+        label,
+        sessions: se.sessions,
+      };
+    }),
     daily,
   });
 });

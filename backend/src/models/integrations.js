@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const { google } = require('googleapis');
+const { flattenFields } = require('../utils/steps');
 
 // ──────────────────────────────────────────
 // Run all integrations for a form submission
@@ -84,13 +85,13 @@ async function runEmail(config, formId, formTitle, data, steps) {
     auth: smtp_user ? { user: smtp_user, pass: smtp_pass } : undefined,
   });
 
-  // Build a nice HTML table from submission data
-  const rows = (steps || []).map(step => {
-    let val = data[step.id];
+  // Build a nice HTML table from submission data (one row per field, groups expanded)
+  const rows = flattenFields(steps).map(field => {
+    let val = data[field.id];
     if (val === undefined || val === null) val = '-';
     if (typeof val === 'object') val = JSON.stringify(val);
     if (Array.isArray(val)) val = val.join(', ');
-    return `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#555;">${step.label || step.question || step.id}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${val}</td></tr>`;
+    return `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#555;">${field.label || field.question || field.id}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${val}</td></tr>`;
   }).join('');
 
   const html = `
@@ -123,7 +124,7 @@ async function runGoogleSheetsAppsScript(config, formId, formTitle, data, steps)
     formId,
     formTitle,
     data,
-    fields: (steps || []).map(s => ({ id: s.id, label: s.label || s.question || s.id })),
+    fields: flattenFields(steps).map(s => ({ id: s.id, label: s.label || s.question || s.id })),
     timestamp: new Date().toISOString(),
   };
 
@@ -172,7 +173,7 @@ async function runGoogleSheets(config, formId, data, steps) {
   });
 
   if (!headerRes.data.values || headerRes.data.values.length === 0) {
-    const headers = ['Timestamp', ...(steps || []).map(s => s.label || s.question || s.id)];
+    const headers = ['Timestamp', ...flattenFields(steps).map(s => s.label || s.question || s.id)];
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheet_id,
       range: `${sheet_name}!A1`,
@@ -181,10 +182,10 @@ async function runGoogleSheets(config, formId, data, steps) {
     });
   }
 
-  // Append the submission row
+  // Append the submission row (one cell per field, groups expanded)
   const row = [
     new Date().toISOString(),
-    ...(steps || []).map(s => {
+    ...flattenFields(steps).map(s => {
       let val = data[s.id];
       if (val === undefined || val === null) return '';
       if (typeof val === 'object') return JSON.stringify(val);

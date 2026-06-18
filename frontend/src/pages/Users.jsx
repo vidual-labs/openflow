@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import { PageHeader, Alert } from '../components/AdminUI';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -58,12 +59,11 @@ export default function Users() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2>Users</h2>
+      <PageHeader title="Users">
         <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
           {showForm ? 'Cancel' : '+ Add User'}
         </button>
-      </div>
+      </PageHeader>
 
       {showForm && (
         <div className="card" style={{ marginBottom: 16 }}>
@@ -86,12 +86,13 @@ export default function Users() {
               </div>
               <button className="btn btn-primary" type="submit" style={{ height: 44 }}>Create</button>
             </div>
-            {error && <p style={{ color: 'var(--danger)', marginTop: 8, fontSize: 14 }}>{error}</p>}
+            <Alert type="error" style={{ marginTop: 8, marginBottom: 0 }}>{error}</Alert>
           </form>
         </div>
       )}
 
       <div className="card">
+        <div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
@@ -110,7 +111,7 @@ export default function Users() {
                     {user.role || 'user'}
                   </span>
                 </td>
-                <td style={{ fontSize: 13, color: '#636E72' }}>{new Date(user.created_at).toLocaleDateString()}</td>
+                <td style={{ fontSize: 13, color: 'var(--text-light)' }}>{new Date(user.created_at).toLocaleDateString()}</td>
                 <td>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button className="btn btn-sm btn-secondary" onClick={() => toggleRole(user)} title="Toggle role">
@@ -125,6 +126,7 @@ export default function Users() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
