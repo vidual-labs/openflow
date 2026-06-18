@@ -1,7 +1,6 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { checkRateLimit } = require('../models/rateLimit');
-const { flattenFields } = require('../utils/steps');
 const { v4: uuid } = require('uuid');
 
 const router = Router();
@@ -61,10 +60,21 @@ router.post('/form/:slug/submit', async (req, res) => {
     return res.status(400).json({ error: 'Invalid submission data' });
   }
 
-  // Basic validation (descend into combined "group" steps so each field is checked)
-  for (const field of flattenFields(steps)) {
-    if (field.required && (!data[field.id] || String(data[field.id]).trim() === '')) {
-      return res.status(400).json({ error: `Field "${field.label || field.id}" is required` });
+  // Basic validation. Combined ("group") steps validate each sub-field, and may
+  // additionally require that at least one of their fields is answered.
+  const isEmpty = (v) => !v || String(v).trim() === '';
+  for (const step of steps) {
+    if (step.type === 'group' && Array.isArray(step.fields)) {
+      for (const field of step.fields) {
+        if (field.required && isEmpty(data[field.id])) {
+          return res.status(400).json({ error: `Field "${field.label || field.id}" is required` });
+        }
+      }
+      if (step.requireOne && !step.fields.some(field => !isEmpty(data[field.id]))) {
+        return res.status(400).json({ error: 'Please answer at least one question in this step' });
+      }
+    } else if (step.required && isEmpty(data[step.id])) {
+      return res.status(400).json({ error: `Field "${step.label || step.id}" is required` });
     }
   }
 

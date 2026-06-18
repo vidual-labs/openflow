@@ -123,4 +123,39 @@ describe('Combined "group" steps', () => {
       .send({ data: { email: 'a@b.com', phone: '+1 555' } });
     expect(res.status).toBe(201);
   });
+
+  function seedRequireOneForm() {
+    const db = getDb();
+    const userId = uuid();
+    db.prepare('INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)')
+      .run(userId, 'r1@test.com', bcrypt.hashSync('x', 10), 'admin');
+    const formId = uuid();
+    const steps = [
+      {
+        id: 'group_1', type: 'group', requireOne: true, fields: [
+          { id: 'email', type: 'email', label: 'Email' },
+          { id: 'phone', type: 'phone', label: 'Phone' },
+        ],
+      },
+    ];
+    db.prepare('INSERT INTO forms (id, user_id, title, slug, steps, published) VALUES (?, ?, ?, ?, ?, 1)')
+      .run(formId, userId, 'Either', 'either', JSON.stringify(steps));
+  }
+
+  it('rejects a require-one step when neither field is answered', async () => {
+    seedRequireOneForm();
+    const res = await request(app)
+      .post('/api/public/form/either/submit')
+      .send({ data: {} });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/at least one/i);
+  });
+
+  it('accepts a require-one step when either field is answered', async () => {
+    seedRequireOneForm();
+    const res = await request(app)
+      .post('/api/public/form/either/submit')
+      .send({ data: { phone: '+1 555' } });
+    expect(res.status).toBe(201);
+  });
 });

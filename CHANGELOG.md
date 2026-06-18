@@ -2,6 +2,16 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.13.0] - 2026-06-18
+
+### Added
+- **"Require at least one" for combined steps** — A combined (two-question) step can now require that the visitor answers *at least one* of its two fields (e.g. email **or** phone), via a new toggle in the editor. Each field's own **Required** toggle still works for forcing that specific field. Enforced both client-side and on the server.
+
+### Fixed
+- **Sidebar no longer "saws off" on long pages** — The dark sidebar is now pinned to the viewport and always fills the full height, even when the page content is taller than one screen (previously the background ended partway down). Fixes a layout bug where `.admin-main` was capped at `100vh`.
+- **Admin content is left-aligned again** — Reverted the centered content area introduced in 0.12.0; on wide screens the content now sits next to the sidebar instead of floating in the middle.
+- **Aligned sidebar and content tops** — The sidebar logo and the page header now start at the same height for a cleaner, consistent top edge, and page-header actions are vertically centered.
+
 ## [0.12.0] - 2026-06-18
 
 ### Added

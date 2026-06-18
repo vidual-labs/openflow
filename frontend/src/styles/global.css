@@ -72,14 +72,20 @@ input, select, textarea {
 
 .admin-sidebar {
   width: 240px;
+  flex-shrink: 0;
   background: var(--sidebar-bg);
   color: white;
-  padding: 24px 16px;
+  padding: 32px 16px;
   display: flex;
   flex-direction: column;
+  /* Pin to the viewport so the dark background always fills the full height,
+     even when the main content is taller than one screen. align-self:flex-start
+     stops the default stretch so sticky positioning actually takes effect. */
   height: 100vh;
   position: sticky;
   top: 0;
+  align-self: flex-start;
+  overflow-y: auto;
 }
 
 .admin-sidebar h1 {
@@ -134,9 +140,7 @@ input, select, textarea {
 .admin-main {
   flex: 1;
   padding: 32px;
-  width: 100%;
   max-width: 1200px;
-  margin-inline: auto;
   min-height: 100vh;
 }
 
@@ -154,7 +158,7 @@ input, select, textarea {
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 16px;
   margin-bottom: 24px;
   flex-wrap: wrap;
@@ -408,20 +412,6 @@ input, select, textarea {
 }
 
 /* Responsive */
-@media (min-width: 769px) {
-  .admin-layout {
-    align-items: stretch;
-  }
-  .admin-sidebar {
-    height: 100vh;
-    position: sticky;
-    top: 0;
-  }
-  .admin-main {
-    height: 100vh;
-  }
-}
-
 @media (max-width: 768px) {
   .admin-layout {
     flex-direction: column;
