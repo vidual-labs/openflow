@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { checkRateLimit } = require('../models/rateLimit');
+const { flattenFields } = require('../utils/steps');
 const { v4: uuid } = require('uuid');
 
 const router = Router();
@@ -60,10 +61,10 @@ router.post('/form/:slug/submit', async (req, res) => {
     return res.status(400).json({ error: 'Invalid submission data' });
   }
 
-  // Basic validation
-  for (const step of steps) {
-    if (step.required && (!data[step.id] || String(data[step.id]).trim() === '')) {
-      return res.status(400).json({ error: `Field "${step.label || step.id}" is required` });
+  // Basic validation (descend into combined "group" steps so each field is checked)
+  for (const field of flattenFields(steps)) {
+    if (field.required && (!data[field.id] || String(data[field.id]).trim() === '')) {
+      return res.status(400).json({ error: `Field "${field.label || field.id}" is required` });
     }
   }
 

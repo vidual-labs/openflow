@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
+import { PageHeader, Alert } from '../components/AdminUI';
 
 export default function Backup() {
   const [info, setInfo] = useState(null);
@@ -92,19 +93,16 @@ export default function Backup() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <h2>Backup &amp; Restore</h2>
-        <p style={{ color: 'var(--text-light)', fontSize: 14, margin: '4px 0 0' }}>
-          Download a full snapshot of your database, or restore from a previous backup.
-          Restoring also migrates older backups to the current format automatically.
-        </p>
-      </div>
+      <PageHeader
+        title="Backup & Restore"
+        subtitle="Download a full snapshot of your database, or restore from a previous backup. Restoring also migrates older backups to the current format automatically."
+      />
 
-      {error && <div className="card" style={{ marginBottom: 16, borderLeft: '4px solid var(--danger)', color: 'var(--danger)' }}>{error}</div>}
-      {notice && <div className="card" style={{ marginBottom: 16, borderLeft: '4px solid var(--success, #00b894)', color: 'var(--success, #00b894)' }}>{notice}</div>}
+      <Alert type="error">{error}</Alert>
+      <Alert type="success">{notice}</Alert>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <div className="section-header">
           <span style={{ fontSize: 20 }}>💾</span>
           <div>
             <h3 style={{ margin: 0 }}>Download Backup</h3>
@@ -130,7 +128,7 @@ export default function Backup() {
       </div>
 
       <div className="card" style={{ borderLeft: '4px solid var(--danger)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <div className="section-header">
           <span style={{ fontSize: 20 }}>♻️</span>
           <div>
             <h3 style={{ margin: 0 }}>Restore from Backup</h3>

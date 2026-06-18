@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import { PageHeader, Alert } from '../components/AdminUI';
 
 const DEFAULT_BRANDING = { logoVisible: true, logoUrl: '' };
 
@@ -31,13 +32,11 @@ export default function Settings() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <h2>Settings</h2>
-      </div>
+      <PageHeader title="Settings" />
 
       <form onSubmit={handleSave}>
         <div className="card" style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div className="section-header">
             <span style={{ fontSize: 20 }}>🎨</span>
             <div>
               <h3 style={{ margin: 0 }}>Branding</h3>
@@ -57,7 +56,7 @@ export default function Settings() {
                 />
                 Show logo in sidebar
               </label>
-              <span style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'block' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 8, display: 'block' }}>
                 Uncheck to hide the logo entirely from the sidebar footer.
               </span>
             </div>
@@ -72,25 +71,25 @@ export default function Settings() {
                 placeholder="https://example.com/logo.png"
                 disabled={!branding.logoVisible}
               />
-              <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>
                 Leave blank to use the built-in default logo. Best results: white PNG/SVG, max height 24px.
               </span>
             </div>
           </div>
 
           {branding.logoVisible && branding.logoUrl && (
-            <div style={{ marginTop: 16, padding: 16, background: '#2D3436', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ marginTop: 16, padding: 16, background: 'var(--sidebar-bg)', borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 12 }}>
               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Preview:</span>
               <img src={branding.logoUrl} alt="Logo preview" style={{ height: 20, maxWidth: 140, objectFit: 'contain' }} />
             </div>
           )}
         </div>
 
-        {error && <p style={{ color: 'var(--danger)', marginBottom: 12, fontSize: 14 }}>{error}</p>}
+        <Alert type="error">{error}</Alert>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="btn btn-primary" type="submit">Save Settings</button>
-          {saved && <span style={{ fontSize: 14, color: 'var(--success, #00b894)' }}>Saved!</span>}
+          {saved && <span style={{ fontSize: 14, color: 'var(--success)' }}>Saved!</span>}
         </div>
       </form>
     </div>

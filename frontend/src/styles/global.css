@@ -14,8 +14,10 @@
   --border: #DFE6E9;
   --success: #00B894;
   --danger: #E17055;
+  --warning: #E67E22;
   --radius: 12px;
-  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(45,52,54,0.04), 0 4px 16px rgba(45,52,54,0.06);
   --sidebar-bg: #2D3436;
   --input-bg: transparent;
 }
@@ -87,24 +89,23 @@ input, select, textarea {
   letter-spacing: -0.5px;
   margin-bottom: 32px;
   padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.admin-sidebar h1 .logo-icon {
-  display: inline-block;
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, #6C5CE7, #a29bfe);
-  border-radius: 7px;
-  text-align: center;
-  line-height: 28px;
-  font-size: 16px;
-  margin-right: 10px;
-  vertical-align: middle;
+.logo-mark {
+  display: block;
+  flex-shrink: 0;
 }
 
 .login-box h1 {
   font-family: 'Space Grotesk', sans-serif;
   letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .admin-sidebar nav a {
@@ -115,28 +116,140 @@ input, select, textarea {
   border-radius: 8px;
   margin-bottom: 4px;
   font-size: 14px;
+  border-left: 3px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.admin-sidebar nav a:hover,
-.admin-sidebar nav a.active {
-  background: rgba(255,255,255,0.1);
+.admin-sidebar nav a:hover {
+  background: rgba(255,255,255,0.08);
   color: white;
+}
+
+.admin-sidebar nav a.active {
+  background: rgba(108,92,231,0.22);
+  color: white;
+  border-left-color: var(--primary);
 }
 
 .admin-main {
   flex: 1;
   padding: 32px;
+  width: 100%;
   max-width: 1200px;
+  margin-inline: auto;
   min-height: 100vh;
 }
 
 /* Cards */
 .card {
   background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 24px;
   margin-bottom: 16px;
+}
+
+/* Page header — shared across all admin pages */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.page-header-titles h2 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.page-subtitle {
+  color: var(--text-light);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.back-link {
+  display: inline-block;
+  color: var(--text-light);
+  text-decoration: none;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.back-link:hover {
+  color: var(--primary);
+}
+
+/* Section header inside cards (icon + title + optional hint) */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.section-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Alerts / banners */
+.alert {
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  border: 1px solid transparent;
+}
+
+.alert-error {
+  background: rgba(225,112,85,0.12);
+  color: var(--danger);
+  border-color: rgba(225,112,85,0.25);
+}
+
+.alert-success {
+  background: rgba(0,184,148,0.12);
+  color: var(--success);
+  border-color: rgba(0,184,148,0.25);
+}
+
+/* Loading & empty states */
+.loading-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-light);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+}
+
+.empty-state h3 {
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  color: var(--text-light);
+  margin-bottom: 24px;
+}
+
+/* Table wrapper — lets wide tables scroll on small screens */
+.table-wrap {
+  overflow-x: auto;
 }
 
 /* Buttons */
@@ -272,7 +385,7 @@ input, select, textarea {
 
 .badge-draft {
   background: #FDF2E9;
-  color: #E67E22;
+  color: var(--warning);
 }
 
 /* Login */

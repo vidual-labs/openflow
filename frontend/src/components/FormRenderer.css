@@ -169,6 +169,21 @@
   margin-top: 32px;
 }
 
+/* Combined "group" steps: two questions stacked on one screen */
+.form-group-field + .form-group-field {
+  border-top: 1px solid rgba(127, 127, 127, 0.15);
+  padding-top: 24px;
+}
+
+.form-group-field .step-question.group-subquestion {
+  font-size: clamp(18px, 2.6vw, 22px);
+  margin-bottom: 8px;
+}
+
+.form-group-field .step-field {
+  margin-top: 16px;
+}
+
 .step-error {
   color: #E17055;
   font-size: 14px;

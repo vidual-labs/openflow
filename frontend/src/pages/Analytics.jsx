@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { PageHeader, Alert, EmptyState, Loading } from '../components/AdminUI';
 
 export default function Analytics() {
   const [forms, setForms] = useState([]);
@@ -29,24 +30,19 @@ export default function Analytics() {
     }
   }, [selected, days]);
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Loading analytics...</div>;
+  if (loading) return <Loading label="Loading analytics…" />;
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2>Analytics</h2>
+      <PageHeader title="Analytics">
         <select className="input" style={{ width: 'auto' }} value={days} onChange={e => setDays(Number(e.target.value))}>
           <option value={7}>Last 7 days</option>
           <option value={30}>Last 30 days</option>
           <option value={90}>Last 90 days</option>
         </select>
-      </div>
+      </PageHeader>
 
-      {error && (
-        <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: '#FDEDEC', color: '#E17055', fontSize: 14 }}>
-          {error}
-        </div>
-      )}
+      <Alert type="error">{error}</Alert>
 
       {/* Overview cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
@@ -80,10 +76,7 @@ export default function Analytics() {
       </div>
 
       {forms.length === 0 && !error && (
-        <div className="card" style={{ textAlign: 'center', padding: 60 }}>
-          <h3>No analytics data yet</h3>
-          <p style={{ color: '#636E72' }}>Publish a form and share it to start collecting analytics.</p>
-        </div>
+        <EmptyState title="No analytics data yet" message="Publish a form and share it to start collecting analytics." />
       )}
 
       {/* Detail view */}
@@ -94,9 +87,9 @@ export default function Analytics() {
           {/* Funnel */}
           <div className="card" style={{ marginBottom: 16 }}>
             <h4 style={{ marginBottom: 16 }}>Conversion Funnel</h4>
-            <FunnelBar label="Views" value={detail.summary.views} max={detail.summary.views} color="#6C5CE7" />
+            <FunnelBar label="Views" value={detail.summary.views} max={detail.summary.views} color="var(--primary)" />
             <FunnelBar label="Started" value={detail.summary.starts} max={detail.summary.views} color="#0984E3" />
-            <FunnelBar label="Completed" value={detail.summary.completions} max={detail.summary.views} color="#00B894" />
+            <FunnelBar label="Completed" value={detail.summary.completions} max={detail.summary.views} color="var(--success)" />
             <div style={{ display: 'flex', gap: 24, marginTop: 16, fontSize: 14, color: 'var(--text-light)' }}>
               <span>Start Rate: <strong>{detail.summary.startRate}%</strong></span>
               <span>Conversion: <strong>{detail.summary.conversionRate}%</strong></span>
@@ -113,7 +106,7 @@ export default function Analytics() {
                   label={`${i + 1}. ${step.label}`}
                   value={step.sessions}
                   max={detail.stepDropoff[0]?.sessions || 1}
-                  color={i === detail.stepDropoff.length - 1 ? '#00B894' : '#6C5CE7'}
+                  color={i === detail.stepDropoff.length - 1 ? 'var(--success)' : 'var(--primary)'}
                 />
               ))}
             </div>
@@ -167,15 +160,15 @@ function DailyChart({ data }) {
           const d = days[day];
           return (
             <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }} title={`${day}\nViews: ${d.views}\nStarts: ${d.starts}\nCompletions: ${d.completions}`}>
-              <div style={{ width: '100%', maxWidth: 24, background: '#6C5CE7', borderRadius: '3px 3px 0 0', height: `${(d.views / maxVal) * 100}%`, minHeight: d.views > 0 ? 4 : 0, opacity: 0.3 }} />
-              <div style={{ width: '100%', maxWidth: 24, background: '#00B894', borderRadius: '3px 3px 0 0', height: `${(d.completions / maxVal) * 100}%`, minHeight: d.completions > 0 ? 4 : 0, marginTop: -1 * ((d.views / maxVal) * 100) + '%', position: 'relative' }} />
+              <div style={{ width: '100%', maxWidth: 24, background: 'var(--primary)', borderRadius: '3px 3px 0 0', height: `${(d.views / maxVal) * 100}%`, minHeight: d.views > 0 ? 4 : 0, opacity: 0.3 }} />
+              <div style={{ width: '100%', maxWidth: 24, background: 'var(--success)', borderRadius: '3px 3px 0 0', height: `${(d.completions / maxVal) * 100}%`, minHeight: d.completions > 0 ? 4 : 0, marginTop: -1 * ((d.views / maxVal) * 100) + '%', position: 'relative' }} />
             </div>
           );
         })}
       </div>
       <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text-light)' }}>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#6C5CE7', borderRadius: 2, marginRight: 4, opacity: 0.3 }} />Views</span>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: '#00B894', borderRadius: 2, marginRight: 4 }} />Completions</span>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--primary)', borderRadius: 2, marginRight: 4, opacity: 0.3 }} />Views</span>
+        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--success)', borderRadius: 2, marginRight: 4 }} />Completions</span>
       </div>
     </div>
   );

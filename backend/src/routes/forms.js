@@ -68,6 +68,53 @@ router.post('/', (req, res) => {
   res.status(201).json({ form });
 });
 
+// Clone (duplicate) a form
+router.post('/:id/clone', (req, res) => {
+  const db = getDb();
+  const source = db.prepare('SELECT * FROM forms WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+  if (!source) return res.status(404).json({ error: 'Form not found' });
+
+  const newId = uuid();
+  const newSlug = nanoid();
+
+  const cloneForm = db.transaction(() => {
+    // steps/end_screen/theme are already JSON strings on the source row — copy verbatim.
+    // The clone is always a draft with a fresh slug and no subdomain.
+    db.prepare(`
+      INSERT INTO forms (id, user_id, title, slug, steps, end_screen, theme, gtm_id, published)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `).run(
+      newId, req.userId,
+      `${source.title} (Copy)`,
+      newSlug,
+      source.steps, source.end_screen, source.theme, source.gtm_id || ''
+    );
+
+    // Copy integrations, but leave them disabled so the clone can't send leads
+    // to live destinations until the user reviews and re-enables them.
+    const integrations = db.prepare('SELECT type, config FROM integrations WHERE form_id = ?').all(req.params.id);
+    const insertIntegration = db.prepare(
+      'INSERT INTO integrations (id, form_id, type, enabled, config) VALUES (?, ?, ?, 0, ?)'
+    );
+    for (const integ of integrations) {
+      insertIntegration.run(uuid(), newId, integ.type, integ.config);
+    }
+  });
+  cloneForm();
+
+  const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(newId);
+  try {
+    form.steps = JSON.parse(form.steps);
+    form.end_screen = JSON.parse(form.end_screen);
+    form.theme = JSON.parse(form.theme);
+  } catch {
+    return res.status(500).json({ error: 'Failed to read cloned form' });
+  }
+  // Match the list-row shape so the dashboard can prepend it without a refetch.
+  form.submission_count = 0;
+  res.status(201).json({ form });
+});
+
 // Update form
 router.put('/:id', (req, res) => {
   const db = getDb();

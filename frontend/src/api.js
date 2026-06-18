@@ -34,6 +34,7 @@ export const api = {
   getForm: (id) => request(`/forms/${id}`),
   createForm: (data) => request('/forms', { method: 'POST', body: JSON.stringify(data) }),
   updateForm: (id, data) => request(`/forms/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  cloneForm: (id) => request(`/forms/${id}/clone`, { method: 'POST' }),
   deleteForm: (id) => request(`/forms/${id}`, { method: 'DELETE' }),
 
   getSubmissions: (formId, page = 1) => request(`/submissions/${formId}?page=${page}`),
