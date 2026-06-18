@@ -1072,6 +1072,16 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
           />
         </div>
       ))}
+
+      {/* Either/or requirement across the two fields */}
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: 4 }}>
+        <input type="checkbox" checked={!!step.requireOne} onChange={e => onChange({ requireOne: e.target.checked })} />
+        Require at least one answer (either field)
+      </label>
+      <p style={{ fontSize: 12, color: 'var(--text-light)', marginBottom: 8 }}>
+        The visitor must fill in at least one of the two. Use each field's own <strong>Required</strong> toggle to force that specific field instead.
+      </p>
+
       {/* The combined step is shown/hidden as a unit via a group-level condition. */}
       <ConditionEditor
         condition={step.condition}

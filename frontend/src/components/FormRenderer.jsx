@@ -211,6 +211,17 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         return;
       }
     }
+    // Combined step with "require at least one": at least one sub-field must be filled.
+    if (step.type === 'group' && step.requireOne) {
+      const anyFilled = (step.fields || []).some(f => {
+        const v = answers[f.id];
+        return !(v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0));
+      });
+      if (!anyFilled) {
+        setError(locale.errorRequireOne);
+        return;
+      }
+    }
     // Check consent on last step
     if (isLastStep && consentRequired && !consentGiven) {
       setError(locale.errorConsentSubmit);

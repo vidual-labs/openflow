@@ -11,7 +11,7 @@ import Settings from './pages/Settings';
 import Backup from './pages/Backup';
 import { LogoMark, Loading } from './components/AdminUI';
 
-const APP_VERSION = '0.12.0';
+const APP_VERSION = '0.13.0';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
