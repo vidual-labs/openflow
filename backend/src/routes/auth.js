@@ -1,7 +1,8 @@
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
 const { getDb } = require('../models/db');
-const { authMiddleware, signToken } = require('../middleware/auth');
+const { authMiddleware, signToken, requireSession } = require('../middleware/auth');
+const apiTokens = require('../models/apiTokens');
 
 const router = Router();
 
@@ -116,6 +117,37 @@ router.delete('/users/:id', authMiddleware, requireAdmin, (req, res) => {
     console.error('Delete user error:', err);
     res.status(500).json({ error: 'Failed to delete user' });
   }
+});
+
+// --- API tokens (read-only, for programmatic API access e.g. lodgely) ---
+//
+// Any logged-in user manages their own tokens. requireSession ensures a token
+// can never be used to mint or enumerate tokens — only a real login can.
+
+// List the current user's tokens (metadata only — the secret is never returned).
+router.get('/tokens', authMiddleware, requireSession, (req, res) => {
+  res.json({ tokens: apiTokens.listTokens(req.userId) });
+});
+
+// Create a token. The plaintext is returned exactly once, here.
+router.post('/tokens', authMiddleware, requireSession, (req, res) => {
+  const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+  if (!name) {
+    return res.status(400).json({ error: 'Token name is required' });
+  }
+  if (name.length > 100) {
+    return res.status(400).json({ error: 'Token name is too long (max 100 chars)' });
+  }
+
+  const created = apiTokens.createToken(req.userId, name);
+  res.status(201).json({ token: created });
+});
+
+// Revoke a token.
+router.delete('/tokens/:id', authMiddleware, requireSession, (req, res) => {
+  const ok = apiTokens.revokeToken(req.userId, req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Token not found' });
+  res.json({ ok: true });
 });
 
 module.exports = router;

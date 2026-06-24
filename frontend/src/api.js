@@ -46,6 +46,11 @@ export const api = {
   deleteIntegration: (formId, id) => request(`/integrations/${formId}/${id}`, { method: 'DELETE' }),
   testIntegration: (formId, id) => request(`/integrations/${formId}/${id}/test`, { method: 'POST' }),
 
+  // API tokens (read-only programmatic access, e.g. the lodgely connector)
+  getApiTokens: () => request('/auth/tokens'),
+  createApiToken: (name) => request('/auth/tokens', { method: 'POST', body: JSON.stringify({ name }) }),
+  deleteApiToken: (id) => request(`/auth/tokens/${id}`, { method: 'DELETE' }),
+
   // User management (admin)
   getUsers: () => request('/auth/users'),
   createUser: (data) => request('/auth/users', { method: 'POST', body: JSON.stringify(data) }),

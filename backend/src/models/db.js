@@ -95,6 +95,19 @@ function initDb() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_slug_history_form ON slug_history(form_id);
+
+    CREATE TABLE IF NOT EXISTS api_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      token_hash TEXT UNIQUE NOT NULL,
+      token_prefix TEXT NOT NULL,
+      last_used_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_api_tokens_user ON api_tokens(user_id);
   `);
 
   // Migrate: add role column if missing (existing DBs)

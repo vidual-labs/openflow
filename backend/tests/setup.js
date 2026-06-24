@@ -32,6 +32,7 @@ beforeEach(() => {
   db.exec('DELETE FROM analytics_events');
   db.exec('DELETE FROM submissions');
   db.exec('DELETE FROM integrations');
+  db.exec('DELETE FROM api_tokens');
   db.exec('DELETE FROM forms');
   db.exec('DELETE FROM users');
   db.pragma('foreign_keys = ON');
