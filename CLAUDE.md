@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets), analytics, and a WordPress plugin.
 
-**Current Version**: 0.13.1 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.14.0 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -151,18 +151,28 @@ Key tables:
 connector that **pulls** submissions out of an install — it is not a push
 integration configured here, but it does depend on this API's shape:
 
-- It logs in via `POST /api/auth/login` (email + password) and reads the JWT
-  from the **`token` httpOnly cookie** in the response, then sends it as a
-  `Bearer` token. There is no API-token mechanism, so this login flow is the
-  only auth path — **don't remove the Set-Cookie token or stop accepting the
-  Bearer header without coordinating**.
+- **Auth (preferred): an API token.** A logged-in user mints a read-only token
+  under **Settings → API Tokens** (`POST /api/auth/tokens`), and lodgely sends
+  it as a `Bearer` token. See "API tokens" below.
+- **Auth (fallback): login.** lodgely can still log in via `POST /api/auth/login`
+  (email + password) and read the JWT from the **`token` httpOnly cookie**, then
+  send it as a `Bearer` token. **Don't remove the Set-Cookie token or stop
+  accepting the Bearer header without coordinating.**
 - It reads `GET /api/forms` (to list forms), `GET /api/forms/:id` (to read
   `steps` for field mapping) and `GET /api/submissions/:formId` (paged, newest
   first) where each submission's `data` is keyed by field id. Changing those
   response shapes is a breaking change for the connector.
 
-A long-lived API token would be a cleaner contract than storing a password in
-lodgely — a reasonable future enhancement if this integration grows.
+### API tokens
+
+`backend/src/models/apiTokens.js` + the `/api/auth/tokens` routes implement
+long-lived, **read-only** API tokens (format `ofw_<40 hex>`). Only a SHA-256
+hash is stored; the plaintext is shown once at creation. The auth middleware
+(`middleware/auth.js`) recognises a token by its `ofw_` prefix, authenticates
+the owning user, and **rejects any non-GET/HEAD request** (`req.authVia ===
+'api_token'`). `requireSession` blocks token-authed callers from the
+token-management endpoints, so a token can never mint or list tokens. Tokens are
+managed in the UI under **Settings → API Tokens**.
 
 ## Common Tasks
 

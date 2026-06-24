@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.14.0] - 2026-06-24
+
+### Added
+- **Read-only API tokens** — Mint long-lived API tokens under **Settings → API Tokens** for programmatic API access (e.g. the [lodgely](https://github.com/vidual-labs/lodgely) connector) without sharing your password. Tokens are `ofw_`-prefixed, stored only as a SHA-256 hash (shown in plaintext once at creation), and are **read-only**: the auth middleware authenticates the owning user but rejects any non-GET request made with a token. Tokens can be listed and revoked individually; a token can never be used to manage tokens. New endpoints: `GET/POST /api/auth/tokens`, `DELETE /api/auth/tokens/:id`.
+
 ## [0.13.1] - 2026-06-24
 
 ### Docs

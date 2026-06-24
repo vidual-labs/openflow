@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.13.1
+# 🌊 OpenFlow v0.14.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -72,6 +72,7 @@
 - **SQLite** — Zero-config database, no external DB needed
 - **🛡️ Rate Limiting** — Built-in in-memory spam protection
 - **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
+- **🔑 API Tokens** — Read-only tokens for programmatic API access (e.g. the lodgely connector); created under Settings, hashed at rest, revocable anytime
 - **💾 Backup & Restore** — Admins can download a full JSON snapshot of the database and restore it later; older backups are auto-migrated to the current format on restore
 - **🌙 Dark Mode** — Auto/light/dark theme toggle for the admin interface
 - **🛡️ Delete Protection** — Published forms require typing the form name to confirm deletion
@@ -216,8 +217,11 @@ push integrations above, this is configured entirely in lodgely (under
 **Imports → OpenFlow**), so there is nothing to set up on the OpenFlow side
 beyond an admin account:
 
-- lodgely signs in with an OpenFlow login (email + password) to mint a session
-  token, then reads submissions from the admin API on a schedule.
+- **Recommended:** create a **read-only API token** under **Settings → API
+  Tokens** and paste it into lodgely. The token can only read forms and
+  submissions, never modify anything, and you can revoke it anytime without
+  touching your password.
+- Alternatively, lodgely can sign in with an OpenFlow login (email + password).
 - It maps each OpenFlow field to a lead field; unmapped answers are kept as
   custom answers. Re-fetches are idempotent on the submission id.
 - Point lodgely at your OpenFlow base URL and pick the form — leads flow into

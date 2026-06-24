@@ -92,6 +92,139 @@ export default function Settings() {
           {saved && <span style={{ fontSize: 14, color: 'var(--success)' }}>Saved!</span>}
         </div>
       </form>
+
+      <ApiTokensCard />
+    </div>
+  );
+}
+
+function ApiTokensCard() {
+  const [tokens, setTokens] = useState([]);
+  const [name, setName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+  // The plaintext of a token we just created — shown exactly once.
+  const [revealed, setRevealed] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  function load() {
+    api.getApiTokens()
+      .then(d => setTokens(d.tokens || []))
+      .catch(() => {});
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    setError('');
+    if (!name.trim()) { setError('Give the token a name.'); return; }
+    setCreating(true);
+    try {
+      const d = await api.createApiToken(name.trim());
+      setRevealed(d.token.token);
+      setCopied(false);
+      setName('');
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleRevoke(id) {
+    if (!window.confirm('Revoke this token? Anything using it (e.g. a lodgely source) will stop working immediately.')) return;
+    setError('');
+    try {
+      await api.deleteApiToken(id);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  function copyToken() {
+    navigator.clipboard?.writeText(revealed).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 24 }}>
+      <div className="section-header">
+        <span style={{ fontSize: 20 }}>🔑</span>
+        <div>
+          <h3 style={{ margin: 0 }}>API Tokens</h3>
+          <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>
+            Read-only tokens for programmatic API access — e.g. the lodgely lead-intake connector.
+            A token can read your forms and submissions but cannot change anything, and can be revoked
+            here at any time without affecting your password.
+          </p>
+        </div>
+      </div>
+
+      {revealed && (
+        <div style={{ marginBottom: 16, padding: 14, background: 'var(--sidebar-bg)', borderRadius: 10 }}>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>
+            ⚠️ Copy this token now — it will not be shown again.
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <code style={{ flex: 1, color: '#fff', fontSize: 13, wordBreak: 'break-all', fontFamily: 'monospace' }}>{revealed}</code>
+            <button type="button" className="btn btn-primary" onClick={copyToken}>{copied ? 'Copied!' : 'Copy'}</button>
+            <button type="button" className="btn" onClick={() => setRevealed(null)}>Done</button>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleCreate} style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 16 }}>
+        <div className="input-group" style={{ flex: 1, margin: 0 }}>
+          <label>Token name</label>
+          <input
+            className="input"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="e.g. lodgely — Acme client"
+            maxLength={100}
+          />
+        </div>
+        <button className="btn btn-primary" type="submit" disabled={creating}>
+          {creating ? 'Generating…' : 'Generate token'}
+        </button>
+      </form>
+
+      <Alert type="error">{error}</Alert>
+
+      {tokens.length === 0 ? (
+        <p style={{ color: 'var(--text-light)', fontSize: 13 }}>No API tokens yet.</p>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <thead>
+            <tr style={{ textAlign: 'left', color: 'var(--text-light)', fontSize: 12 }}>
+              <th style={{ padding: '6px 8px' }}>Name</th>
+              <th style={{ padding: '6px 8px' }}>Token</th>
+              <th style={{ padding: '6px 8px' }}>Last used</th>
+              <th style={{ padding: '6px 8px' }}>Created</th>
+              <th style={{ padding: '6px 8px' }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {tokens.map(t => (
+              <tr key={t.id} style={{ borderTop: '1px solid var(--border)' }}>
+                <td style={{ padding: '8px' }}>{t.name}</td>
+                <td style={{ padding: '8px', fontFamily: 'monospace', color: 'var(--text-light)' }}>{t.token_prefix}…</td>
+                <td style={{ padding: '8px', color: 'var(--text-light)' }}>{t.last_used_at ? new Date(t.last_used_at + 'Z').toLocaleString() : '—'}</td>
+                <td style={{ padding: '8px', color: 'var(--text-light)' }}>{t.created_at ? new Date(t.created_at + 'Z').toLocaleDateString() : '—'}</td>
+                <td style={{ padding: '8px', textAlign: 'right' }}>
+                  <button type="button" className="btn btn-danger" onClick={() => handleRevoke(t.id)}>Revoke</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
