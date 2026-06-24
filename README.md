@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.13.0
+# 🌊 OpenFlow v0.13.1
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -207,6 +207,21 @@ Auto-append each submission using a Google Service Account.
 - Configurable sheet name
 
 > 💡 Each integration has an **Enable/Disable** toggle and a **Test** button to verify your setup with sample data.
+
+### 🏨 lodgely (lead intake hub)
+
+[lodgely](https://github.com/vidual-labs/lodgely) — a self-hosted lead intake
+hub — can **pull** a form's submissions into a specific client view. Unlike the
+push integrations above, this is configured entirely in lodgely (under
+**Imports → OpenFlow**), so there is nothing to set up on the OpenFlow side
+beyond an admin account:
+
+- lodgely signs in with an OpenFlow login (email + password) to mint a session
+  token, then reads submissions from the admin API on a schedule.
+- It maps each OpenFlow field to a lead field; unmapped answers are kept as
+  custom answers. Re-fetches are idempotent on the submission id.
+- Point lodgely at your OpenFlow base URL and pick the form — leads flow into
+  the chosen client automatically.
 
 ---
 
