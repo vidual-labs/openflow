@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets), analytics, and a WordPress plugin.
 
-**Current Version**: 0.7.4 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.13.1 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -144,6 +144,25 @@ Key tables:
 - **Admin** (`/api/forms`, `/api/submissions`, `/api/auth`): JWT auth required.
 - **Integrations** (`/api/integrations`): Test, create, update, delete integrations.
 - **Analytics** (`/api/analytics`): Get funnel and trend data.
+
+### External consumer: lodgely (lead intake hub)
+
+[lodgely](https://github.com/vidual-labs/lodgely) has a built-in OpenFlow
+connector that **pulls** submissions out of an install — it is not a push
+integration configured here, but it does depend on this API's shape:
+
+- It logs in via `POST /api/auth/login` (email + password) and reads the JWT
+  from the **`token` httpOnly cookie** in the response, then sends it as a
+  `Bearer` token. There is no API-token mechanism, so this login flow is the
+  only auth path — **don't remove the Set-Cookie token or stop accepting the
+  Bearer header without coordinating**.
+- It reads `GET /api/forms` (to list forms), `GET /api/forms/:id` (to read
+  `steps` for field mapping) and `GET /api/submissions/:formId` (paged, newest
+  first) where each submission's `data` is keyed by field id. Changing those
+  response shapes is a breaking change for the connector.
+
+A long-lived API token would be a cleaner contract than storing a password in
+lodgely — a reasonable future enhancement if this integration grows.
 
 ## Common Tasks
 

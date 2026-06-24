@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.13.1] - 2026-06-24
+
+### Docs
+- **Documented the lodgely integration** — A new "lodgely (lead intake hub)" subsection in the README and a note in `CLAUDE.md` explain that [lodgely](https://github.com/vidual-labs/lodgely) can *pull* a form's submissions into a specific client by signing in to the admin API and reading `GET /api/submissions/:formId`. Configured entirely on the lodgely side; nothing to set up in OpenFlow beyond an admin account. No code changes.
+
 ## [0.13.0] - 2026-06-18
 
 ### Added
