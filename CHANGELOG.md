@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.15.1] - 2026-07-02
+
+### Changed
+- **Editable lodgely link button text** — The lodgely link on the Email Notification integration now has an optional "Button text" field, so admins can customize the call-to-action (e.g. "View lead in lodgely") instead of the fixed "Open in lodgely" label. Falls back to "Open in lodgely" when left blank.
+
 ## [0.15.0] - 2026-07-02
 
 ### Added
