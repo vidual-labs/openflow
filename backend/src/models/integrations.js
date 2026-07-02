@@ -84,7 +84,7 @@ function escapeHtmlAttr(str) {
 async function runEmail(config, formId, formTitle, data, steps) {
   const {
     smtp_host, smtp_port = 587, smtp_user, smtp_pass, smtp_secure = false, to, from, subject,
-    lodgely_link_enabled, lodgely_url,
+    lodgely_link_enabled, lodgely_url, lodgely_button_text,
   } = config;
 
   if (!smtp_host || !to) throw new Error('SMTP host and recipient are required');
@@ -106,7 +106,7 @@ async function runEmail(config, formId, formTitle, data, steps) {
   }).join('');
 
   const lodgelyLink = lodgely_link_enabled && lodgely_url
-    ? `<p style="margin:20px 0;"><a href="${escapeHtmlAttr(lodgely_url)}" style="display:inline-block;padding:10px 18px;background:#6C5CE7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Open in lodgely</a></p>`
+    ? `<p style="margin:20px 0;"><a href="${escapeHtmlAttr(lodgely_url)}" style="display:inline-block;padding:10px 18px;background:#6C5CE7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">${escapeHtmlAttr(lodgely_button_text || 'Open in lodgely')}</a></p>`
     : '';
 
   const html = `

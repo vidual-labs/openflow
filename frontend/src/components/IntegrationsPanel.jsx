@@ -28,7 +28,7 @@ export default function IntegrationsPanel({ formId }) {
     const actualType = type === 'google_sheets_sa' ? 'google_sheets' : type;
     const defaults = {
       webhook: { url: '', secret: '', method: 'POST' },
-      email: { smtp_host: '', smtp_port: 587, smtp_user: '', smtp_pass: '', smtp_secure: false, to: '', from: '', subject: '', lodgely_link_enabled: false, lodgely_url: '' },
+      email: { smtp_host: '', smtp_port: 587, smtp_user: '', smtp_pass: '', smtp_secure: false, to: '', from: '', subject: '', lodgely_link_enabled: false, lodgely_url: '', lodgely_button_text: '' },
       google_sheets: { mode: 'apps_script', apps_script_url: '' },
       google_sheets_sa: { mode: 'service_account', credentials_json: '', spreadsheet_id: '', sheet_name: 'Sheet1' },
     };
@@ -229,9 +229,15 @@ function EmailConfig({ config, onChange }) {
           Include a link to lodgely in this email
         </label>
         {config.lodgely_link_enabled && (
-          <div className="input-group">
-            <label>lodgely URL</label>
-            <input className="input" value={config.lodgely_url || ''} onChange={e => onChange('lodgely_url', e.target.value)} placeholder="https://lodgely.yourcompany.com" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="input-group">
+              <label>lodgely URL</label>
+              <input className="input" value={config.lodgely_url || ''} onChange={e => onChange('lodgely_url', e.target.value)} placeholder="https://lodgely.yourcompany.com" />
+            </div>
+            <div className="input-group">
+              <label>Button text (optional)</label>
+              <input className="input" value={config.lodgely_button_text || ''} onChange={e => onChange('lodgely_button_text', e.target.value)} placeholder="Open in lodgely" />
+            </div>
           </div>
         )}
       </div>
