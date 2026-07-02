@@ -28,7 +28,7 @@ export default function IntegrationsPanel({ formId }) {
     const actualType = type === 'google_sheets_sa' ? 'google_sheets' : type;
     const defaults = {
       webhook: { url: '', secret: '', method: 'POST' },
-      email: { smtp_host: '', smtp_port: 587, smtp_user: '', smtp_pass: '', smtp_secure: false, to: '', from: '', subject: '' },
+      email: { smtp_host: '', smtp_port: 587, smtp_user: '', smtp_pass: '', smtp_secure: false, to: '', from: '', subject: '', lodgely_link_enabled: false, lodgely_url: '' },
       google_sheets: { mode: 'apps_script', apps_script_url: '' },
       google_sheets_sa: { mode: 'service_account', credentials_json: '', spreadsheet_id: '', sheet_name: 'Sheet1' },
     };
@@ -223,6 +223,18 @@ function EmailConfig({ config, onChange }) {
         <input type="checkbox" checked={config.smtp_secure || false} onChange={e => onChange('smtp_secure', e.target.checked)} />
         Use SSL/TLS (port 465)
       </label>
+      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #eee', marginTop: 8, paddingTop: 12 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: config.lodgely_link_enabled ? 12 : 0 }}>
+          <input type="checkbox" checked={config.lodgely_link_enabled || false} onChange={e => onChange('lodgely_link_enabled', e.target.checked)} />
+          Include a link to lodgely in this email
+        </label>
+        {config.lodgely_link_enabled && (
+          <div className="input-group">
+            <label>lodgely URL</label>
+            <input className="input" value={config.lodgely_url || ''} onChange={e => onChange('lodgely_url', e.target.value)} placeholder="https://lodgely.yourcompany.com" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

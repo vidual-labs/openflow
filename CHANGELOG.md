@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.15.0] - 2026-07-02
+
+### Added
+- **Optional lodgely link in lead emails** — The Email Notification integration has a new "Include a link to lodgely in this email" toggle plus a lodgely URL field, both off/empty by default. When enabled, each lead notification email includes a button linking to the admin's lodgely instance, so clients who prefer email can still jump straight into lodgely. Per-integration setting, configured in **Integrations → Email Notification** on each form.
+
 ## [0.14.0] - 2026-06-24
 
 ### Added

@@ -73,8 +73,19 @@ async function runWebhook(config, formId, formTitle, data) {
 // Email notification
 // ──────────────────────────────────────────
 
+function escapeHtmlAttr(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 async function runEmail(config, formId, formTitle, data, steps) {
-  const { smtp_host, smtp_port = 587, smtp_user, smtp_pass, smtp_secure = false, to, from, subject } = config;
+  const {
+    smtp_host, smtp_port = 587, smtp_user, smtp_pass, smtp_secure = false, to, from, subject,
+    lodgely_link_enabled, lodgely_url,
+  } = config;
 
   if (!smtp_host || !to) throw new Error('SMTP host and recipient are required');
 
@@ -94,12 +105,17 @@ async function runEmail(config, formId, formTitle, data, steps) {
     return `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#555;">${field.label || field.question || field.id}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${val}</td></tr>`;
   }).join('');
 
+  const lodgelyLink = lodgely_link_enabled && lodgely_url
+    ? `<p style="margin:20px 0;"><a href="${escapeHtmlAttr(lodgely_url)}" style="display:inline-block;padding:10px 18px;background:#6C5CE7;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">Open in lodgely</a></p>`
+    : '';
+
   const html = `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;">
       <h2 style="color:#6C5CE7;">New Submission: ${formTitle}</h2>
       <table style="width:100%;border-collapse:collapse;margin:20px 0;">
         ${rows}
       </table>
+      ${lodgelyLink}
       <p style="color:#999;font-size:12px;">Sent by OpenFlow</p>
     </div>
   `;
