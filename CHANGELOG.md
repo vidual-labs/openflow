@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.17.1] - 2026-07-03
+
+### Changed
+- **README** — Documented the 0.17.0 scheduled-backup and integration-delivery-retry env vars/endpoints, and condensed the Table of Contents into a single compact line.
+
 ## [0.17.0] - 2026-07-03
 
 ### Added

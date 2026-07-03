@@ -1,27 +1,9 @@
-# 🌊 OpenFlow v0.17.0
+# 🌊 OpenFlow v0.17.1
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
 
-- [✨ Features](#-features)
-- [🚀 Quick Start](#-quick-start)
-- [🔄 Updating](#-updating)
-- [⚙️ Configuration](#️-configuration)
-- [🏗️ Architecture](#️-architecture)
-- [📋 Field Types](#-field-types)
-- [🔗 Integrations](#-integrations)
-- [📈 Analytics](#-analytics)
-- [🏷️ GTM Events](#️-gtm-events)
-- [🔌 Embedding](#-embedding)
-  - [Simple iFrame](#simple-iframe)
-  - [iFrame with Auto-Resize](#iframe-with-auto-resize)
-  - [WordPress](#wordpress)
-  - [Custom URL Slug](#custom-url-slug)
-  - [Custom Subdomains](#custom-subdomains)
-- [📡 API Endpoints](#-api-endpoints)
-- [🧑‍💻 Development](#‍-development)
-- [🗺️ Roadmap](#️-roadmap)
-- [📄 License](#-license)
+[Features](#-features) · [Quick Start](#-quick-start) · [Updating](#-updating) · [Configuration](#️-configuration) · [Architecture](#️-architecture) · [Field Types](#-field-types) · [Integrations](#-integrations) · [Analytics](#-analytics) · [GTM Events](#️-gtm-events) · [Embedding](#-embedding) ([iFrame](#simple-iframe) · [Auto-Resize](#iframe-with-auto-resize) · [WordPress](#wordpress) · [URL Slug](#custom-url-slug) · [Subdomains](#custom-subdomains)) · [API Endpoints](#-api-endpoints) · [Development](#‍-development) · [Roadmap](#️-roadmap) · [License](#-license)
 
 ## ✨ Features
 
@@ -74,6 +56,8 @@
 - **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
 - **🔑 API Tokens** — Read-only tokens for programmatic API access (e.g. the lodgely connector); created under Settings, hashed at rest, revocable anytime
 - **💾 Backup & Restore** — Admins can download a full JSON snapshot of the database and restore it later; older backups are auto-migrated to the current format on restore
+- **⏰ Scheduled Backups** — A background job writes a rotating backup on an interval to a separate volume, so recovery doesn't depend on someone remembering to click "Download"
+- **🔁 Retrying Integration Deliveries** — Failed webhook/email/Sheets deliveries retry with backoff instead of silently dropping the lead; exhausted retries surface as a dead letter you can manually retry from the Integrations tab
 - **🌙 Dark Mode** — Auto/light/dark theme toggle for the admin interface
 - **🛡️ Delete Protection** — Published forms require typing the form name to confirm deletion
 - **Responsive** — Optimized for mobile and desktop
@@ -124,6 +108,10 @@ Environment variables (in `.env` or docker-compose):
 | `ADMIN_PASSWORD` | `admin123` | 🔑 Admin password (only on first start) |
 | `DB_PATH` | `/app/data/openflow.db` | 💾 SQLite database path |
 | `PORT` | `3000` | 🌐 Server port |
+| `BACKUP_ENABLED` | `true` | ⏰ Set to `false` to disable the scheduled backup job |
+| `BACKUP_DIR` | next to `DB_PATH` | 📁 Where scheduled backups are written (point at a separate volume for real off-box protection) |
+| `BACKUP_INTERVAL_HOURS` | `24` | ⏱️ How often to write a scheduled backup |
+| `BACKUP_RETENTION_COUNT` | `14` | 🗑️ How many scheduled backups to keep before pruning the oldest |
 
 ---
 
@@ -408,6 +396,8 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `DELETE /api/forms/:id` — Delete form
 - `GET /api/submissions/:formId` — Get submissions (paginated)
 - `GET /api/submissions/:formId/export` — CSV export
+- `GET /api/admin/backups` — List backups written by the scheduler
+- `GET /api/admin/backups/:filename` — Download a specific scheduled backup
 
 ### Integrations (auth required)
 - `GET /api/integrations/:formId` — List integrations
@@ -415,6 +405,8 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `PUT /api/integrations/:formId/:id` — Update integration
 - `DELETE /api/integrations/:formId/:id` — Delete integration
 - `POST /api/integrations/:formId/:id/test` — Test integration
+- `GET /api/integrations/:formId/deliveries` — List delivery attempts (retrying/failed/dead)
+- `POST /api/integrations/:formId/deliveries/:deliveryId/retry` — Manually retry a delivery
 
 ### Analytics (auth required)
 - `GET /api/analytics/overview` — Overview stats for all forms
