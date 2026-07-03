@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.16.2] - 2026-07-03
+
+### Fixed
+- **"Invalid JSON response" on every admin write request out of the box** — the CORS allowlist added in 0.16.0 rejected the browser's `Origin` header unless it exactly matched an explicitly configured `OPENFLOW_PRIMARY_HOST`/`CORS_ORIGINS` value, which broke same-origin requests (including through Vite's dev proxy, and any default single-service production deployment) for every non-GET admin API call — e.g. saving Settings. The rejection also threw synchronously, crashing to Express's HTML error page instead of a JSON response. Replaced with hand-written middleware that always allows requests whose `Origin` host matches the request's own `Host` (true same-origin) and never throws.
+
 ## [0.16.1] - 2026-07-03
 
 ### Fixed
