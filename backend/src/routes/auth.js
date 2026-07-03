@@ -3,8 +3,13 @@ const bcrypt = require('bcryptjs');
 const { getDb } = require('../models/db');
 const { authMiddleware, signToken, requireSession } = require('../middleware/auth');
 const apiTokens = require('../models/apiTokens');
+const { checkRateLimit, isRateLimited } = require('../models/rateLimit');
 
 const router = Router();
+
+function clientIp(req) {
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
 
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
@@ -12,9 +17,25 @@ router.post('/login', (req, res) => {
     return res.status(400).json({ error: 'Email and password required' });
   }
 
+  // Throttle by IP and by targeted email so neither a single-source
+  // credential-stuffing run nor a distributed brute-force of one account
+  // can guess passwords unthrottled. Only failed attempts consume the
+  // budget (checked below), so legitimate repeated logins are never
+  // penalized — this only gates callers who are already over the limit.
+  const ipKey = `login-ip:${clientIp(req)}`;
+  const emailKey = `login-email:${String(email).toLowerCase()}`;
+  if (isRateLimited(ipKey, 20) || isRateLimited(emailKey, 10)) {
+    return res.status(429).json({ error: 'Too many login attempts. Try again later.' });
+  }
+
   const db = getDb();
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+  // Always run a bcrypt compare, even for an unknown email, so response
+  // timing doesn't reveal whether an account exists.
+  const passwordOk = bcrypt.compareSync(password, user ? user.password_hash : '$2a$10$invalidsaltinvalidsaltinvalidsalu');
+  if (!user || !passwordOk) {
+    checkRateLimit(ipKey, 20, 60);
+    checkRateLimit(emailKey, 10, 60);
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
@@ -60,9 +81,16 @@ router.get('/users', authMiddleware, requireAdmin, (req, res) => {
 
 // Create / invite user
 router.post('/users', authMiddleware, requireAdmin, (req, res) => {
+  if (!checkRateLimit(`users-create:${req.userId}`, 20, 60)) {
+    return res.status(429).json({ error: 'Too many requests. Try again later.' });
+  }
+
   const { email, password, role } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
+  }
+  if (password.length < 10) {
+    return res.status(400).json({ error: 'Password must be at least 10 characters' });
   }
 
   const db = getDb();
@@ -92,6 +120,9 @@ router.put('/users/:id', authMiddleware, requireAdmin, (req, res) => {
     db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role === 'admin' ? 'admin' : 'user', req.params.id);
   }
   if (password) {
+    if (password.length < 10) {
+      return res.status(400).json({ error: 'Password must be at least 10 characters' });
+    }
     const hash = bcrypt.hashSync(password, 10);
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.params.id);
   }
@@ -131,6 +162,10 @@ router.get('/tokens', authMiddleware, requireSession, (req, res) => {
 
 // Create a token. The plaintext is returned exactly once, here.
 router.post('/tokens', authMiddleware, requireSession, (req, res) => {
+  if (!checkRateLimit(`tokens-create:${req.userId}`, 20, 60)) {
+    return res.status(429).json({ error: 'Too many requests. Try again later.' });
+  }
+
   const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
   if (!name) {
     return res.status(400).json({ error: 'Token name is required' });

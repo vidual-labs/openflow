@@ -24,8 +24,32 @@ if (process.env.OPENFLOW_PRIMARY_HOST) {
   app.set('trust proxy', 1);
 }
 
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '50mb' }));
+// The frontend is served by this same app (or proxied same-origin in dev via
+// Vite), so browser requests don't need cross-origin CORS at all. Reflecting
+// any Origin with credentials: true would let any third-party site make
+// authenticated (cookie-carrying) requests against the API. Only allow the
+// explicitly configured origin(s), if any.
+const allowedOrigins = [process.env.OPENFLOW_PRIMARY_HOST, ...(process.env.CORS_ORIGINS || '').split(',')]
+  .map(o => o && o.trim())
+  .filter(Boolean)
+  .flatMap(o => (o.startsWith('http://') || o.startsWith('https://')) ? [o] : [`http://${o}`, `https://${o}`]);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
+// Most JSON bodies are small (form config, integration config, credentials).
+// Two routes legitimately need much more: public submissions can embed
+// base64-encoded file uploads, and admin backup/restore ships the whole DB.
+// Give those a large limit and everything else a small one, so an
+// unauthenticated caller can't exhaust memory/bandwidth by POSTing huge
+// bodies to lightweight endpoints.
+app.use('/api/public/form/:slug/submit', express.json({ limit: '50mb' }));
+app.use('/api/admin/restore', express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
 // Resolve the per-form subdomain (if any) before any other route runs so

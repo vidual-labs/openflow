@@ -236,10 +236,23 @@ function openflow_register_gutenberg_block(): void
 
 function openflow_gutenberg_render_callback(array $atts): string
 {
-    return do_shortcode(sprintf(
-        '[openflow slug="%s" height="%s" autoresize="%s"]',
-        sanitize_text_field($atts['slug'] ?? ''),
-        absint($atts['height'] ?? 600),
-        ($atts['autoresize'] ?? true) ? 'true' : 'false'
-    ));
+    if (empty($atts['slug'])) {
+        return '<!-- OpenFlow: No form slug provided -->';
+    }
+
+    $server_url = get_option('openflow_server_url', '');
+    if (empty($server_url)) {
+        return '<!-- OpenFlow: Server URL not configured. Go to Settings > OpenFlow -->';
+    }
+
+    // Build the embed HTML directly rather than round-tripping through a
+    // re-serialized shortcode string — sanitize_text_field() doesn't escape
+    // quotes/brackets, so interpolating attribute values into shortcode
+    // syntax and re-parsing it is fragile (shortcode-injection risk if more
+    // shortcodes are ever combined this way).
+    return openflow_generate_embed_html([
+        'slug'       => $atts['slug'] ?? '',
+        'height'     => $atts['height'] ?? 600,
+        'autoresize' => ($atts['autoresize'] ?? true) ? 'true' : 'false',
+    ], $server_url);
 }

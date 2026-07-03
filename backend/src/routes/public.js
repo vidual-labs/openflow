@@ -5,6 +5,18 @@ const { v4: uuid } = require('uuid');
 
 const router = Router();
 
+// Only trust X-Forwarded-For when Express's own 'trust proxy' setting is on
+// (index.js only enables it when fronted by a real reverse proxy). Otherwise
+// any client could set this header themselves and pick a fresh rate-limit
+// bucket on every request, defeating the submit/track throttles entirely.
+function clientIp(req) {
+  if (req.app.get('trust proxy')) {
+    const fwd = req.headers['x-forwarded-for'];
+    if (fwd) return fwd.split(',')[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
 // Get published form by slug (public)
 router.get('/form/:slug', (req, res) => {
   const db = getDb();
@@ -38,7 +50,7 @@ router.get('/form/:slug', (req, res) => {
 // Submit form response (public)
 router.post('/form/:slug/submit', async (req, res) => {
   // Rate limit: 10 submissions per IP per minute
-  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || req.socket?.remoteAddress;
+  const ip = clientIp(req);
   const allowed = checkRateLimit(`submit:${ip}`, 10, 60);
   if (!allowed) {
     return res.status(429).json({ error: 'Too many submissions, please try again later' });
@@ -101,7 +113,7 @@ router.post('/form/:slug/submit', async (req, res) => {
 
 // Track analytics event (public, rate limited)
 router.post('/track', (req, res) => {
-  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || req.socket?.remoteAddress;
+  const ip = clientIp(req);
   const allowed = checkRateLimit(`track:${ip}`, 100, 60);
   if (!allowed) return res.status(429).json({ error: 'Rate limited' });
 

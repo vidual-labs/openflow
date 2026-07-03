@@ -25,6 +25,7 @@ const ADMIN_PATH_PREFIXES = [
   '/api/integrations',
   '/api/analytics',
   '/api/settings',
+  '/api/admin',
 ];
 
 function isAdminPath(p) {

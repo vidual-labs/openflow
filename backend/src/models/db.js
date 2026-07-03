@@ -131,13 +131,28 @@ function initDb() {
 
   // Seed admin user
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@openflow.local';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(adminEmail);
   if (!existing) {
     const { v4: uuid } = require('uuid');
+    // Never fall back to a hardcoded, publicly-documented password
+    // (e.g. 'admin123'). If ADMIN_PASSWORD isn't set, generate a random
+    // one-time password and print it once so the operator can log in and
+    // change it — a leaked/guessed well-known default is a full admin
+    // takeover given this is an internet-reachable, single-tenant app.
+    const crypto = require('crypto');
+    const generatedPassword = !process.env.ADMIN_PASSWORD ? crypto.randomBytes(12).toString('base64url') : null;
+    const adminPassword = process.env.ADMIN_PASSWORD || generatedPassword;
     const hash = bcrypt.hashSync(adminPassword, 10);
     db.prepare("INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, 'admin')").run(uuid(), adminEmail, hash);
-    console.log(`Admin user created: ${adminEmail}`);
+    if (generatedPassword) {
+      console.log('='.repeat(60));
+      console.log(`Admin user created: ${adminEmail}`);
+      console.log(`Generated admin password: ${generatedPassword}`);
+      console.log('Log in and change this password. Set ADMIN_PASSWORD to control it explicitly.');
+      console.log('='.repeat(60));
+    } else {
+      console.log(`Admin user created: ${adminEmail}`);
+    }
   } else {
     // Ensure admin has admin role
     db.prepare("UPDATE users SET role = 'admin' WHERE email = ? AND (role IS NULL OR role != 'admin')").run(adminEmail);

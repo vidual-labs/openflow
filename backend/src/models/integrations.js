@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 const { google } = require('googleapis');
 const { flattenFields } = require('../utils/steps');
+const { assertSafeUrl } = require('../utils/ssrf');
 
 // ──────────────────────────────────────────
 // Run all integrations for a form submission
@@ -46,6 +47,7 @@ async function runIntegrations(db, formId, formTitle, submissionData, steps) {
 async function runWebhook(config, formId, formTitle, data) {
   const { url, secret, method = 'POST' } = config;
   if (!url) throw new Error('Webhook URL is required');
+  await assertSafeUrl(url);
 
   const headers = { 'Content-Type': 'application/json' };
   if (secret) {
@@ -62,8 +64,14 @@ async function runWebhook(config, formId, formTitle, data) {
     headers,
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(10000),
+    // Don't auto-follow redirects: a validated public URL could redirect to
+    // an internal address, bypassing the assertSafeUrl check above.
+    redirect: 'manual',
   });
 
+  if (res.status >= 300 && res.status < 400) {
+    throw new Error('Webhook responded with a redirect, which is not followed for security reasons');
+  }
   if (!res.ok) {
     throw new Error(`Webhook returned ${res.status}: ${await res.text().catch(() => '')}`);
   }
@@ -102,7 +110,7 @@ async function runEmail(config, formId, formTitle, data, steps) {
     if (val === undefined || val === null) val = '-';
     if (typeof val === 'object') val = JSON.stringify(val);
     if (Array.isArray(val)) val = val.join(', ');
-    return `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#555;">${field.label || field.question || field.id}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${val}</td></tr>`;
+    return `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#555;">${escapeHtmlAttr(field.label || field.question || field.id)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${escapeHtmlAttr(val)}</td></tr>`;
   }).join('');
 
   const lodgelyLink = lodgely_link_enabled && lodgely_url
@@ -111,7 +119,7 @@ async function runEmail(config, formId, formTitle, data, steps) {
 
   const html = `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;">
-      <h2 style="color:#6C5CE7;">New Submission: ${formTitle}</h2>
+      <h2 style="color:#6C5CE7;">New Submission: ${escapeHtmlAttr(formTitle)}</h2>
       <table style="width:100%;border-collapse:collapse;margin:20px 0;">
         ${rows}
       </table>
@@ -135,6 +143,16 @@ async function runEmail(config, formId, formTitle, data, steps) {
 async function runGoogleSheetsAppsScript(config, formId, formTitle, data, steps) {
   const { apps_script_url } = config;
   if (!apps_script_url) throw new Error('Apps Script URL is required');
+  await assertSafeUrl(apps_script_url);
+  // Apps Script web apps legitimately 302 to script.googleusercontent.com to
+  // serve the execution result, so (unlike the generic webhook) we can't
+  // just refuse to follow redirects — instead restrict the *initial* host to
+  // Google's own domain, which is the only legitimate target for this
+  // integration and can't be pointed at an internal address.
+  const host = new URL(apps_script_url).hostname;
+  if (host !== 'script.google.com') {
+    throw new Error('Apps Script URL must be on script.google.com');
+  }
 
   const payload = {
     formId,
