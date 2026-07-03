@@ -9,8 +9,17 @@ services:
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@openflow.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      # Scheduled backups: written every BACKUP_INTERVAL_HOURS, keeping the
+      # last BACKUP_RETENTION_COUNT. BACKUP_DIR below points at a bind mount
+      # (./backups on the host) instead of the db-data volume, so a lost or
+      # corrupted db-data volume doesn't take the backups down with it. Copy
+      # ./backups off this host regularly for real disaster recovery.
+      - BACKUP_DIR=/app/backups
+      - BACKUP_INTERVAL_HOURS=${BACKUP_INTERVAL_HOURS:-24}
+      - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:-14}
     volumes:
       - db-data:/app/data
+      - ./backups:/app/backups
     restart: unless-stopped
 
 volumes:

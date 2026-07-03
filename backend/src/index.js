@@ -2,7 +2,9 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const { version } = require('../package.json');
-const { initDb } = require('./models/db');
+const { initDb, getDb } = require('./models/db');
+const { startBackupScheduler } = require('./models/backupScheduler');
+const { startDeliveryWorker } = require('./models/deliveryQueue');
 const authRoutes = require('./routes/auth');
 const formRoutes = require('./routes/forms');
 const submissionRoutes = require('./routes/submissions');
@@ -143,6 +145,9 @@ async function start() {
     console.error('Database initialization failed:', err.message);
     process.exit(1);
   }
+
+  startBackupScheduler(getDb());
+  startDeliveryWorker(getDb());
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`OpenFlow running on http://0.0.0.0:${PORT}`);

@@ -104,10 +104,12 @@ router.post('/form/:slug/submit', async (req, res) => {
 
   res.status(201).json({ ok: true, id });
 
-  // Run integrations async (don't block response)
-  const { runIntegrations } = require('../models/integrations');
-  runIntegrations(db, form.id, form.title, data, steps).catch(err => {
-    console.error('Integration execution error:', err.message);
+  // Deliver to integrations async (don't block response). Each delivery is
+  // persisted first, so a failure (client webhook down, SMTP hiccup) retries
+  // with backoff instead of silently losing the lead.
+  const { enqueueAndAttempt } = require('../models/deliveryQueue');
+  enqueueAndAttempt(db, form.id, form.title, id, data, steps).catch(err => {
+    console.error('Integration delivery error:', err.message);
   });
 });
 

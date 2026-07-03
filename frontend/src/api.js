@@ -45,6 +45,8 @@ export const api = {
   updateIntegration: (formId, id, data) => request(`/integrations/${formId}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteIntegration: (formId, id) => request(`/integrations/${formId}/${id}`, { method: 'DELETE' }),
   testIntegration: (formId, id) => request(`/integrations/${formId}/${id}/test`, { method: 'POST' }),
+  getDeliveries: (formId) => request(`/integrations/${formId}/deliveries`),
+  retryDelivery: (formId, deliveryId) => request(`/integrations/${formId}/deliveries/${deliveryId}/retry`, { method: 'POST' }),
 
   // API tokens (read-only programmatic access, e.g. the lodgely connector)
   getApiTokens: () => request('/auth/tokens'),

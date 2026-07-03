@@ -7,6 +7,26 @@ const { assertSafeUrl } = require('../utils/ssrf');
 // Run all integrations for a form submission
 // ──────────────────────────────────────────
 
+// Run a single integration against a submission. Throws on failure so
+// callers (immediate fire-and-forget, or the retrying delivery queue) can
+// each decide how to handle/record the error.
+async function runIntegration(integration, formId, formTitle, submissionData, steps) {
+  const config = JSON.parse(integration.config);
+  switch (integration.type) {
+    case 'webhook':
+      return runWebhook(config, formId, formTitle, submissionData);
+    case 'email':
+      return runEmail(config, formId, formTitle, submissionData, steps);
+    case 'google_sheets':
+      if (config.mode === 'apps_script') {
+        return runGoogleSheetsAppsScript(config, formId, formTitle, submissionData, steps);
+      }
+      return runGoogleSheets(config, formId, submissionData, steps);
+    default:
+      throw new Error(`Unknown integration type: ${integration.type}`);
+  }
+}
+
 async function runIntegrations(db, formId, formTitle, submissionData, steps) {
   const integrations = db.prepare(
     'SELECT * FROM integrations WHERE form_id = ? AND enabled = 1'
@@ -15,22 +35,7 @@ async function runIntegrations(db, formId, formTitle, submissionData, steps) {
   const results = [];
   for (const integration of integrations) {
     try {
-      const config = JSON.parse(integration.config);
-      switch (integration.type) {
-        case 'webhook':
-          await runWebhook(config, formId, formTitle, submissionData);
-          break;
-        case 'email':
-          await runEmail(config, formId, formTitle, submissionData, steps);
-          break;
-        case 'google_sheets':
-          if (config.mode === 'apps_script') {
-            await runGoogleSheetsAppsScript(config, formId, formTitle, submissionData, steps);
-          } else {
-            await runGoogleSheets(config, formId, submissionData, steps);
-          }
-          break;
-      }
+      await runIntegration(integration, formId, formTitle, submissionData, steps);
       results.push({ id: integration.id, type: integration.type, ok: true });
     } catch (err) {
       console.error(`Integration ${integration.type}/${integration.id} failed:`, err.message);
@@ -236,4 +241,4 @@ async function runGoogleSheets(config, formId, data, steps) {
   });
 }
 
-module.exports = { runIntegrations };
+module.exports = { runIntegrations, runIntegration };
