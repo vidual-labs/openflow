@@ -5,9 +5,30 @@ const { v4: uuid } = require('uuid');
 const { customAlphabet } = require('nanoid');
 const { validateSlug } = require('../utils/slug');
 const { validateSubdomain } = require('../utils/subdomain');
+const { sanitizeCss } = require('../utils/sanitizeCss');
+
+function sanitizeTheme(theme) {
+  if (!theme || typeof theme !== 'object') return theme;
+  if (typeof theme.customCss === 'string') {
+    return { ...theme, customCss: sanitizeCss(theme.customCss) };
+  }
+  return theme;
+}
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
 const router = Router();
+
+// GTM container ids are interpolated into a raw <script> tag on the public
+// form/embed pages, so any non-conforming value must be rejected server-side
+// (client-side checks alone aren't enough — this is the actual trust boundary).
+const GTM_ID_RE = /^GTM-[A-Z0-9]+$/;
+function validateGtmId(gtm_id) {
+  if (gtm_id === undefined || gtm_id === null || gtm_id === '') return { ok: true, value: '' };
+  if (typeof gtm_id !== 'string' || !GTM_ID_RE.test(gtm_id)) {
+    return { ok: false, error: 'GTM container ID must look like GTM-XXXXXXX' };
+  }
+  return { ok: true, value: gtm_id };
+}
 
 router.use(authMiddleware);
 
@@ -44,6 +65,9 @@ router.post('/', (req, res) => {
   const slug = nanoid();
   const { title, steps, end_screen, theme, gtm_id } = req.body;
 
+  const gtmCheck = validateGtmId(gtm_id);
+  if (!gtmCheck.ok) return res.status(400).json({ error: gtmCheck.error });
+
   db.prepare(`
     INSERT INTO forms (id, user_id, title, slug, steps, end_screen, theme, gtm_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -53,8 +77,8 @@ router.post('/', (req, res) => {
     slug,
     JSON.stringify(steps || []),
     JSON.stringify(end_screen || { title: 'Thank you!', message: 'We will get back to you shortly.' }),
-    JSON.stringify(theme || {}),
-    gtm_id || ''
+    JSON.stringify(sanitizeTheme(theme) || {}),
+    gtmCheck.value
   );
 
   const form = db.prepare('SELECT * FROM forms WHERE id = ?').get(id);
@@ -122,6 +146,11 @@ router.put('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Form not found' });
 
   const { title, slug, subdomain, steps, end_screen, theme, gtm_id, published } = req.body;
+
+  if (gtm_id !== undefined) {
+    const gtmCheck = validateGtmId(gtm_id);
+    if (!gtmCheck.ok) return res.status(400).json({ error: gtmCheck.error });
+  }
 
   // Handle subdomain change separately: validate, check uniqueness.
   // null/empty string clears it.
@@ -195,7 +224,7 @@ router.put('/:id', (req, res) => {
     title ?? null,
     steps ? JSON.stringify(steps) : null,
     end_screen ? JSON.stringify(end_screen) : null,
-    theme ? JSON.stringify(theme) : null,
+    theme ? JSON.stringify(sanitizeTheme(theme)) : null,
     gtm_id ?? null,
     published ?? null,
     req.params.id

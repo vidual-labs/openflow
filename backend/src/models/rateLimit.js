@@ -24,4 +24,13 @@ function checkRateLimit(key, maxRequests, windowSeconds) {
   return entry.count <= maxRequests;
 }
 
-module.exports = { checkRateLimit };
+// Read-only: reports whether the bucket is already over the limit without
+// consuming a request. Used to gate an action before it happens (e.g. reject
+// a login attempt outright) without penalizing successful requests.
+function isRateLimited(key, maxRequests) {
+  const entry = buckets.get(key);
+  if (!entry || Date.now() > entry.expiresAt) return false;
+  return entry.count >= maxRequests;
+}
+
+module.exports = { checkRateLimit, isRateLimited };

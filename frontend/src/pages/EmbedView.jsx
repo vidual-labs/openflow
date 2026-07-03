@@ -87,6 +87,7 @@ export default function EmbedView() {
   // Inject GTM only when consent is given
   useEffect(() => {
     if (!form?.gtm_id || cookieConsent !== true) return;
+    if (!/^GTM-[A-Z0-9]+$/.test(form.gtm_id)) return;
     const script = document.createElement('script');
     script.innerHTML = `
       (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':

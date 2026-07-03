@@ -1,10 +1,39 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { looksLikeApiToken, findByToken, touchLastUsed } = require('../models/apiTokens');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
-if (!process.env.JWT_SECRET) {
-  console.warn('WARNING: JWT_SECRET is not set. Using default insecure secret. Set JWT_SECRET in production!');
+// If JWT_SECRET isn't provided via env, generate a random one and persist it
+// next to the database (same volume as DB_PATH) so it survives restarts.
+// This avoids ever falling back to a hardcoded, publicly-known secret, which
+// would let anyone forge admin session tokens.
+function loadOrCreateJwtSecret() {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+
+  const dataDir = path.dirname(process.env.DB_PATH || path.join(__dirname, '../../data/openflow.db'));
+  const secretPath = path.join(dataDir, '.jwt_secret');
+
+  try {
+    if (fs.existsSync(secretPath)) {
+      const existing = fs.readFileSync(secretPath, 'utf8').trim();
+      if (existing) return existing;
+    }
+    fs.mkdirSync(dataDir, { recursive: true });
+    const generated = crypto.randomBytes(48).toString('hex');
+    fs.writeFileSync(secretPath, generated, { mode: 0o600 });
+    console.warn('WARNING: JWT_SECRET is not set. Generated and persisted a random secret at ' + secretPath + '. Set JWT_SECRET explicitly in production to control this.');
+    return generated;
+  } catch (err) {
+    // Can't persist (e.g. read-only filesystem) — fall back to an
+    // in-memory random secret. Sessions won't survive a restart, but at
+    // least no hardcoded/guessable secret is ever used.
+    console.warn('WARNING: JWT_SECRET is not set and could not be persisted (' + err.message + '). Using an ephemeral random secret; all sessions will be invalidated on restart.');
+    return crypto.randomBytes(48).toString('hex');
+  }
 }
+
+const JWT_SECRET = loadOrCreateJwtSecret();
 
 function authMiddleware(req, res, next) {
   const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');

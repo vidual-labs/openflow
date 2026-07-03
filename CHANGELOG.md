@@ -2,6 +2,26 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.16.0] - 2026-07-03
+
+### Security
+
+Hardening pass across the app following a full security audit (production deployments store real lead/PII data). No breaking API changes; a few defaults changed to be safe-by-default.
+
+- **No more insecure default secrets** — `JWT_SECRET` is auto-generated and persisted (instead of falling back to a hardcoded string) if not set explicitly, and a missing `ADMIN_PASSWORD` now generates and prints a random one-time password on first boot instead of the well-known `admin123`.
+- **Fixed critical stored XSS** — the GTM container ID field was interpolated unescaped into a raw `<script>` tag on public form/embed pages; it's now validated against `GTM-XXXXXXX` both client- and server-side.
+- **Login brute-force protection** — `/api/auth/login` (and user-invite/token-creation) are now rate limited; only failed login attempts consume the throttle budget, so legitimate rapid logins are unaffected. Login responses no longer leak account existence via timing.
+- **SSRF protection on integrations** — webhook and Google Apps Script URLs are validated to reject private/internal/loopback network destinations before the server fetches them.
+- **CSV export formula-injection fix** — submission export cells starting with `=`, `+`, `-`, or `@` are neutralized so opening the file in Excel/Sheets can't trigger formula execution.
+- **CORS locked down** — replaced the wide-open `origin: true` (any site, with credentials) with an explicit allowlist.
+- **Rate limiter can no longer be bypassed via a spoofed `X-Forwarded-For` header** on unproxied deployments.
+- **Outbound notification emails now HTML-escape submitted field values**, closing an HTML-injection vector in lead emails.
+- **CSS theme customization is sanitized** to strip `@import`/`url()`/`expression()` and block CSS-based data exfiltration.
+- Minimum password length (10 chars) enforced when creating/updating users.
+- `/api/admin/*` is now correctly blocked on per-form public subdomains.
+- Public request body size limits reduced from a blanket 50MB to right-sized per-route limits.
+- WordPress plugin: Gutenberg block rendering no longer round-trips through re-serialized shortcode syntax.
+
 ## [0.15.1] - 2026-07-02
 
 ### Changed

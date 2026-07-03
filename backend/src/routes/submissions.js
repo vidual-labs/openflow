@@ -49,8 +49,16 @@ router.get('/:formId/export', (req, res) => {
     return [s.created_at, ...fields.map(f => data[f.id] ?? '')];
   });
 
+  // Neutralize CSV/DDE formula injection: if a cell starts with a character
+  // spreadsheet apps treat as a formula prefix, prepend a single quote so it
+  // opens as text instead of executing when the exported file is opened.
+  const neutralizeFormula = (cell) => {
+    const str = String(cell);
+    return /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  };
+
   const csv = [headers, ...rows].map(row =>
-    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    row.map(cell => `"${neutralizeFormula(cell).replace(/"/g, '""')}"`).join(',')
   ).join('\n');
 
   res.setHeader('Content-Type', 'text/csv');
