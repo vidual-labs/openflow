@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.16.1] - 2026-07-03
+
+### Fixed
+- **Stale version number in the admin sidebar footer** — it was a hardcoded string (`0.13.0`) that had drifted out of sync with the actual app version. Now derived from `package.json` at build time so it can't go stale again.
+
 ## [0.16.0] - 2026-07-03
 
 ### Security

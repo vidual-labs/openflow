@@ -10,8 +10,7 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
 import { LogoMark, Loading } from './components/AdminUI';
-
-const APP_VERSION = '0.13.0';
+import { version as APP_VERSION } from '../package.json';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
