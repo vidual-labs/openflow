@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { authMiddleware, requireAdmin } = require('../middleware/auth');
 const { createBackup, backupSummary, restoreBackup } = require('../models/backup');
+const { listScheduledBackups, readScheduledBackup } = require('../models/backupScheduler');
 
 const router = Router();
 
@@ -20,6 +21,23 @@ router.get('/backup', (req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="openflow-backup-${date}.json"`);
   res.send(JSON.stringify(backup, null, 2));
+});
+
+// List backups written by the automatic scheduler (see BACKUP_* env vars).
+router.get('/backups', (req, res) => {
+  res.json({ backups: listScheduledBackups() });
+});
+
+// Download one specific scheduled backup by filename.
+router.get('/backups/:filename', (req, res) => {
+  try {
+    const contents = readScheduledBackup(req.params.filename);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${req.params.filename}"`);
+    res.send(contents);
+  } catch (err) {
+    res.status(404).json({ error: 'Backup not found' });
+  }
 });
 
 // Restore (replace) the database from an uploaded backup. The backup is

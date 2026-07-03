@@ -108,6 +108,29 @@ function initDb() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_api_tokens_user ON api_tokens(user_id);
+
+    -- Tracks each attempt to deliver a submission to a form's integrations
+    -- (webhook/email/Sheets) so a transient failure (client's endpoint down,
+    -- SMTP hiccup) retries with backoff instead of silently losing the lead,
+    -- and surfaces as a dead letter for manual retry if all attempts fail.
+    CREATE TABLE IF NOT EXISTS integration_deliveries (
+      id TEXT PRIMARY KEY,
+      form_id TEXT NOT NULL,
+      integration_id TEXT NOT NULL,
+      submission_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      next_attempt_at TEXT DEFAULT (datetime('now')),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (form_id) REFERENCES forms(id),
+      FOREIGN KEY (integration_id) REFERENCES integrations(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_deliveries_form ON integration_deliveries(form_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_deliveries_due ON integration_deliveries(status, next_attempt_at);
   `);
 
   // Migrate: add role column if missing (existing DBs)

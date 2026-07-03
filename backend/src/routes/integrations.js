@@ -102,4 +102,37 @@ router.post('/:formId/:integrationId/test', async (req, res) => {
   }
 });
 
+// List delivery attempts for a form's integrations, most recent first. Lets
+// the dashboard surface failed/dead leads instead of them vanishing silently.
+router.get('/:formId/deliveries', (req, res) => {
+  const db = getDb();
+  const form = db.prepare('SELECT id FROM forms WHERE id = ? AND user_id = ?').get(req.params.formId, req.userId);
+  if (!form) return res.status(404).json({ error: 'Form not found' });
+
+  const deliveries = db.prepare(
+    `SELECT id, integration_id, submission_id, type, status, attempts, last_error, next_attempt_at, created_at, updated_at
+     FROM integration_deliveries WHERE form_id = ? ORDER BY created_at DESC LIMIT 100`
+  ).all(req.params.formId);
+  res.json({ deliveries });
+});
+
+// Manually retry a failed/dead delivery (e.g. after the client fixes their
+// endpoint).
+router.post('/:formId/deliveries/:deliveryId/retry', async (req, res) => {
+  const db = getDb();
+  const form = db.prepare('SELECT id FROM forms WHERE id = ? AND user_id = ?').get(req.params.formId, req.userId);
+  if (!form) return res.status(404).json({ error: 'Form not found' });
+
+  const existing = db.prepare('SELECT id FROM integration_deliveries WHERE id = ? AND form_id = ?').get(req.params.deliveryId, req.params.formId);
+  if (!existing) return res.status(404).json({ error: 'Delivery not found' });
+
+  const { retryDelivery } = require('../models/deliveryQueue');
+  try {
+    const delivery = await retryDelivery(db, req.params.deliveryId);
+    res.json({ delivery });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 module.exports = router;

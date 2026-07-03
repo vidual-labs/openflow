@@ -14,12 +14,41 @@ export default function IntegrationsPanel({ formId }) {
   const [testing, setTesting] = useState(null);
   const [testResult, setTestResult] = useState(null);
   const [error, setError] = useState('');
+  const [deliveries, setDeliveries] = useState([]);
+  const [showDeliveries, setShowDeliveries] = useState(false);
+  const [retrying, setRetrying] = useState(null);
 
   useEffect(() => {
     api.getIntegrations(formId)
       .then(d => setIntegrations(d.integrations))
       .catch(err => setError(err.message || 'Failed to load integrations'));
   }, [formId]);
+
+  function loadDeliveries() {
+    api.getDeliveries(formId).then(d => setDeliveries(d.deliveries)).catch(() => {});
+  }
+
+  // Poll periodically so a dead delivery (client's webhook down) surfaces
+  // without the user needing to refresh the page during a live campaign.
+  useEffect(() => {
+    loadDeliveries();
+    const timer = setInterval(loadDeliveries, 30000);
+    return () => clearInterval(timer);
+  }, [formId]);
+
+  async function retryDelivery(id) {
+    setRetrying(id);
+    try {
+      await api.retryDelivery(formId, id);
+      loadDeliveries();
+    } catch (err) {
+      setError(err.message || 'Retry failed');
+    } finally {
+      setRetrying(null);
+    }
+  }
+
+  const failedDeliveries = deliveries.filter(d => d.status === 'dead' || d.status === 'retrying');
 
   async function addIntegration(type) {
     if (adding) return;
@@ -87,6 +116,47 @@ export default function IntegrationsPanel({ formId }) {
       {error && (
         <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: '#FDEDEC', color: '#E17055', fontSize: 14 }}>
           {error}
+        </div>
+      )}
+
+      {failedDeliveries.length > 0 && (
+        <div className="card" style={{ marginBottom: 16, borderLeft: '4px solid #E17055' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong style={{ color: '#E17055' }}>
+              {failedDeliveries.length} lead{failedDeliveries.length > 1 ? 's' : ''} failed to deliver to an integration
+            </strong>
+            <button className="btn btn-sm btn-secondary" onClick={() => setShowDeliveries(s => !s)}>
+              {showDeliveries ? 'Hide' : 'Show'} details
+            </button>
+          </div>
+          {showDeliveries && (
+            <table style={{ width: '100%', marginTop: 12, fontSize: 13, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', color: '#636E72' }}>
+                  <th style={{ padding: '4px 8px' }}>Type</th>
+                  <th style={{ padding: '4px 8px' }}>Status</th>
+                  <th style={{ padding: '4px 8px' }}>Attempts</th>
+                  <th style={{ padding: '4px 8px' }}>Error</th>
+                  <th style={{ padding: '4px 8px' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {failedDeliveries.map(d => (
+                  <tr key={d.id} style={{ borderTop: '1px solid #eee' }}>
+                    <td style={{ padding: '4px 8px' }}>{d.type}</td>
+                    <td style={{ padding: '4px 8px' }}>{d.status === 'dead' ? 'Failed (gave up)' : 'Retrying'}</td>
+                    <td style={{ padding: '4px 8px' }}>{d.attempts}</td>
+                    <td style={{ padding: '4px 8px', color: '#E17055' }}>{d.last_error || '-'}</td>
+                    <td style={{ padding: '4px 8px' }}>
+                      <button className="btn btn-sm btn-secondary" disabled={retrying === d.id} onClick={() => retryDelivery(d.id)}>
+                        {retrying === d.id ? 'Retrying...' : 'Retry now'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 

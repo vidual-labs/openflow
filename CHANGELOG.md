@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.17.0] - 2026-07-03
+
+### Added
+- **Scheduled backups** — a background scheduler writes a full DB backup on an interval (`BACKUP_INTERVAL_HOURS`, default 24h) with automatic pruning (`BACKUP_RETENTION_COUNT`, default 14), so recovery no longer depends on someone remembering to click "Download backup". `docker-compose.yml` now mounts a separate `./backups` bind mount (`BACKUP_DIR`) so backups survive even if the `db-data` volume is lost or corrupted. New admin endpoints `GET /api/admin/backups` and `GET /api/admin/backups/:filename` list/download scheduled backups. Set `BACKUP_ENABLED=false` to disable.
+- **Retrying integration deliveries with dead-letter visibility** — submissions to a form with a webhook/email/Google Sheets integration are now persisted as a delivery record before being sent. A failed delivery (client webhook down, SMTP hiccup) is retried with backoff (1m/5m/30m/2h/6h) instead of being silently dropped; after all retries are exhausted it's marked as a dead letter. The Integrations tab shows a banner for any failing/dead deliveries with a manual "Retry now" action, so a bad campaign lead can't vanish unnoticed. New endpoints: `GET /api/integrations/:formId/deliveries`, `POST /api/integrations/:formId/deliveries/:deliveryId/retry`.
+
 ## [0.16.2] - 2026-07-03
 
 ### Fixed
