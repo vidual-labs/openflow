@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const { version } = require('../package.json');
@@ -25,22 +24,44 @@ if (process.env.OPENFLOW_PRIMARY_HOST) {
 }
 
 // The frontend is served by this same app (or proxied same-origin in dev via
-// Vite), so browser requests don't need cross-origin CORS at all. Reflecting
-// any Origin with credentials: true would let any third-party site make
-// authenticated (cookie-carrying) requests against the API. Only allow the
-// explicitly configured origin(s), if any.
+// Vite, or behind a reverse proxy in production), so browser requests don't
+// need cross-origin CORS at all in the common case. Reflecting any Origin
+// with credentials: true would let any third-party site make authenticated
+// (cookie-carrying) requests against the API, so we don't do that — but a
+// request whose Origin host matches the Host this server received is
+// genuinely same-origin from the browser's perspective (that's what the dev
+// proxy and any same-service production deployment look like) and must
+// always be allowed, or the app breaks out of the box. Anything else is
+// only allowed if explicitly configured.
+//
+// Written by hand (not the `cors` package) because its origin-callback only
+// receives the Origin header, not the request's Host, so it can't make this
+// same-origin comparison — and because a rejected request must NOT throw
+// (that crashes to Express's HTML error page instead of a JSON response).
 const allowedOrigins = [process.env.OPENFLOW_PRIMARY_HOST, ...(process.env.CORS_ORIGINS || '').split(',')]
   .map(o => o && o.trim())
   .filter(Boolean)
   .flatMap(o => (o.startsWith('http://') || o.startsWith('https://')) ? [o] : [`http://${o}`, `https://${o}`]);
 
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    let originHost;
+    try { originHost = new URL(origin).host; } catch { originHost = null; }
+    const allowed = originHost === req.headers.host || allowedOrigins.includes(origin);
+    if (allowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Vary', 'Origin');
+    }
+  }
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
+    res.setHeader('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type,Authorization');
+    return res.sendStatus(204);
+  }
+  next();
+});
 // Most JSON bodies are small (form config, integration config, credentials).
 // Two routes legitimately need much more: public submissions can embed
 // base64-encoded file uploads, and admin backup/restore ships the whole DB.
