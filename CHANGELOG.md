@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.18.0] - 2026-07-13
+
+### Added
+- **Auto-redirect on End Screen** — the End Screen's Redirect URL now has an "Automatically open this URL when the form is submitted" toggle. When enabled, submission navigates the visitor straight to the URL instead of waiting for a click. The redirect (and the existing "Continue" link) target the top-level browsing context (`window.top` / `target="_top"`), so an embedded form breaks out of its iframe rather than navigating only within it.
+
 ## [0.17.1] - 2026-07-03
 
 ### Changed

@@ -296,6 +296,19 @@ export default function FormEditor() {
             <label>Redirect URL (optional)</label>
             <input className="input" value={form.end_screen?.redirectUrl || ''} onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, redirectUrl: e.target.value } })} placeholder="https://..." />
           </div>
+          {form.end_screen?.redirectUrl && (
+            <div className="input-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 400, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={!!form.end_screen?.autoRedirect}
+                  onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, autoRedirect: e.target.checked } })}
+                />
+                Automatically open this URL when the form is submitted
+              </label>
+              <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Opens in the top-level window, escaping the iframe if OpenFlow is embedded.</span>
+            </div>
+          )}
         </div>
       )}
 

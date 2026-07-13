@@ -312,6 +312,19 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers[step?.id]]);
 
+  // Auto-redirect on submission. Navigates window.top so the browser leaves
+  // any embedding iframe entirely, instead of just changing the iframe's own
+  // location (which would strand the visitor inside the embedded form).
+  useEffect(() => {
+    if (submitted && endScreen.redirectUrl && endScreen.autoRedirect) {
+      try {
+        (window.top || window).location.href = endScreen.redirectUrl;
+      } catch {
+        window.location.href = endScreen.redirectUrl;
+      }
+    }
+  }, [submitted]);
+
   if (submitted) {
     return (
       <LocaleContext.Provider value={locale}>
@@ -320,8 +333,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
             <div className="end-icon">&#10003;</div>
             <h2>{endScreen.title || locale.thankYou}</h2>
             <p>{endScreen.message || locale.submittedMessage}</p>
+            {endScreen.redirectUrl && endScreen.autoRedirect && (
+              <p style={{ fontSize: 14, opacity: 0.6 }}>{locale.redirecting}</p>
+            )}
             {endScreen.redirectUrl && (
-              <a href={endScreen.redirectUrl} className="form-btn" style={{ marginTop: 24 }}>
+              <a href={endScreen.redirectUrl} target="_top" className="form-btn" style={{ marginTop: 24 }}>
                 {locale.continueBtn}
               </a>
             )}
