@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.19.1] - 2026-07-15
+
+### Fixed
+- **Deleting a webhook (or other integration) with delivery history failed** — `integration_deliveries` rows reference their integration via a foreign key, so deleting an integration that had already attempted at least one delivery violated the constraint and the API returned a non-JSON error page instead of a clean response. The delete route now clears the integration's delivery history first, in the same transaction.
+- **Google Ads integration setup tip was unreadable in dark mode** — the tip box didn't set an explicit text color, so it inherited the dark-mode near-white body text on its light background. It now uses an explicit dark text color regardless of theme.
+
 ## [0.19.0] - 2026-07-14
 
 ### Added

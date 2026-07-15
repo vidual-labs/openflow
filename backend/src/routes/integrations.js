@@ -68,7 +68,15 @@ router.delete('/:formId/:integrationId', (req, res) => {
   const form = db.prepare('SELECT id FROM forms WHERE id = ? AND user_id = ?').get(req.params.formId, req.userId);
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
-  db.prepare('DELETE FROM integrations WHERE id = ? AND form_id = ?').run(req.params.integrationId, req.params.formId);
+  // integration_deliveries rows reference this integration via a foreign key
+  // (foreign_keys = ON), so an integration that has ever attempted a
+  // delivery must have its delivery history cleared first or the DELETE
+  // below throws a FOREIGN KEY constraint error.
+  const deleteIntegration = db.transaction(() => {
+    db.prepare('DELETE FROM integration_deliveries WHERE integration_id = ?').run(req.params.integrationId);
+    db.prepare('DELETE FROM integrations WHERE id = ? AND form_id = ?').run(req.params.integrationId, req.params.formId);
+  });
+  deleteIntegration();
   res.json({ ok: true });
 });
 
