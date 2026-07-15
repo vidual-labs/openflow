@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.18.0
+# 🌊 OpenFlow v0.19.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -33,6 +33,7 @@
 - **📧 Email Notifications** — SMTP-based alerts with beautiful HTML submission tables
 - **📝 Google Sheets (Simple)** — Via Google Apps Script — no service account needed, just paste a URL
 - **📝 Google Sheets (Service Account)** — Auto-append rows via service account for advanced setups
+- **🎯 Google Ads (Server-Side Conversion)** — Upload leads with a captured `gclid`/`gbraid`/`wbraid` as offline conversions via Google's Data Manager API
 - **CSV Export** — Download all submissions as CSV
 - **Test Button** — Verify each integration with sample data before going live
 
@@ -194,6 +195,25 @@ Auto-append submissions via Google Apps Script — **no JSON key needed**.
 Auto-append each submission using a Google Service Account.
 - Auto-creates header row from form field labels
 - Configurable sheet name
+
+### 🎯 Google Ads (Server-Side Conversion)
+Upload qualifying leads as offline conversions directly to Google Ads, via the
+[Data Manager API](https://developers.google.com/data-manager/api) — no
+browser-side conversion pixel required.
+- OpenFlow captures `gclid`/`gbraid`/`wbraid` from the form's landing URL
+  (subject to the same cookie-consent setting used for GTM); submissions
+  without one of these click IDs are skipped, since there's nothing to
+  attribute them to
+- Requires a one-time setup outside OpenFlow: an OAuth client + refresh token
+  for a Google account with access to your Google Ads account (client ID,
+  client secret, refresh token, customer ID, conversion action ID — pasted
+  into the integration config, same as the Google Sheets service-account flow)
+- No developer token needed — the Data Manager API uses plain OAuth2
+- Optionally map one of the form's fields as the conversion value, or set a
+  fixed default value
+- The **Test** button only validates the OAuth credentials — it does not
+  upload a real conversion, since a test submission has no genuine click ID
+- See [`docs/integrations/google-ads.md`](docs/integrations/google-ads.md) for the full one-time setup walkthrough
 
 > 💡 Each integration has an **Enable/Disable** toggle and a **Test** button to verify your setup with sample data.
 

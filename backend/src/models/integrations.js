@@ -10,7 +10,7 @@ const { assertSafeUrl } = require('../utils/ssrf');
 // Run a single integration against a submission. Throws on failure so
 // callers (immediate fire-and-forget, or the retrying delivery queue) can
 // each decide how to handle/record the error.
-async function runIntegration(integration, formId, formTitle, submissionData, steps) {
+async function runIntegration(integration, formId, formTitle, submissionData, steps, metadata = {}) {
   const config = JSON.parse(integration.config);
   switch (integration.type) {
     case 'webhook':
@@ -22,12 +22,14 @@ async function runIntegration(integration, formId, formTitle, submissionData, st
         return runGoogleSheetsAppsScript(config, formId, formTitle, submissionData, steps);
       }
       return runGoogleSheets(config, formId, submissionData, steps);
+    case 'google_ads_conversion':
+      return runGoogleAdsConversion(config, submissionData, metadata);
     default:
       throw new Error(`Unknown integration type: ${integration.type}`);
   }
 }
 
-async function runIntegrations(db, formId, formTitle, submissionData, steps) {
+async function runIntegrations(db, formId, formTitle, submissionData, steps, metadata = {}) {
   const integrations = db.prepare(
     'SELECT * FROM integrations WHERE form_id = ? AND enabled = 1'
   ).all(formId);
@@ -35,7 +37,7 @@ async function runIntegrations(db, formId, formTitle, submissionData, steps) {
   const results = [];
   for (const integration of integrations) {
     try {
-      await runIntegration(integration, formId, formTitle, submissionData, steps);
+      await runIntegration(integration, formId, formTitle, submissionData, steps, metadata);
       results.push({ id: integration.id, type: integration.type, ok: true });
     } catch (err) {
       console.error(`Integration ${integration.type}/${integration.id} failed:`, err.message);
@@ -241,4 +243,93 @@ async function runGoogleSheets(config, formId, data, steps) {
   });
 }
 
-module.exports = { runIntegrations, runIntegration };
+// ──────────────────────────────────────────
+// Google Ads (server-side conversion upload via the Data Manager API)
+// ──────────────────────────────────────────
+
+// Exchanges the pasted long-lived refresh token for a short-lived OAuth
+// access token. Reuses the googleapis dependency already installed for the
+// Google Sheets service-account integration rather than hand-rolling the
+// OAuth2 refresh-token grant.
+async function getGoogleAdsAccessToken(config) {
+  const { client_id, client_secret, refresh_token } = config;
+  if (!client_id || !client_secret || !refresh_token) {
+    throw new Error('Google Ads client ID, client secret and refresh token are required');
+  }
+  const oauth2Client = new google.auth.OAuth2(client_id, client_secret);
+  oauth2Client.setCredentials({ refresh_token });
+  const { token } = await oauth2Client.getAccessToken();
+  if (!token) throw new Error('Failed to obtain a Google Ads access token from the refresh token');
+  return token;
+}
+
+async function runGoogleAdsConversion(config, data, metadata) {
+  const { customer_id, login_customer_id, conversion_action_id, currency_code = 'USD', default_value, value_field_id } = config;
+  if (!customer_id || !conversion_action_id) {
+    throw new Error('Google Ads customer ID and conversion action ID are required');
+  }
+
+  const gclid = metadata?.gclid;
+  const gbraid = metadata?.gbraid;
+  const wbraid = metadata?.wbraid;
+  if (!gclid && !gbraid && !wbraid) {
+    throw new Error('No Google Ads click ID (gclid/gbraid/wbraid) was captured for this submission');
+  }
+
+  const accessToken = await getGoogleAdsAccessToken(config);
+
+  let conversionValue = default_value !== undefined ? Number(default_value) : undefined;
+  if (value_field_id) {
+    const raw = data[value_field_id];
+    const parsed = Number(raw);
+    if (raw !== undefined && !Number.isNaN(parsed)) conversionValue = parsed;
+  }
+
+  const adIdentifiers = {};
+  if (gclid) adIdentifiers.gclid = gclid;
+  if (gbraid) adIdentifiers.gbraid = gbraid;
+  if (wbraid) adIdentifiers.wbraid = wbraid;
+
+  const destination = {
+    reference: 'd1',
+    operatingAccount: { accountId: String(customer_id).replace(/-/g, ''), accountType: 'GOOGLE_ADS' },
+    productDestinationId: String(conversion_action_id),
+  };
+  if (login_customer_id) {
+    destination.loginAccount = { accountId: String(login_customer_id).replace(/-/g, ''), accountType: 'GOOGLE_ADS' };
+  }
+
+  const event = {
+    destinationReferences: ['d1'],
+    transactionId: `${gclid || gbraid || wbraid}:${metadata?.submittedAt || new Date().toISOString()}`,
+    eventTimestamp: metadata?.submittedAt || new Date().toISOString(),
+    eventSource: 'WEB',
+    adIdentifiers,
+  };
+  if (conversionValue !== undefined) event.conversionValue = conversionValue;
+  if (currency_code) event.currency = currency_code;
+
+  const res = await fetch('https://datamanager.googleapis.com/v1/events:ingest', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ destinations: [destination], events: [event] }),
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Google Ads Data Manager API returned ${res.status}: ${await res.text().catch(() => '')}`);
+  }
+}
+
+// Validates Google Ads credentials without uploading a conversion — used by
+// the integration "Test" button, since a synthetic test submission has no
+// real gclid and would either fail or (worse) upload garbage to a real
+// Google Ads account.
+async function testGoogleAdsCredentials(config) {
+  await getGoogleAdsAccessToken(config);
+}
+
+module.exports = { runIntegrations, runIntegration, testGoogleAdsCredentials };

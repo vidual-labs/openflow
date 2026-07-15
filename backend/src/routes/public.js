@@ -98,6 +98,16 @@ router.post('/form/:slug/submit', async (req, res) => {
     submittedAt: new Date().toISOString(),
   };
 
+  // Whitelist the ad click IDs the client may have captured from the
+  // landing URL (see FormView/EmbedView) — don't spread arbitrary
+  // client-supplied JSON into stored metadata.
+  const tracking = req.body.tracking;
+  if (tracking && typeof tracking === 'object') {
+    ['gclid', 'gbraid', 'wbraid'].forEach(key => {
+      if (typeof tracking[key] === 'string' && tracking[key]) metadata[key] = tracking[key];
+    });
+  }
+
   db.prepare('INSERT INTO submissions (id, form_id, data, metadata) VALUES (?, ?, ?, ?)').run(
     id, form.id, JSON.stringify(data), JSON.stringify(metadata)
   );
@@ -108,7 +118,7 @@ router.post('/form/:slug/submit', async (req, res) => {
   // persisted first, so a failure (client webhook down, SMTP hiccup) retries
   // with backoff instead of silently losing the lead.
   const { enqueueAndAttempt } = require('../models/deliveryQueue');
-  enqueueAndAttempt(db, form.id, form.title, id, data, steps).catch(err => {
+  enqueueAndAttempt(db, form.id, form.title, id, data, steps, metadata).catch(err => {
     console.error('Integration delivery error:', err.message);
   });
 });

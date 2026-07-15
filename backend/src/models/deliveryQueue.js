@@ -16,7 +16,7 @@ function inMinutes(n) {
 // immediately, so the common (success) case has no added latency. Failures
 // are persisted with a next_attempt_at so the background worker retries
 // them instead of losing the submission.
-async function enqueueAndAttempt(db, formId, formTitle, submissionId, data, steps) {
+async function enqueueAndAttempt(db, formId, formTitle, submissionId, data, steps, metadata = {}) {
   const integrations = db.prepare(
     'SELECT * FROM integrations WHERE form_id = ? AND enabled = 1'
   ).all(formId);
@@ -28,13 +28,13 @@ async function enqueueAndAttempt(db, formId, formTitle, submissionId, data, step
        VALUES (?, ?, ?, ?, ?, 'pending')`
     ).run(deliveryId, formId, integration.id, submissionId, integration.type);
 
-    await attemptDelivery(db, { id: deliveryId, integration, formId, formTitle, data, steps });
+    await attemptDelivery(db, { id: deliveryId, integration, formId, formTitle, data, steps, metadata });
   }
 }
 
-async function attemptDelivery(db, { id, integration, formId, formTitle, data, steps }) {
+async function attemptDelivery(db, { id, integration, formId, formTitle, data, steps, metadata = {} }) {
   try {
-    await runIntegration(integration, formId, formTitle, data, steps);
+    await runIntegration(integration, formId, formTitle, data, steps, metadata);
     db.prepare(
       `UPDATE integration_deliveries SET status = 'success', updated_at = datetime('now') WHERE id = ?`
     ).run(id);
@@ -64,7 +64,7 @@ async function attemptDelivery(db, { id, integration, formId, formTitle, data, s
 // restarts (the queue only lives in SQLite, not in memory).
 async function processDueDeliveries(db) {
   const due = db.prepare(
-    `SELECT d.*, s.data AS submission_data, f.title AS form_title, f.steps AS form_steps
+    `SELECT d.*, s.data AS submission_data, s.metadata AS submission_metadata, f.title AS form_title, f.steps AS form_steps
      FROM integration_deliveries d
      JOIN submissions s ON s.id = d.submission_id
      JOIN forms f ON f.id = d.form_id
@@ -86,6 +86,7 @@ async function processDueDeliveries(db) {
       formTitle: row.form_title,
       data: JSON.parse(row.submission_data),
       steps: JSON.parse(row.form_steps),
+      metadata: JSON.parse(row.submission_metadata || '{}'),
     });
   }
 }
@@ -94,7 +95,7 @@ async function processDueDeliveries(db) {
 // fixes their webhook endpoint.
 async function retryDelivery(db, deliveryId) {
   const row = db.prepare(
-    `SELECT d.*, s.data AS submission_data, f.title AS form_title, f.steps AS form_steps
+    `SELECT d.*, s.data AS submission_data, s.metadata AS submission_metadata, f.title AS form_title, f.steps AS form_steps
      FROM integration_deliveries d
      JOIN submissions s ON s.id = d.submission_id
      JOIN forms f ON f.id = d.form_id
@@ -112,6 +113,7 @@ async function retryDelivery(db, deliveryId) {
     formTitle: row.form_title,
     data: JSON.parse(row.submission_data),
     steps: JSON.parse(row.form_steps),
+    metadata: JSON.parse(row.submission_metadata || '{}'),
   });
   return db.prepare('SELECT * FROM integration_deliveries WHERE id = ?').get(deliveryId);
 }

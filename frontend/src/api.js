@@ -82,5 +82,5 @@ export const api = {
   restoreBackup: (backup) => request('/admin/restore', { method: 'POST', body: JSON.stringify(backup) }),
 
   getPublicForm: (slug) => request(`/public/form/${slug}`),
-  submitForm: (slug, data) => request(`/public/form/${slug}/submit`, { method: 'POST', body: JSON.stringify({ data }) }),
+  submitForm: (slug, data, tracking) => request(`/public/form/${slug}/submit`, { method: 'POST', body: JSON.stringify({ data, tracking }) }),
 };

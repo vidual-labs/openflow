@@ -51,6 +51,7 @@ export default function FormView({ slugProp, hostMode = false }) {
   const [error, setError] = useState('');
   // null = not yet determined, true = accepted, false = declined, 'pending' = needs banner
   const [cookieConsent, setCookieConsent] = useState(null);
+  const [clickIds, setClickIds] = useState({});
 
   // Force light theme on public form pages (dark mode is admin-only)
   useEffect(() => {
@@ -77,16 +78,31 @@ export default function FormView({ slugProp, hostMode = false }) {
       .catch(e => setError(e.message));
   }, [slug, navigate, hostMode]);
 
-  // Determine cookie consent state once form is loaded
+  // Determine cookie consent state once form is loaded. This gates both GTM
+  // injection and ad click-ID capture (gclid/gbraid/wbraid), so it no longer
+  // short-circuits on gtm_id alone.
   useEffect(() => {
     if (!form) return;
-    if (!form.gtm_id) { setCookieConsent(null); return; }
     if (!form.end_screen?.cookieConsentEnabled) { setCookieConsent(true); return; }
     const stored = localStorage.getItem(`of_cc_${form.id}`);
     if (stored === 'accepted') { setCookieConsent(true); }
     else if (stored === 'declined') { setCookieConsent(false); }
     else { setCookieConsent('pending'); }
   }, [form]);
+
+  // Capture Google Ads click IDs from the landing URL, once consent allows
+  // it, so they can ride along with the submission for server-side
+  // conversion upload.
+  useEffect(() => {
+    if (cookieConsent !== true) return;
+    const params = new URLSearchParams(window.location.search);
+    const ids = {};
+    ['gclid', 'gbraid', 'wbraid'].forEach(key => {
+      const value = params.get(key);
+      if (value) ids[key] = value;
+    });
+    if (Object.keys(ids).length) setClickIds(ids);
+  }, [cookieConsent]);
 
   // Inject GTM only when consent is given
   useEffect(() => {
@@ -118,7 +134,7 @@ export default function FormView({ slugProp, hostMode = false }) {
 
   return (
     <>
-      <FormRenderer form={form} onSubmit={(data) => api.submitForm(slug, data)} />
+      <FormRenderer form={form} onSubmit={(data) => api.submitForm(slug, data, clickIds)} />
       {cookieConsent === 'pending' && (
         <CookieBanner form={form} onAccept={handleAccept} onDecline={handleDecline} />
       )}
