@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.20.0] - 2026-07-15
+
+### Added
+- **Ctrl/Cmd+Enter to advance from long-text fields** — long-text (textarea) steps previously required clicking the Next/Submit button, since plain Enter needs to stay free for line breaks. They now also advance on Ctrl+Enter (Windows/Linux) or ⌘+Enter (Mac), matching the shortcut convention from chat and note-taking apps. The optional "Enter Key Hint" now shows the right shortcut per field type (`Enter ↵` for regular fields, `Ctrl + Enter` / `⌘ + Enter` for long-text fields).
+
 ## [0.19.1] - 2026-07-15
 
 ### Fixed
