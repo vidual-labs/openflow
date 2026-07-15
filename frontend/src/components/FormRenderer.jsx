@@ -266,10 +266,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   }
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && step?.type !== 'textarea') {
-      e.preventDefault();
-      next();
-    }
+    if (e.key !== 'Enter') return;
+    // Textareas need plain Enter for newlines; only advance on Ctrl/Cmd+Enter.
+    if (step?.type === 'textarea' && !(e.metaKey || e.ctrlKey)) return;
+    e.preventDefault();
+    next();
   }
 
   // Track form view on mount
@@ -358,9 +359,13 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const footerLinks = (theme.footerLinks || []).filter(l => l.title && l.url);
 
-  const enterHint = showEnterHint && step?.type !== 'textarea' ? (
+  const isMacPlatform = typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent || '');
+  const enterKbdLabel = step?.type === 'textarea'
+    ? (isMacPlatform ? '⌘ + Enter' : 'Ctrl + Enter')
+    : 'Enter ↵';
+  const enterHint = showEnterHint ? (
     <span className="form-enter-hint">
-      {locale.enterHintBefore}<kbd>Enter &#8629;</kbd>{locale.enterHintAfter}
+      {locale.enterHintBefore}<kbd>{enterKbdLabel}</kbd>{locale.enterHintAfter}
     </span>
   ) : null;
 

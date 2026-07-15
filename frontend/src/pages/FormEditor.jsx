@@ -468,7 +468,7 @@ export default function FormEditor() {
                   Show "press Enter" hint next to button
                 </label>
                 <span style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'block' }}>
-                  Displays a subtle keyboard shortcut hint (press Enter &#8629;) next to the Next button.
+                  Displays a subtle keyboard shortcut hint next to the Next button (press Enter &#8629;, or Ctrl/&#8984; + Enter for long-text fields).
                 </span>
               </div>
               <div className="input-group">
