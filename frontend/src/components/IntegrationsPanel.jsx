@@ -412,7 +412,7 @@ function GoogleAdsConfig({ config, steps, onChange }) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-      <div style={{ gridColumn: '1 / -1', background: '#F0F4FF', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
+      <div style={{ gridColumn: '1 / -1', background: '#F0F4FF', color: '#2D3436', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
         Requires a one-time setup outside OpenFlow: create an OAuth client in
         Google Cloud Console, enable the Data Manager API, and generate a
         refresh token for a user with access to your Google Ads account. Only
