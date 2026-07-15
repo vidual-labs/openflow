@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import { flattenFields } from '../utils/steps';
 
 const INTEGRATION_TYPES = [
   { value: 'webhook', label: 'Webhook', icon: '🔗', description: 'Send submission data to any URL' },
   { value: 'email', label: 'Email Notification', icon: '📧', description: 'Send email on each submission' },
   { value: 'google_sheets', label: 'Google Sheets (Simple)', icon: '📊', description: 'Via Google Apps Script — no JSON key needed' },
   { value: 'google_sheets_sa', label: 'Google Sheets (Service Account)', icon: '📊', description: 'Via service account JSON key' },
+  { value: 'google_ads_conversion', label: 'Google Ads (Server-Side Conversion)', icon: '🎯', description: 'Upload leads as offline conversions via the Data Manager API' },
 ];
 
-export default function IntegrationsPanel({ formId }) {
+export default function IntegrationsPanel({ formId, steps = [] }) {
   const [integrations, setIntegrations] = useState([]);
   const [adding, setAdding] = useState(null);
   const [testing, setTesting] = useState(null);
@@ -60,6 +62,11 @@ export default function IntegrationsPanel({ formId }) {
       email: { smtp_host: '', smtp_port: 587, smtp_user: '', smtp_pass: '', smtp_secure: false, to: '', from: '', subject: '', lodgely_link_enabled: false, lodgely_url: '', lodgely_button_text: '' },
       google_sheets: { mode: 'apps_script', apps_script_url: '' },
       google_sheets_sa: { mode: 'service_account', credentials_json: '', spreadsheet_id: '', sheet_name: 'Sheet1' },
+      google_ads_conversion: {
+        client_id: '', client_secret: '', refresh_token: '',
+        customer_id: '', login_customer_id: '', conversion_action_id: '',
+        currency_code: 'USD', default_value: '', value_field_id: '',
+      },
     };
     try {
       const { integration } = await api.createIntegration(formId, { type: actualType, config: defaults[type] || defaults[actualType] });
@@ -230,6 +237,9 @@ export default function IntegrationsPanel({ formId }) {
           {integration.type === 'google_sheets' && (
             <GoogleSheetsConfig config={integration.config} onChange={(k, v) => updateConfig(integration.id, k, v)} />
           )}
+          {integration.type === 'google_ads_conversion' && (
+            <GoogleAdsConfig config={integration.config} steps={steps} onChange={(k, v) => updateConfig(integration.id, k, v)} />
+          )}
         </div>
       ))}
     </div>
@@ -392,6 +402,64 @@ function GoogleSheetsConfig({ config, onChange }) {
         <p style={{ fontSize: 12, color: '#636E72', marginTop: 4 }}>
           Create a service account in Google Cloud Console, download the JSON key, and share the spreadsheet with the service account email.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function GoogleAdsConfig({ config, steps, onChange }) {
+  const fields = flattenFields(steps);
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ gridColumn: '1 / -1', background: '#F0F4FF', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
+        Requires a one-time setup outside OpenFlow: create an OAuth client in
+        Google Cloud Console, enable the Data Manager API, and generate a
+        refresh token for a user with access to your Google Ads account. Only
+        submissions that arrive with a captured <code>gclid</code>/<code>gbraid</code>/<code>wbraid</code> (i.e.
+        the visitor came from a Google Ads click) are uploaded — organic
+        submissions are skipped.
+      </div>
+      <div className="input-group">
+        <label>OAuth Client ID</label>
+        <input className="input" value={config.client_id || ''} onChange={e => onChange('client_id', e.target.value)} />
+      </div>
+      <div className="input-group">
+        <label>OAuth Client Secret</label>
+        <input className="input" type="password" value={config.client_secret || ''} onChange={e => onChange('client_secret', e.target.value)} />
+      </div>
+      <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+        <label>Refresh Token</label>
+        <input className="input" type="password" value={config.refresh_token || ''} onChange={e => onChange('refresh_token', e.target.value)} />
+      </div>
+      <div className="input-group">
+        <label>Customer ID</label>
+        <input className="input" value={config.customer_id || ''} onChange={e => onChange('customer_id', e.target.value)} placeholder="123-456-7890" />
+      </div>
+      <div className="input-group">
+        <label>Login Customer ID (optional)</label>
+        <input className="input" value={config.login_customer_id || ''} onChange={e => onChange('login_customer_id', e.target.value)} placeholder="Only if under a manager (MCC) account" />
+      </div>
+      <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+        <label>Conversion Action ID</label>
+        <input className="input" value={config.conversion_action_id || ''} onChange={e => onChange('conversion_action_id', e.target.value)} />
+      </div>
+      <div className="input-group">
+        <label>Currency</label>
+        <input className="input" value={config.currency_code || 'USD'} onChange={e => onChange('currency_code', e.target.value)} placeholder="USD" />
+      </div>
+      <div className="input-group">
+        <label>Default Value (optional)</label>
+        <input className="input" type="number" value={config.default_value ?? ''} onChange={e => onChange('default_value', e.target.value)} placeholder="e.g. 100" />
+      </div>
+      <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+        <label>Value Field (optional — overrides default value when answered)</label>
+        <select className="input" value={config.value_field_id || ''} onChange={e => onChange('value_field_id', e.target.value)}>
+          <option value="">None — use default value</option>
+          {fields.map(f => (
+            <option key={f.id} value={f.id}>{f.label || f.question || f.id}</option>
+          ))}
+        </select>
       </div>
     </div>
   );

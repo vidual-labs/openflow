@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.19.0] - 2026-07-14
+
+### Added
+- **Google Ads (Server-Side Conversion) integration** — a new integration type uploads qualifying leads as offline conversions to Google Ads via the [Data Manager API](https://developers.google.com/data-manager/api), Google's OAuth2-only successor to the legacy per-click conversion upload API. OpenFlow now captures `gclid`/`gbraid`/`wbraid` from a form's landing URL (gated behind the same cookie-consent setting already used for GTM) and stores it on the submission; a submission without a captured click ID is skipped by this integration rather than uploaded. Configured with a manually-pasted OAuth client ID/secret/refresh token, Google Ads customer ID, and conversion action ID — no developer token required. The integration's "Test" button validates the OAuth credentials only, since a synthetic test submission has no real click ID to upload.
+
 ## [0.18.0] - 2026-07-13
 
 ### Added

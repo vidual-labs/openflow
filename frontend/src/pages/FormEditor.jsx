@@ -724,7 +724,7 @@ export default function FormEditor() {
 
       {/* Integrations Tab */}
       {activeTab === 'integrations' && (
-        <IntegrationsPanel formId={id} />
+        <IntegrationsPanel formId={id} steps={form.steps} />
       )}
 
       {/* Embed Tab */}

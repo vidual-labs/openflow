@@ -26,8 +26,8 @@ router.post('/:formId', (req, res) => {
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
   const { type, config, enabled } = req.body;
-  if (!type || !['webhook', 'email', 'google_sheets'].includes(type)) {
-    return res.status(400).json({ error: 'Invalid integration type. Use: webhook, email, google_sheets' });
+  if (!type || !['webhook', 'email', 'google_sheets', 'google_ads_conversion'].includes(type)) {
+    return res.status(400).json({ error: 'Invalid integration type. Use: webhook, email, google_sheets, google_ads_conversion' });
   }
 
   const id = uuid();
@@ -85,7 +85,19 @@ router.post('/:formId/:integrationId/test', async (req, res) => {
   const testData = {};
   steps.forEach(s => { testData[s.id] = `Test value for ${s.label || s.id}`; });
 
-  const { runIntegrations } = require('../models/integrations');
+  const { runIntegrations, testGoogleAdsCredentials } = require('../models/integrations');
+
+  // A synthetic test submission has no real gclid, so actually running this
+  // integration would either fail outright or upload a fake conversion to a
+  // real Google Ads account. Instead, just verify the OAuth credentials work.
+  if (integration.type === 'google_ads_conversion') {
+    try {
+      await testGoogleAdsCredentials(JSON.parse(integration.config));
+      return res.json({ results: [{ id: integration.id, type: integration.type, ok: true }] });
+    } catch (err) {
+      return res.json({ results: [{ id: integration.id, type: integration.type, ok: false, error: err.message }] });
+    }
+  }
 
   try {
     // Run just this one integration
