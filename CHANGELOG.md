@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.21.0] - 2026-08-04
+
+### Added
+- **Optional "Other" free-text field for Multiple Choice** — multiple-choice steps have a new "Add an 'Other' option with a free-text field" toggle in the editor. When enabled, the form shows an extra choice that reveals a text box; the visitor may pick it and type an answer the configured options don't cover. Both the option's label and the text box's placeholder are customisable (defaulting to the localised "Other" / "Please specify..."). The typed text is stored as a normal entry in the step's answer array, so submissions, CSV exports, webhooks, email and Google Sheets need no special handling. Steps with the "Other" box never auto-advance, since every keystroke changes the answer and would otherwise jump to the next step mid-sentence.
+
 ## [0.20.0] - 2026-07-15
 
 ### Added

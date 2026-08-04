@@ -299,11 +299,16 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const AUTO_ADVANCE_FIELDS = ['select', 'multi-select', 'yes-no', 'rating', 'image-select'];
 
+  // A multiple-choice step with a free-text "Other" box never auto-advances:
+  // every keystroke changes the answer, so it would jump away mid-sentence.
+  const autoAdvances = step && AUTO_ADVANCE_FIELDS.includes(step.type)
+    && !(step.type === 'multi-select' && step.allowOther);
+
   // Auto-advance for choice-based field types when answer is provided.
   // Capture the step index at schedule time and compare against the ref at
   // fire time so we don't advance if the user has already navigated away.
   useEffect(() => {
-    if (step && answers[step.id] !== undefined && !theme?.disableAutoAdvance && AUTO_ADVANCE_FIELDS.includes(step.type)) {
+    if (step && answers[step.id] !== undefined && !theme?.disableAutoAdvance && autoAdvances) {
       const stepAtSchedule = currentStep;
       const timer = setTimeout(() => {
         if (currentStepRef.current === stepAtSchedule) next();
@@ -544,14 +549,51 @@ function SelectInput({ step, value, onChange }) {
 }
 
 function MultiSelectInput({ step, value, onChange }) {
+  const locale = useLocale();
   const selected = value || [];
   const options = step.options || [];
+  const optionValues = options.map(opt => typeof opt === 'string' ? opt : (opt.value ?? opt.label));
+
+  // The free-text answer is stored as a plain string in the same array as the
+  // regular choices, so exports and integrations need no special handling. On
+  // the way back in it's the selected value that isn't a configured option —
+  // that's what restores the text when navigating back to this step.
+  const initialOther = step.allowOther ? (selected.find(v => !optionValues.includes(v)) || '') : '';
+  const [otherText, setOtherText] = useState(initialOther);
+  const [otherOpen, setOtherOpen] = useState(!!initialOther);
+
+  // Ticked checkboxes come from the answer; the free text is held locally, so
+  // typing an option's own label doesn't make the box appear to clear itself.
+  // Only the current free text is split off — a value the pricing filter has
+  // since hidden stays in the answer instead of being silently dropped.
+  const chosen = otherText ? selected.filter(v => v !== otherText) : selected;
+
+  function emit(nextChosen, nextOther) {
+    const text = nextOther.trim();
+    // An empty box means "Other" is ticked but unanswered: keep the input open,
+    // just don't put a blank entry into the answer.
+    onChange(text && !nextChosen.includes(text) ? [...nextChosen, text] : nextChosen);
+  }
 
   function toggle(optValue) {
-    if (selected.includes(optValue)) {
-      onChange(selected.filter(v => v !== optValue));
+    const next = chosen.includes(optValue)
+      ? chosen.filter(v => v !== optValue)
+      : [...chosen, optValue];
+    emit(next, otherText);
+  }
+
+  function changeOther(text) {
+    setOtherText(text);
+    emit(chosen, text);
+  }
+
+  function toggleOther() {
+    if (otherOpen) {
+      setOtherOpen(false);
+      setOtherText('');
+      emit(chosen, '');
     } else {
-      onChange([...selected, optValue]);
+      setOtherOpen(true);
     }
   }
 
@@ -561,12 +603,30 @@ function MultiSelectInput({ step, value, onChange }) {
         const optValue = typeof opt === 'string' ? opt : (opt.value ?? opt.label);
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
-          <button key={i} className={`form-option ${selected.includes(optValue) ? 'selected' : ''}`} onClick={() => toggle(optValue)}>
-            <span className="option-key">{selected.includes(optValue) ? '✓' : ''}</span>
+          <button key={i} className={`form-option ${chosen.includes(optValue) ? 'selected' : ''}`} onClick={() => toggle(optValue)}>
+            <span className="option-key">{chosen.includes(optValue) ? '✓' : ''}</span>
             {optLabel}
           </button>
         );
       })}
+      {step.allowOther && (
+        <>
+          <button className={`form-option ${otherOpen ? 'selected' : ''}`} onClick={toggleOther}>
+            <span className="option-key">{otherOpen ? '✓' : ''}</span>
+            {step.otherLabel || locale.otherOption}
+          </button>
+          {otherOpen && (
+            <input
+              className="form-input form-option-other"
+              type="text"
+              placeholder={step.otherPlaceholder || locale.otherPlaceholder}
+              value={otherText}
+              onChange={e => changeOther(e.target.value)}
+              autoFocus
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

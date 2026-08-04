@@ -285,6 +285,21 @@
   color: white;
 }
 
+/* Free-text box revealed by the "Other" choice — indented so it reads as
+   belonging to the option above it rather than as another choice. */
+.form-option-other {
+  margin-left: 42px;
+  width: calc(100% - 42px);
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 17px;
+}
+
+.form-option-other:focus {
+  border-color: var(--form-primary, #6C5CE7);
+}
+
 .option-hint {
   font-size: 13px;
   color: rgba(0, 0, 0, 0.4);
