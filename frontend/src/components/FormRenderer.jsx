@@ -500,7 +500,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
           &#8592;
         </button>
         <span className="form-step-count">{currentStep + 1} / {steps.length}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="form-nav-actions">
           {buttonPosition === 'footer' && enterHint}
           {buttonPosition === 'footer' && nextButton}
           {(buttonPosition === 'inline' || buttonPosition === 'below-input') && <span />}

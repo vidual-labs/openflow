@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.21.2] - 2026-08-04
+
+### Fixed
+- **The "press Enter" hint disappeared in small embeds** — the hint was hidden by a `max-width: 600px` media query. Inside an iframe such a query resolves against the iframe's own width, not the device's, so any narrow embed dropped the hint on desktop, where the Enter key does work. Hiding is now keyed off `(hover: none) and (pointer: coarse)`, which targets touch devices without a physical keyboard regardless of the frame's size; in narrow frames the hint just renders slightly smaller.
+- **Footer and button rows could overflow in narrow embeds** — the navigation footer and the inline/below-input button rows now wrap instead of pushing the Next button and the Enter hint out of the visible area.
+
 ## [0.21.1] - 2026-08-04
 
 ### Fixed
