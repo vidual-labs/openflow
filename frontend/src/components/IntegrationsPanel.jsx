@@ -121,15 +121,15 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
   return (
     <div>
       {error && (
-        <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: '#FDEDEC', color: '#E17055', fontSize: 14 }}>
+        <div style={{ padding: '10px 16px', marginBottom: 16, borderRadius: 8, background: 'rgba(225, 112, 85, 0.12)', color: 'var(--danger)', fontSize: 14 }}>
           {error}
         </div>
       )}
 
       {failedDeliveries.length > 0 && (
-        <div className="card" style={{ marginBottom: 16, borderLeft: '4px solid #E17055' }}>
+        <div className="card" style={{ marginBottom: 16, borderLeft: '4px solid var(--danger)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong style={{ color: '#E17055' }}>
+            <strong style={{ color: 'var(--danger)' }}>
               {failedDeliveries.length} lead{failedDeliveries.length > 1 ? 's' : ''} failed to deliver to an integration
             </strong>
             <button className="btn btn-sm btn-secondary" onClick={() => setShowDeliveries(s => !s)}>
@@ -139,7 +139,7 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
           {showDeliveries && (
             <table style={{ width: '100%', marginTop: 12, fontSize: 13, borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ textAlign: 'left', color: '#636E72' }}>
+                <tr style={{ textAlign: 'left', color: 'var(--text-light)' }}>
                   <th style={{ padding: '4px 8px' }}>Type</th>
                   <th style={{ padding: '4px 8px' }}>Status</th>
                   <th style={{ padding: '4px 8px' }}>Attempts</th>
@@ -149,11 +149,11 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
               </thead>
               <tbody>
                 {failedDeliveries.map(d => (
-                  <tr key={d.id} style={{ borderTop: '1px solid #eee' }}>
+                  <tr key={d.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '4px 8px' }}>{d.type}</td>
                     <td style={{ padding: '4px 8px' }}>{d.status === 'dead' ? 'Failed (gave up)' : 'Retrying'}</td>
                     <td style={{ padding: '4px 8px' }}>{d.attempts}</td>
-                    <td style={{ padding: '4px 8px', color: '#E17055' }}>{d.last_error || '-'}</td>
+                    <td style={{ padding: '4px 8px', color: 'var(--danger)' }}>{d.last_error || '-'}</td>
                     <td style={{ padding: '4px 8px' }}>
                       <button className="btn btn-sm btn-secondary" disabled={retrying === d.id} onClick={() => retryDelivery(d.id)}>
                         {retrying === d.id ? 'Retrying...' : 'Retry now'}
@@ -184,7 +184,7 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
       {integrations.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: 48 }}>
           <h3 style={{ marginBottom: 8 }}>No integrations yet</h3>
-          <p style={{ color: '#636E72' }}>Add a webhook, email notification, or Google Sheets integration.</p>
+          <p style={{ color: 'var(--text-light)' }}>Add a webhook, email notification, or Google Sheets integration.</p>
         </div>
       )}
 
@@ -303,7 +303,7 @@ function EmailConfig({ config, onChange }) {
         <input type="checkbox" checked={config.smtp_secure || false} onChange={e => onChange('smtp_secure', e.target.checked)} />
         Use SSL/TLS (port 465)
       </label>
-      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #eee', marginTop: 8, paddingTop: 12 }}>
+      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 12 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: config.lodgely_link_enabled ? 12 : 0 }}>
           <input type="checkbox" checked={config.lodgely_link_enabled || false} onChange={e => onChange('lodgely_link_enabled', e.target.checked)} />
           Include a link to lodgely in this email
@@ -335,7 +335,7 @@ function GoogleSheetsConfig({ config, onChange }) {
           <label>Google Apps Script Web App URL</label>
           <input className="input" value={config.apps_script_url || ''} onChange={e => onChange('apps_script_url', e.target.value)} placeholder="https://script.google.com/macros/s/.../exec" />
         </div>
-        <div style={{ background: '#F0F4FF', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
+        <div style={{ background: 'rgba(108, 92, 231, 0.10)', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
           <strong>Setup (3 steps):</strong>
           <ol style={{ margin: '8px 0 0 16px', padding: 0 }}>
             <li>Open your Google Sheet &rarr; Extensions &rarr; Apps Script</li>
@@ -379,7 +379,7 @@ function GoogleSheetsConfig({ config, onChange }) {
       <div className="input-group" style={{ gridColumn: '1 / -1' }}>
         <label>Spreadsheet ID</label>
         <input className="input" value={config.spreadsheet_id || ''} onChange={e => onChange('spreadsheet_id', e.target.value)} placeholder="From the Google Sheets URL" />
-        <p style={{ fontSize: 12, color: '#636E72', marginTop: 4 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 4 }}>
           Find it in the URL: docs.google.com/spreadsheets/d/<strong>SPREADSHEET_ID</strong>/edit
         </p>
       </div>
@@ -399,7 +399,7 @@ function GoogleSheetsConfig({ config, onChange }) {
           placeholder='Paste your Google service account JSON key here...'
           style={{ fontFamily: 'monospace', fontSize: 12 }}
         />
-        <p style={{ fontSize: 12, color: '#636E72', marginTop: 4 }}>
+        <p style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 4 }}>
           Create a service account in Google Cloud Console, download the JSON key, and share the spreadsheet with the service account email.
         </p>
       </div>
@@ -412,7 +412,7 @@ function GoogleAdsConfig({ config, steps, onChange }) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-      <div style={{ gridColumn: '1 / -1', background: '#F0F4FF', color: '#2D3436', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
+      <div style={{ gridColumn: '1 / -1', background: 'rgba(108, 92, 231, 0.10)', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
         Requires a one-time setup outside OpenFlow: create an OAuth client in
         Google Cloud Console, enable the Data Manager API, and generate a
         refresh token for a user with access to your Google Ads account. Only

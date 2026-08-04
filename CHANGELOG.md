@@ -2,6 +2,13 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.21.1] - 2026-08-04
+
+### Fixed
+- **Custom CSS was not applied to the end screen** ([#79](https://github.com/vidual-labs/openflow/issues/79)) — the end screen returned early from a separate branch that rendered neither the form's Custom CSS `<style>` block, the `embedded` class nor the animated background, so end-screen styling could not be overridden at all. It now renders the same shell as the question screens.
+- **Placeholders, borders and muted labels were unreadable on dark themes** ([#80](https://github.com/vidual-labs/openflow/issues/80)) — placeholder text, input underlines, option and rating borders, the progress track, the step counter, the back button, the file dropzone and the end-screen message were all painted in hardcoded black tints, so they disappeared against a dark **Background Color**. These tones are now mixed from the theme's **Text Color** via a new `--form-text-rgb` variable and stay legible on any background. Custom address sub-field labels, which were likewise hardcoded dark, now follow the theme text color.
+- **Editor panels rendered light in dark mode, leaving their text unreadable** — the "Other" option, flat-rate pricing, image/icon and address sub-field panels in the form editor, plus several integration callouts, used hardcoded light backgrounds while their text inherited the dark-mode near-white body color. They now use `--panel`/`--panel-alt` surface tokens and theme-aware tints. This generalises the single-callout fix from 0.19.1.
+
 ## [0.21.0] - 2026-08-04
 
 ### Added

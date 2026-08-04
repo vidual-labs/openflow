@@ -123,6 +123,18 @@ function adjustColor(hex, amount) {
   return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
 }
 
+// "#0A0A0A" / "#eee" → "10, 10, 10". Powers the --form-text-rgb variable, which the
+// stylesheet mixes at various alphas for placeholders, borders and muted labels. Those
+// tones used to be hardcoded black, so they vanished on dark themes; deriving them from
+// the theme's text color keeps them readable whatever background the form uses.
+export function toRgbTriplet(hex, fallback = '45, 52, 54') {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return fallback;
+  const h = m[1].length === 3 ? m[1].replace(/./g, c => c + c) : m[1];
+  const num = parseInt(h, 16);
+  return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
+}
+
 const BG_SHAPES = { waves: 3, bubbles: 4, aurora: 3, particles: 6, flow: 4 };
 
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
@@ -173,10 +185,12 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const formBg = theme.backgroundColor || '#FFFFFF';
   const primaryColor = theme.primaryColor || '#6C5CE7';
+  const textColor = theme.textColor || '#2D3436';
   const themeVars = {
     '--form-primary': primaryColor,
     '--form-bg': formBg,
-    '--form-text': theme.textColor || '#2D3436',
+    '--form-text': textColor,
+    '--form-text-rgb': toRgbTriplet(textColor),
     '--form-font': theme.fontFamily || 'inherit',
     '--form-bg-accent': theme.accentColor || adjustColor(primaryColor, 40),
   };
@@ -334,7 +348,17 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   if (submitted) {
     return (
       <LocaleContext.Provider value={locale}>
-        <div className="form-renderer" style={themeVars} ref={containerRef}>
+        {/* Keeps the same shell as the question screens (custom CSS, `embedded` class and
+            animated background) so end-screen styling is themeable the same way. */}
+        <div className={`form-renderer ${embedded ? 'embedded' : ''}`} style={themeVars} ref={containerRef}>
+          {theme.customCss && <style>{theme.customCss}</style>}
+
+          {bgAnimation !== 'none' && BG_SHAPES[bgAnimation] && (
+            <div className={`form-bg-animation bg-${bgAnimation}`}>
+              {Array.from({ length: BG_SHAPES[bgAnimation] }, (_, i) => <span key={i} />)}
+            </div>
+          )}
+
           <div className="form-end-screen slide-in-forward">
             <div className="end-icon">&#10003;</div>
             <h2>{endScreen.title || locale.thankYou}</h2>
@@ -687,13 +711,13 @@ function AddressInput({ step, value, onChange }) {
         <div key={field.id || idx} style={{ marginTop: 12 }}>
           {field.type === 'text' && (
             <>
-              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: '#555' }}>{field.label}</label>
+              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--form-text)' }}>{field.label}</label>
               <input className="form-input" type="text" value={data[field.id] || ''} onChange={e => update(field.id, e.target.value)} />
             </>
           )}
           {field.type === 'dropdown' && (
             <>
-              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: '#555' }}>{field.label}</label>
+              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--form-text)' }}>{field.label}</label>
               <select className="form-input" value={data[field.id] || ''} onChange={e => update(field.id, e.target.value)}>
                 <option value="">{locale.addressSelect}</option>
                 {(field.options || '').split(',').map((opt, i) => (
@@ -704,7 +728,7 @@ function AddressInput({ step, value, onChange }) {
           )}
           {field.type === 'radio' && (
             <>
-              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: '#555' }}>{field.label}</label>
+              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--form-text)' }}>{field.label}</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {(field.options || '').split(',').map((opt, i) => (
                   <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
