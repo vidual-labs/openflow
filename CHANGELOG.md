@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.21.3] - 2026-08-04
+
+### Fixed
+- **The "press Enter" hint showed on click-only choice steps** — single choice, multiple choice, yes/no, rating and image select are answered by clicking an option, and the click already advances the step, so telling the visitor to press Enter was meaningless. The hint is now suppressed on any step that advances on the click itself. It still appears on choice steps that genuinely wait for the button — when **auto-advance is disabled** in the theme, or on a multiple-choice step with an "Other" free-text box — since Enter is the shortcut to continue there.
+- **Enter on a focused option button skipped the step instead of selecting** — the renderer's Enter handler ran on the bubbled keypress and called `preventDefault()`, which swallowed the button's own activation. Keyboard visitors tabbing through the options jumped forward without their answer being recorded. Enter aimed at a button or link now activates that element and is left alone.
+
 ## [0.21.2] - 2026-08-04
 
 ### Fixed

@@ -281,6 +281,10 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   function handleKeyDown(e) {
     if (e.key !== 'Enter') return;
+    // Enter on a focused button or link has to activate that element — a choice
+    // option, the Next button, a footer link. Advancing here instead would eat
+    // the keystroke and skip the step without recording the answer.
+    if (e.target.closest?.('button, a')) return;
     // Textareas need plain Enter for newlines; only advance on Ctrl/Cmd+Enter.
     if (step?.type === 'textarea' && !(e.metaKey || e.ctrlKey)) return;
     e.preventDefault();
@@ -318,11 +322,14 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const autoAdvances = step && AUTO_ADVANCE_FIELDS.includes(step.type)
     && !(step.type === 'multi-select' && step.allowOther);
 
+  // Whether picking an option is all the visitor has to do on this step.
+  const advancesOnClick = autoAdvances && !theme?.disableAutoAdvance;
+
   // Auto-advance for choice-based field types when answer is provided.
   // Capture the step index at schedule time and compare against the ref at
   // fire time so we don't advance if the user has already navigated away.
   useEffect(() => {
-    if (step && answers[step.id] !== undefined && !theme?.disableAutoAdvance && autoAdvances) {
+    if (step && answers[step.id] !== undefined && advancesOnClick) {
       const stepAtSchedule = currentStep;
       const timer = setTimeout(() => {
         if (currentStepRef.current === stepAtSchedule) next();
@@ -392,7 +399,12 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const enterKbdLabel = step?.type === 'textarea'
     ? (isMacPlatform ? '⌘ + Enter' : 'Ctrl + Enter')
     : 'Enter ↵';
-  const enterHint = showEnterHint ? (
+  // Steps answered by clicking an option advance on the click itself, so an
+  // "press Enter" hint is meaningless there — there is nothing to type and no
+  // button to reach. It stays for choice steps that do wait for the button
+  // (auto-advance turned off, or a multi-select with an "Other" box), where
+  // Enter really is the shortcut to continue.
+  const enterHint = showEnterHint && !advancesOnClick ? (
     <span className="form-enter-hint">
       {locale.enterHintBefore}<kbd>{enterKbdLabel}</kbd>{locale.enterHintAfter}
     </span>
