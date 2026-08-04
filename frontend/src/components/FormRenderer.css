@@ -336,10 +336,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 16px 24px;
   background: var(--form-bg, rgba(255, 255, 255, 0.9));
   border-top: 1px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.06);
   flex-shrink: 0;
+}
+
+/* Right-hand side of the footer: enter hint + next button */
+.form-nav-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .form-nav-btn {
@@ -543,6 +554,7 @@
 .form-inline-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 32px;
 }
@@ -551,6 +563,7 @@
 .form-below-input-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 24px;
 }
@@ -562,6 +575,17 @@
   font-size: 13px;
   color: rgba(var(--form-text-rgb, 45, 52, 54), 0.35);
   font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Touch devices have no physical keyboard, so the hint is useless there.
+   Keyed off pointer/hover, never viewport width: a media query inside an
+   iframe resolves against the iframe's own width, so a width rule would
+   also hide the hint in small desktop embeds where Enter does work. */
+@media (hover: none) and (pointer: coarse) {
+  .form-enter-hint {
+    display: none;
+  }
 }
 
 .form-enter-hint kbd {
@@ -882,6 +906,10 @@
   }
 
   .form-enter-hint {
-    display: none;
+    font-size: 12px;
+  }
+
+  .form-enter-hint kbd {
+    padding: 2px 6px;
   }
 }
