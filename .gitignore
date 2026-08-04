@@ -7,3 +7,5 @@ dist/
 *.log
 .DS_Store
 backend/data/.jwt_secret
+# Scheduled backups contain submissions and password hashes — never commit them
+backend/data/backups/
