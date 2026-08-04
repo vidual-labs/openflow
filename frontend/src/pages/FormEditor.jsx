@@ -901,6 +901,9 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
                   <OptionsTextarea options={step.options || []} onChange={onChange} />
                 )}
               </div>
+              {step.type === 'multi-select' && (
+                <OtherOptionEditor step={step} onChange={onChange} />
+              )}
               <PricingFilterEditor
                 pricingFilter={step.pricingFilter}
                 allSteps={allSteps}
@@ -1161,6 +1164,10 @@ function SubFieldEditor({ field, onChange, onChangeType }) {
         </div>
       )}
 
+      {field.type === 'multi-select' && (
+        <OtherOptionEditor step={field} onChange={onChange} />
+      )}
+
       <div style={{ display: 'flex', gap: 24, marginTop: 16 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
           <input type="checkbox" checked={field.required || false} onChange={e => onChange({ required: e.target.checked })} />
@@ -1418,6 +1425,50 @@ function OptionsTextarea({ options, onChange }) {
       }}
       placeholder={"Option 1\nOption 2\nOption 3"}
     />
+  );
+}
+
+/* ===========================
+   OtherOptionEditor - "Other" choice with a free-text box (multiple choice)
+   =========================== */
+function OtherOptionEditor({ step, onChange }) {
+  return (
+    <div style={{ marginTop: 12, padding: 16, background: '#f8f9fa', borderRadius: 10 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+        <input
+          type="checkbox"
+          checked={!!step.allowOther}
+          onChange={e => onChange({ allowOther: e.target.checked })}
+        />
+        Add an "Other" option with a free-text field
+      </label>
+      <p style={{ fontSize: 12, color: '#999', margin: '6px 0 0 24px' }}>
+        Optional for the visitor — they can pick it and type their own answer, which is
+        saved alongside the other selections.
+      </p>
+      {step.allowOther && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+          <div className="input-group">
+            <label>Option label</label>
+            <input
+              className="input"
+              value={step.otherLabel || ''}
+              onChange={e => onChange({ otherLabel: e.target.value })}
+              placeholder="Other"
+            />
+          </div>
+          <div className="input-group">
+            <label>Text field placeholder</label>
+            <input
+              className="input"
+              value={step.otherPlaceholder || ''}
+              onChange={e => onChange({ otherPlaceholder: e.target.value })}
+              placeholder="Please specify..."
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

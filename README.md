@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.20.0
+# 🌊 OpenFlow v0.21.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -152,7 +152,7 @@ openflow/
 | 🔢 Number | Numeric input with min/max | |
 | 📅 Date | Date picker | |
 | ☑️ Single Choice | Choose one option | ✓ |
-| ✅ Multiple Choice | Choose multiple options | |
+| ✅ Multiple Choice | Choose multiple options, optionally with an "Other" free-text field | |
 | 👍 Yes / No | Binary choice | ✓ |
 | ⭐ Rating | Star rating (configurable 3-10) | |
 | 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | ✓ |
