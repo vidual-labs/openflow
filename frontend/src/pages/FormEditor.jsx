@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';
+import { toRgbTriplet } from '../components/FormRenderer';
 import '../components/FormRenderer.css';
 
 // Field types sorted logically: question types first, then contact/data fields
@@ -75,7 +76,7 @@ export default function FormEditor() {
   }, [id]);
 
   if (loadError) return (
-    <div style={{ padding: 40, textAlign: 'center', color: '#E17055' }}>
+    <div style={{ padding: 40, textAlign: 'center', color: 'var(--danger)' }}>
       <p>{loadError}</p>
     </div>
   );
@@ -306,7 +307,7 @@ export default function FormEditor() {
                 />
                 Automatically open this URL when the form is submitted
               </label>
-              <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Opens in the top-level window, escaping the iframe if OpenFlow is embedded.</span>
+              <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Opens in the top-level window, escaping the iframe if OpenFlow is embedded.</span>
             </div>
           )}
         </div>
@@ -350,7 +351,7 @@ export default function FormEditor() {
                   <input type="color" value={form.theme?.accentColor || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, accentColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer', borderRadius: 8 }} />
                   <input className="input" value={form.theme?.accentColor || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, accentColor: e.target.value } })} placeholder="Auto" />
                 </div>
-                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Used for animated backgrounds. Auto-derived if empty.</span>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Used for animated backgrounds. Auto-derived if empty.</span>
               </div>
               <div className="input-group">
                 <label>Background Color</label>
@@ -428,7 +429,7 @@ export default function FormEditor() {
                   <option value="en">English</option>
                   <option value="de">Deutsch (German)</option>
                 </select>
-                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Sets the language for all built-in UI text shown to respondents.</span>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Sets the language for all built-in UI text shown to respondents.</span>
               </div>
               <div className="input-group">
                 <label>Button Position</label>
@@ -467,7 +468,7 @@ export default function FormEditor() {
                   />
                   Show "press Enter" hint next to button
                 </label>
-                <span style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'block' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 8, display: 'block' }}>
                   Displays a subtle keyboard shortcut hint next to the Next button (press Enter &#8629;, or Ctrl/&#8984; + Enter for long-text fields).
                 </span>
               </div>
@@ -482,7 +483,7 @@ export default function FormEditor() {
                   />
                   Automatically advance when answer is selected
                 </label>
-                <span style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'block' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 8, display: 'block' }}>
                   Auto-advance only works for choice-based fields (single choice, multiple choice, yes/no, rating, image select).
                 </span>
               </div>
@@ -494,7 +495,7 @@ export default function FormEditor() {
                   onChange={e => setForm({ ...form, theme: { ...form.theme, nextButtonLabel: e.target.value } })}
                   placeholder="Next"
                 />
-                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Leave blank to use the default "Next →"</span>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Leave blank to use the default "Next →"</span>
               </div>
               <div className="input-group">
                 <label>Submit Button Label</label>
@@ -504,7 +505,7 @@ export default function FormEditor() {
                   onChange={e => setForm({ ...form, theme: { ...form.theme, submitButtonLabel: e.target.value } })}
                   placeholder="Submit"
                 />
-                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Leave blank to use the default "Submit →"</span>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Leave blank to use the default "Submit →"</span>
               </div>
             </div>
           </div>
@@ -545,7 +546,7 @@ export default function FormEditor() {
               <div className="input-group">
                 <label>Logo URL</label>
                 <input className="input" value={form.theme?.logoUrl || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, logoUrl: e.target.value } })} placeholder="https://example.com/logo.png" />
-                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Recommended: max height 48px, PNG/SVG with transparent background</span>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Recommended: max height 48px, PNG/SVG with transparent background</span>
               </div>
               <div className="input-group">
                 <label>Logo Position</label>
@@ -566,7 +567,7 @@ export default function FormEditor() {
             {/* Preview */}
             {(form.theme?.logoUrl || form.theme?.headline) && (
               <div style={{ marginTop: 12, padding: 20, background: 'rgba(0,0,0,0.03)', borderRadius: 10, textAlign: form.theme?.logoPosition === 'left' ? 'left' : 'center' }}>
-                <span style={{ fontSize: 11, color: '#999', display: 'block', marginBottom: 8 }}>Preview:</span>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', display: 'block', marginBottom: 8 }}>Preview:</span>
                 {form.theme?.logoUrl && <img src={form.theme.logoUrl} alt="Logo" style={{ maxHeight: 48, marginBottom: 8 }} />}
                 {form.theme?.headline && <div style={{ fontSize: 18, fontWeight: 700 }}>{form.theme.headline}</div>}
                 {form.theme?.subline && <div style={{ fontSize: 14, color: 'var(--text-light)', marginTop: 4 }}>{form.theme.subline}</div>}
@@ -619,7 +620,7 @@ export default function FormEditor() {
           {/* GTM */}
           <div className="card">
             <h3 style={{ marginBottom: 4 }}>Google Tag Manager</h3>
-            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
+            <p style={{ color: 'var(--text-light)', fontSize: 13, marginBottom: 16 }}>
               GTM is injected automatically when this form is viewed. Events are pushed to the dataLayer on each step change and on submit.
             </p>
             <div className="input-group">
@@ -627,9 +628,9 @@ export default function FormEditor() {
               <input className="input" value={form.gtm_id || ''} onChange={e => setForm({ ...form, gtm_id: e.target.value })} placeholder="GTM-XXXXXXX" style={{ maxWidth: 300 }} />
             </div>
             {form.gtm_id && (
-              <div style={{ padding: 12, background: '#f0f9f4', borderRadius: 8, fontSize: 13 }}>
+              <div style={{ padding: 12, background: 'rgba(0, 184, 148, 0.12)', borderRadius: 8, fontSize: 13 }}>
                 <strong>Events fired:</strong>
-                <ul style={{ margin: '8px 0 0 16px', color: '#636E72' }}>
+                <ul style={{ margin: '8px 0 0 16px', color: 'var(--text-light)' }}>
                   <li><code>openflow_step</code> — on each step change (formId, stepIndex, stepId)</li>
                   <li><code>openflow_submit</code> — on form submission (formId, formTitle)</li>
                 </ul>
@@ -640,7 +641,7 @@ export default function FormEditor() {
           {/* GDPR Consent */}
           <div className="card">
             <h3 style={{ marginBottom: 4 }}>GDPR / Submission Consent</h3>
-            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
+            <p style={{ color: 'var(--text-light)', fontSize: 13, marginBottom: 16 }}>
               When enabled, a consent checkbox is automatically shown on the last step of the form before submission.
             </p>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 600, marginBottom: 16, cursor: 'pointer' }}>
@@ -669,7 +670,7 @@ export default function FormEditor() {
           {/* Cookie / Tracking Consent Banner */}
           <div className="card">
             <h3 style={{ marginBottom: 4 }}>Cookie / Tracking Consent Banner</h3>
-            <p style={{ color: '#636E72', fontSize: 13, marginBottom: 16 }}>
+            <p style={{ color: 'var(--text-light)', fontSize: 13, marginBottom: 16 }}>
               When enabled, a cookie banner is shown to visitors <strong>before</strong> Google Tag Manager is loaded.
               GTM only fires after the visitor accepts. Consent is stored in the browser so the banner does not re-appear on subsequent visits.
             </p>
@@ -684,7 +685,7 @@ export default function FormEditor() {
               Show cookie consent banner before loading GTM
             </label>
             {!form.gtm_id && (
-              <p style={{ fontSize: 13, color: '#E17055', marginBottom: 8 }}>A GTM Container ID must be set above to use this feature.</p>
+              <p style={{ fontSize: 13, color: 'var(--danger)', marginBottom: 8 }}>A GTM Container ID must be set above to use this feature.</p>
             )}
             {form.end_screen?.cookieConsentEnabled && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -731,7 +732,7 @@ export default function FormEditor() {
       {activeTab === 'embed' && (
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>Embed Form</h3>
-          <p style={{ color: '#636E72', marginBottom: 24, fontSize: 14 }}>
+          <p style={{ color: 'var(--text-light)', marginBottom: 24, fontSize: 14 }}>
             Copy the code and paste it into your landing page.
           </p>
 
@@ -776,7 +777,7 @@ window.addEventListener('message', function(e) {
               Open Preview
             </a>
           ) : (
-            <p style={{ color: '#E67E22', fontSize: 14 }}>Publish the form to embed it.</p>
+            <p style={{ color: 'var(--warning)', fontSize: 14 }}>Publish the form to embed it.</p>
           )}
         </div>
       )}
@@ -928,7 +929,7 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
               <div className="input-group">
                 <label>Accepted File Types</label>
                 <input className="input" value={step.accept || '.pdf,.jpg,.png,.doc,.docx'} onChange={e => onChange({ accept: e.target.value })} placeholder=".pdf,.jpg,.png" />
-                <span style={{ fontSize: 11, color: '#999', marginTop: 4, display: 'block' }}>Comma-separated extensions</span>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Comma-separated extensions</span>
               </div>
               <div className="input-group">
                 <label>Max File Size (MB)</label>
@@ -939,14 +940,14 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
 
           {/* Address sub-fields config */}
           {step.type === 'address' && (
-            <div style={{ marginTop: 12, padding: 16, background: '#f8f9fa', borderRadius: 10 }}>
-              <p style={{ fontSize: 13, color: '#636E72', marginBottom: 8 }}>
+            <div style={{ marginTop: 12, padding: 16, background: 'var(--panel)', borderRadius: 10 }}>
+              <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 8 }}>
                 This field automatically collects: <strong>Street</strong>, <strong>Postal Code</strong>, <strong>City</strong>, and optionally <strong>Country</strong>.
               </p>
 
               {/* Custom placeholder labels for core sub-fields */}
               <div style={{ marginBottom: 12 }}>
-                <p style={{ fontSize: 13, color: '#636E72', marginBottom: 8 }}>Field labels (leave blank to use defaults):</p>
+                <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 8 }}>Field labels (leave blank to use defaults):</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <input className="input" value={(step.addressLabels || {}).street || ''} onChange={e => onChange({ addressLabels: { ...(step.addressLabels || {}), street: e.target.value } })} placeholder="Street and house number *" />
                   <input className="input" value={(step.addressLabels || {}).postalCode || ''} onChange={e => onChange({ addressLabels: { ...(step.addressLabels || {}), postalCode: e.target.value } })} placeholder="Postal code *" />
@@ -962,9 +963,9 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
 
               {/* Custom fields */}
               <div style={{ marginTop: 16 }}>
-                <p style={{ fontSize: 13, color: '#636E72', marginBottom: 8 }}>Custom sub-fields:</p>
+                <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 8 }}>Custom sub-fields:</p>
                 {(step.customFields || []).map((field, idx) => (
-                  <div key={idx} style={{ background: '#fff', padding: 12, borderRadius: 8, marginBottom: 8, border: '1px solid #e0e0e0' }}>
+                  <div key={idx} style={{ background: 'var(--panel-alt)', padding: 12, borderRadius: 8, marginBottom: 8, border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                       <select className="input" value={field.type} onChange={e => {
                         const updated = [...(step.customFields || [])];
@@ -1266,11 +1267,11 @@ function SlugEditor({ form, onUpdated, baseUrl }) {
       </div>
       <div style={{ marginTop: 6, minHeight: 18, fontSize: 12 }}>
         {displayError ? (
-          <span style={{ color: '#E17055' }}>{displayError}</span>
+          <span style={{ color: 'var(--danger)' }}>{displayError}</span>
         ) : saved ? (
-          <span style={{ color: '#00B894' }}>URL updated. The previous URL will redirect to the new one.</span>
+          <span style={{ color: 'var(--success)' }}>URL updated. The previous URL will redirect to the new one.</span>
         ) : (
-          <span style={{ color: '#999' }}>Lowercase letters, digits and hyphens. 3–60 characters.</span>
+          <span style={{ color: 'var(--text-light)' }}>Lowercase letters, digits and hyphens. 3–60 characters.</span>
         )}
       </div>
     </div>
@@ -1374,19 +1375,19 @@ function SubdomainEditor({ form, primaryHost, onUpdated }) {
       </div>
       <div style={{ marginTop: 6, minHeight: 18, fontSize: 12 }}>
         {displayError ? (
-          <span style={{ color: '#E17055' }}>{displayError}</span>
+          <span style={{ color: 'var(--danger)' }}>{displayError}</span>
         ) : saved ? (
-          <span style={{ color: '#00B894' }}>
+          <span style={{ color: 'var(--success)' }}>
             {trimmed ? `Your form is now reachable at https://${trimmed}.${primaryHost}` : 'Custom subdomain removed.'}
           </span>
         ) : current ? (
-          <span style={{ color: '#999' }}>
+          <span style={{ color: 'var(--text-light)' }}>
             Live at <a href={`https://${current}.${primaryHost}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
               https://{current}.{primaryHost}
             </a>. Publish the form for it to be reachable.
           </span>
         ) : (
-          <span style={{ color: '#999' }}>
+          <span style={{ color: 'var(--text-light)' }}>
             Serve this form at its own subdomain of <code>{primaryHost}</code>. Requires a wildcard DNS record to be configured by the operator.
           </span>
         )}
@@ -1433,7 +1434,7 @@ function OptionsTextarea({ options, onChange }) {
    =========================== */
 function OtherOptionEditor({ step, onChange }) {
   return (
-    <div style={{ marginTop: 12, padding: 16, background: '#f8f9fa', borderRadius: 10 }}>
+    <div style={{ marginTop: 12, padding: 16, background: 'var(--panel)', borderRadius: 10 }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
         <input
           type="checkbox"
@@ -1442,7 +1443,7 @@ function OtherOptionEditor({ step, onChange }) {
         />
         Add an "Other" option with a free-text field
       </label>
-      <p style={{ fontSize: 12, color: '#999', margin: '6px 0 0 24px' }}>
+      <p style={{ fontSize: 12, color: 'var(--text-light)', margin: '6px 0 0 24px' }}>
         Optional for the visitor — they can pick it and type their own answer, which is
         saved alongside the other selections.
       </p>
@@ -1504,7 +1505,7 @@ function ImageSelectEditor({ options, onChange }) {
 
   return (
     <div style={{ marginTop: 12 }}>
-      <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: 13, color: '#555' }}>
+      <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: 13, color: 'var(--text-light)' }}>
         Options
       </label>
 
@@ -1515,14 +1516,14 @@ function ImageSelectEditor({ options, onChange }) {
           return (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-              background: '#f8f9fa', borderRadius: 10, border: '1px solid #e8e8e8',
+              background: 'var(--panel)', borderRadius: 10, border: '1px solid var(--border)',
             }}>
               {/* Icon/Emoji display + picker trigger */}
               <button
                 onClick={() => setShowEmojiPicker(showEmojiPicker === i ? null : i)}
                 style={{
                   width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 24, border: '2px dashed #ccc', borderRadius: 10, background: 'white', cursor: 'pointer',
+                  fontSize: 24, border: '2px dashed var(--border)', borderRadius: 10, background: 'var(--panel-alt)', cursor: 'pointer',
                   transition: 'all 0.15s',
                   ...(showEmojiPicker === i ? { borderColor: 'var(--primary, #6C5CE7)', background: 'rgba(108,92,231,0.05)' } : {}),
                 }}
@@ -1676,7 +1677,7 @@ function PricingOptionsEditor({ options, onChange }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 28px', gap: 6, fontSize: 12, color: '#888', marginBottom: 2 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 28px', gap: 6, fontSize: 12, color: 'var(--text-light)', marginBottom: 2 }}>
         <span>Option label</span>
         <span>Max value</span>
         <span />
@@ -1703,7 +1704,7 @@ function PricingOptionsEditor({ options, onChange }) {
         </div>
       ))}
       <button className="btn btn-secondary btn-sm" onClick={addOption} style={{ marginTop: 4, alignSelf: 'flex-start' }}>+ Add option</button>
-      <p style={{ fontSize: 11, color: '#999', margin: '4px 0 0' }}>
+      <p style={{ fontSize: 11, color: 'var(--text-light)', margin: '4px 0 0' }}>
         Set the upper bound for each option. Options whose ceiling falls below the calculated minimum (quantity × rate) will be hidden.
       </p>
     </div>
@@ -1730,18 +1731,18 @@ function PricingFilterEditor({ pricingFilter, allSteps, currentStepId, options, 
   }
 
   return (
-    <div style={{ marginTop: 12, padding: 14, background: '#fafafa', borderRadius: 10, border: '1px solid #eee' }}>
+    <div style={{ marginTop: 12, padding: 14, background: 'var(--panel)', borderRadius: 10, border: '1px solid var(--border)' }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
         <input type="checkbox" checked={enabled} onChange={toggle} />
         Flat-rate Pricing Filter
       </label>
       {enabled && pricingFilter && (
         <div style={{ marginTop: 10 }}>
-          <p style={{ fontSize: 12, color: '#636E72', marginBottom: 10 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-light)', marginBottom: 10 }}>
             Automatically hide options whose maximum value falls below <em>quantity × rate</em>. Useful any time a choice depends on a calculated minimum (e.g. price per person, price per item).
           </p>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: '#636E72' }}>Quantity field</span>
+            <span style={{ fontSize: 13, color: 'var(--text-light)' }}>Quantity field</span>
             <select
               className="input"
               value={pricingFilter.field || ''}
@@ -1753,7 +1754,7 @@ function PricingFilterEditor({ pricingFilter, allSteps, currentStepId, options, 
                 <option key={s.id} value={s.id}>{s.label || s.question || s.id}</option>
               ))}
             </select>
-            <span style={{ fontSize: 13, color: '#636E72' }}>× rate</span>
+            <span style={{ fontSize: 13, color: 'var(--text-light)' }}>× rate</span>
             <input
               className="input"
               type="number"
@@ -1762,7 +1763,7 @@ function PricingFilterEditor({ pricingFilter, allSteps, currentStepId, options, 
               onChange={e => onChange({ ...pricingFilter, rate: Number(e.target.value) || 40 })}
               style={{ width: 80, padding: '6px 10px', fontSize: 13 }}
             />
-            <span style={{ fontSize: 13, color: '#636E72' }}>per unit</span>
+            <span style={{ fontSize: 13, color: 'var(--text-light)' }}>per unit</span>
           </div>
         </div>
       )}
@@ -1823,12 +1824,12 @@ function EmojiPicker({ activeCategory, onCategoryChange, onSelect, onClose }) {
 
   return (
     <div ref={ref} style={{
-      marginTop: 8, border: '1px solid #e0e0e0', borderRadius: 12, background: 'white',
+      marginTop: 8, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--panel-alt)',
       boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflow: 'hidden', maxWidth: 420,
     }}>
       {/* Category tabs */}
       <div style={{
-        display: 'flex', gap: 0, overflowX: 'auto', borderBottom: '1px solid #eee',
+        display: 'flex', gap: 0, overflowX: 'auto', borderBottom: '1px solid var(--border)',
         padding: '0 4px',
       }}>
         {Object.keys(EMOJI_CATEGORIES).map(cat => (
@@ -1885,6 +1886,7 @@ function ThemePreview({ theme }) {
     '--form-primary': primaryColor,
     '--form-bg': bgColor,
     '--form-text': textColor,
+    '--form-text-rgb': toRgbTriplet(textColor),
     '--form-bg-accent': accentColor,
   };
 
