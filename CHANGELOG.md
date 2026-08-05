@@ -2,6 +2,16 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.22.0] - 2026-08-05
+
+### Added
+- **Number steps got a stepper with large +/− buttons and an optional start value** — the number field was a bare `<input type="number">`, so the only way to answer was to type, or to aim at the browser's tiny native spinner arrows. It now renders thumb-sized **+** and **−** buttons either side of the value, which respect the step's **Min** and **Max** and disable themselves at either bound. Two new settings sit next to Min/Max in the editor: **Step size**, how much one click moves the number, and **Start value**, an optional prefill for questions where 0 or 1 is an unlikely answer ("how many guests?") — the field opens on that number, so the visitor is a few clicks from the right one instead of starting from an empty box. The prefilled value is a real answer from the first moment: it is submitted even if the visitor never touches the step, and the flat-rate pricing filter can already act on it. A **Hide the +/− buttons** toggle restores the plain input for steps where typing is the point.
+- **Date steps now show a calendar from the start, and can ask for a timeframe** — the date field used to be an `<input type="date">` that hid its calendar behind a small native icon and looked different in every browser. The step now renders an inline calendar that is visible the moment the visitor arrives. A new **Selection mode** setting decides what the step asks for: **Single day**, or a **Date range (from – to)**, where the first click sets the start, the second the end, and the days in between are highlighted as one band. Range steps show two months side by side on wide screens and one on narrow ones. The window of selectable days can be limited with **Earliest date**, **Latest date** and a **Don't allow dates in the past** toggle. Month and weekday names follow the form's language, including whether the week starts on Monday or Sunday.
+  A single day is still stored as `2026-08-10`, exactly as before, so existing date steps and everything reading their answers are unaffected. A range is stored as one string, `2026-08-10 – 2026-08-14`, which means CSV export, webhooks, e-mail notifications, Google Sheets and the lodgely connector need no changes. Picking a start but no end is caught with its own message rather than passing as a finished answer.
+
+### Fixed
+- **Typing `0` into a number step blanked the field** — the value was rendered with `value || ''`, and `0` is falsy, so a legitimate zero erased itself as soon as it was entered. The same falsy check also hid a configured **Min** of `0` in the editor.
+
 ## [0.21.3] - 2026-08-04
 
 ### Fixed

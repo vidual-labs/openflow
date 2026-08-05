@@ -227,6 +227,234 @@
   border-color: var(--form-primary, #6C5CE7);
 }
 
+/* Number stepper — big, thumb-sized +/- buttons flanking the value */
+.form-number-stepper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  /* Keep the buttons within reach of the number instead of at the page edges */
+  max-width: 420px;
+}
+
+.form-stepper-btn {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  border: 2px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.15);
+  background: transparent;
+  color: var(--form-text, #2D3436);
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.form-stepper-btn:hover:not(:disabled) {
+  border-color: var(--form-primary, #6C5CE7);
+  background: rgba(var(--form-primary-rgb, 108, 92, 231), 0.08);
+  color: var(--form-primary, #6C5CE7);
+}
+
+.form-stepper-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.form-stepper-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-stepper-value .form-input {
+  text-align: center;
+}
+
+/* Native spinner arrows are redundant next to the big buttons, and too small to hit */
+.form-stepper-value .form-input::-webkit-outer-spin-button,
+.form-stepper-value .form-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.form-stepper-value .form-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@media (max-width: 400px) {
+  .form-stepper-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 26px;
+  }
+}
+
+/* Inline calendar (date field) */
+.form-calendar {
+  position: relative;
+  padding-top: 4px;
+}
+
+/* The nav arrows overlay the month title row so they sit on either side of it,
+   whether one or two months are visible. */
+.form-calendar-header {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.form-calendar-nav {
+  pointer-events: auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--form-text, #2D3436);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.form-calendar-nav:hover:not(:disabled) {
+  background: rgba(var(--form-text-rgb, 45, 52, 54), 0.08);
+}
+
+.form-calendar-nav:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.form-calendar-months {
+  display: flex;
+  gap: 32px;
+}
+
+.form-calendar-month {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-calendar-title {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--form-text, #2D3436);
+}
+
+.form-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  /* No gap: the in-range band has to run unbroken from one day to the next */
+  gap: 0;
+  margin-top: 8px;
+}
+
+.form-calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding-bottom: 6px;
+  color: rgba(var(--form-text-rgb, 45, 52, 54), 0.5);
+}
+
+.form-calendar-day {
+  aspect-ratio: 1;
+  min-height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--form-text, #2D3436);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.form-calendar-day:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 2px var(--form-primary, #6C5CE7);
+}
+
+.form-calendar-day:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* The ends of a range are square-cornered so the band joins up, which would give them
+   a square hover ring — they are already filled, so drop the ring entirely. */
+.form-calendar-day.selected:hover {
+  box-shadow: none;
+}
+
+.form-calendar-day.in-range {
+  background: rgba(var(--form-primary-rgb, 108, 92, 231), 0.14);
+  border-radius: 0;
+}
+
+.form-calendar-day.selected {
+  background: var(--form-primary, #6C5CE7);
+  color: #fff;
+}
+
+/* Each end keeps its filled circle (the radial gradient, painted first so it sits on
+   top) while the half of the cell facing the range carries the tint band, so the
+   selection reads as one continuous stretch. */
+.form-calendar-day.range-start,
+.form-calendar-day.range-end {
+  border-radius: 0;
+}
+
+.form-calendar-day.range-start {
+  background:
+    radial-gradient(circle at center, var(--form-primary, #6C5CE7) 62%, transparent 63%),
+    linear-gradient(to right, transparent 50%, rgba(var(--form-primary-rgb, 108, 92, 231), 0.14) 50%);
+}
+
+.form-calendar-day.range-end {
+  background:
+    radial-gradient(circle at center, var(--form-primary, #6C5CE7) 62%, transparent 63%),
+    linear-gradient(to left, transparent 50%, rgba(var(--form-primary-rgb, 108, 92, 231), 0.14) 50%);
+}
+
+.form-calendar-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.12);
+  font-size: 15px;
+  color: var(--form-text, #2D3436);
+}
+
+.form-calendar-clear {
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  font-size: 14px;
+  color: var(--form-primary, #6C5CE7);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Two months side by side need the width; below that, show only the first */
+@media (max-width: 640px) {
+  .form-calendar-months > .form-calendar-month:nth-child(2) {
+    display: none;
+  }
+}
+
 /* Options (Select / Multi-Select) */
 .form-options {
   display: flex;

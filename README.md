@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.21.3
+# 🌊 OpenFlow v0.22.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -10,6 +10,8 @@
 ### 🎯 Form Builder
 - **Multi-Step Forms** — Typeform-style one-question-at-a-time experience with smooth animations
 - **15 Field Types** — Short Text, Long Text, Number, Date, Single Choice, Multiple Choice, Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Address, Consent/GDPR
+- **Number Stepper** — Large +/− buttons with a configurable step size and an optional prefilled start value, for quantity questions where 0 or 1 is an unlikely answer
+- **Inline Date Picker** — An always-visible calendar per date step, set to either a single day or a date range (from – to), with selectable-window limits and localized month/weekday names
 - **Conditional Logic** — Show/hide steps based on previous answers (equals, contains, is set, etc.)
 - **Smart Defaults** — Selecting a field type auto-fills question, label, and placeholder
 - **Visual Editor** — Collapsible question cards, reorder, visual field type picker with icons

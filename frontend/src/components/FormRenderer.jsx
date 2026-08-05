@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import './FormRenderer.css';
 import { LOCALES } from '../locales';
+import { flattenFields } from '../utils/steps';
 
 const LocaleContext = createContext(LOCALES.en);
 function useLocale() { return useContext(LocaleContext); }
@@ -48,6 +49,42 @@ const FIELD_TYPES = {
   'file-upload': FileUploadInput,
 };
 
+// A date range is stored as one plain string, "2026-08-10 – 2026-08-14". Keeping it a
+// string means CSV export, webhooks, the e-mail table, Google Sheets and the lodgely
+// connector need no special handling — an object would reach them as "[object Object]".
+// A single day, and a range whose end isn't picked yet, stay a bare "2026-08-10".
+const DATE_RANGE_SEPARATOR = ' – ';
+
+export function formatDateRange(start, end) {
+  if (!start) return '';
+  return end ? `${start}${DATE_RANGE_SEPARATOR}${end}` : start;
+}
+
+export function parseDateValue(value) {
+  const [start = '', end = ''] = String(value || '').split(DATE_RANGE_SEPARATOR);
+  return { start, end };
+}
+
+// Empty string, null, undefined and unparseable text all mean "no number here"; only a
+// real, finite number comes back. Notably 0 survives, where a falsy check would drop it.
+function toNumberOrNull(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+// Seed the answers state from the fields' configured default values, so a prefilled
+// number is visible on arrival, is submitted even if the visitor never touches the
+// step, and is immediately available to the pricing filter and conditional logic.
+function initialAnswers(steps) {
+  const seeded = {};
+  for (const field of flattenFields(steps)) {
+    const preset = field?.type === 'number' ? toNumberOrNull(field.defaultValue) : null;
+    if (preset !== null) seeded[field.id] = String(preset);
+  }
+  return seeded;
+}
+
 // Validate a single field's value. Returns an error string, or null if valid.
 // Shared by normal steps and the sub-fields of a combined "group" step.
 function validateField(field, value, locale) {
@@ -57,6 +94,11 @@ function validateField(field, value, locale) {
   if (field.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return locale.errorEmail;
   if (field.type === 'website' && value && !/^https?:\/\/.+\..+/.test(value)) return locale.errorUrl;
   if (field.type === 'consent' && field.required && !value) return locale.errorConsent;
+  // A half-picked range ("2026-08-10" with no end) is a valid-looking answer that isn't
+  // finished, so it has to be caught on optional steps too — `required` never sees it.
+  if (field.type === 'date' && field.dateMode === 'range' && value && !parseDateValue(value).end) {
+    return locale.errorDateRangeEnd;
+  }
   if ((field.type === 'address' || field.type === 'contact') && field.required) {
     const c = value || {};
     if (!c.street || !c.postalCode || !c.city) return locale.errorAddress;
@@ -139,7 +181,7 @@ const BG_SHAPES = { waves: 3, bubbles: 4, aurora: 3, particles: 6, flow: 4 };
 
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState(() => initialAnswers(form.steps));
   const [consentGiven, setConsentGiven] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -188,6 +230,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const textColor = theme.textColor || '#2D3436';
   const themeVars = {
     '--form-primary': primaryColor,
+    '--form-primary-rgb': toRgbTriplet(primaryColor, '108, 92, 231'),
     '--form-bg': formBg,
     '--form-text': textColor,
     '--form-text-rgb': toRgbTriplet(textColor),
@@ -555,15 +598,214 @@ function TextareaInput({ step, value, onChange }) {
   );
 }
 
+// Note `value ?? ''` rather than `value || ''` throughout: a legitimate 0 is falsy and
+// used to blank the field out again the moment it was typed.
 function NumberInput({ step, value, onChange }) {
+  const min = toNumberOrNull(step.min);
+  const max = toNumberOrNull(step.max);
+  const fallback = toNumberOrNull(step.defaultValue);
+  const stepSize = Math.abs(Number(step.stepSize)) || 1;
+
+  const current = toNumberOrNull(value);
+  const atMin = min !== null && current !== null && current <= min;
+  const atMax = max !== null && current !== null && current >= max;
+
+  function clamp(n) {
+    if (min !== null && n < min) return min;
+    if (max !== null && n > max) return max;
+    return n;
+  }
+
+  // The first press on an empty field lands on the configured default, else the minimum,
+  // else zero — so +/- is useful even when nothing is prefilled.
+  function nudge(delta) {
+    if (current === null) { onChange(String(clamp(fallback ?? min ?? 0))); return; }
+    onChange(String(clamp(current + delta)));
+  }
+
+  const input = (
+    <input
+      className="form-input"
+      type="number"
+      placeholder={step.placeholder || '0'}
+      value={value ?? ''}
+      onChange={e => onChange(e.target.value)}
+      min={min ?? undefined}
+      max={max ?? undefined}
+      autoFocus
+    />
+  );
+
+  if (step.hideStepper) return input;
+
   return (
-    <input className="form-input" type="number" placeholder={step.placeholder || '0'} value={value || ''} onChange={e => onChange(e.target.value)} min={step.min} max={step.max} autoFocus />
+    <div className="form-number-stepper">
+      <button type="button" className="form-stepper-btn" onClick={() => nudge(-stepSize)} disabled={atMin} aria-label={`−${stepSize}`}>−</button>
+      <div className="form-stepper-value">{input}</div>
+      <button type="button" className="form-stepper-btn" onClick={() => nudge(stepSize)} disabled={atMax} aria-label={`+${stepSize}`}>+</button>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   Calendar — an always-visible month grid, hand-rolled so the form pulls in no
+   date library. Dates are handled as plain "YYYY-MM-DD" strings and as
+   {y, m, d} parts; no Date objects cross a timezone boundary, so a day never
+   shifts for visitors west of UTC.
+--------------------------------------------------------------------------- */
+
+function toISO(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function todayISO() {
+  const now = new Date();
+  return toISO(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function daysInMonth(y, m) {
+  return new Date(y, m + 1, 0).getDate();
+}
+
+function addMonths(y, m, delta) {
+  const total = y * 12 + m + delta;
+  return { y: Math.floor(total / 12), m: ((total % 12) + 12) % 12 };
+}
+
+function CalendarMonth({ y, m, locale, isDisabled, dayState, onPick, onHover }) {
+  const weekStart = locale.weekStartsOn || 0;
+  const weekdays = Array.from({ length: 7 }, (_, i) => locale.weekdayShort[(weekStart + i) % 7]);
+  // Blank cells before the 1st, so the first day lands under its weekday column.
+  const lead = (new Date(y, m, 1).getDay() - weekStart + 7) % 7;
+  const total = daysInMonth(y, m);
+
+  return (
+    <div className="form-calendar-month">
+      <div className="form-calendar-title">{locale.monthNames[m]} {y}</div>
+      <div className="form-calendar-grid">
+        {weekdays.map(w => <div key={w} className="form-calendar-weekday">{w}</div>)}
+        {Array.from({ length: lead }, (_, i) => <div key={`pad${i}`} />)}
+        {Array.from({ length: total }, (_, i) => {
+          const day = i + 1;
+          const iso = toISO(y, m, day);
+          const disabled = isDisabled(iso);
+          return (
+            <button
+              key={iso}
+              type="button"
+              className={`form-calendar-day ${dayState(iso)}`}
+              disabled={disabled}
+              onClick={() => onPick(iso)}
+              onMouseEnter={() => onHover?.(iso)}
+              aria-label={locale.dateDisplay(day, locale.monthNames[m], y)}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
 function DateInput({ step, value, onChange }) {
+  const locale = useLocale();
+  const isRange = step.dateMode === 'range';
+  const { start, end } = parseDateValue(value);
+
+  const minDate = step.disablePast
+    ? (step.minDate && step.minDate > todayISO() ? step.minDate : todayISO())
+    : (step.minDate || '');
+  const maxDate = step.maxDate || '';
+
+  // Open on the month of the current answer, else the first month the visitor may pick.
+  const anchor = start || minDate || todayISO();
+  const [view, setView] = useState(() => ({ y: Number(anchor.slice(0, 4)), m: Number(anchor.slice(5, 7)) - 1 }));
+  const [hovered, setHovered] = useState('');
+
+  const months = isRange ? [view, addMonths(view.y, view.m, 1)] : [view];
+
+  function isDisabled(iso) {
+    if (minDate && iso < minDate) return true;
+    if (maxDate && iso > maxDate) return true;
+    return false;
+  }
+
+  // The second visible month is what bounds "next" in range mode, so the arrow greys out
+  // only once there is genuinely nothing left to show.
+  const lastVisible = months[months.length - 1];
+  const prevDisabled = !!minDate && toISO(view.y, view.m, 1) <= minDate;
+  const nextDisabled = !!maxDate && toISO(lastVisible.y, lastVisible.m, daysInMonth(lastVisible.y, lastVisible.m)) >= maxDate;
+
+  function dayState(iso) {
+    if (!isRange) return iso === start ? 'selected' : '';
+    if (iso === start) return end || hovered > start ? 'selected range-start' : 'selected';
+    if (iso === end) return 'selected range-end';
+    const rangeEnd = end || (start && hovered > start ? hovered : '');
+    if (start && rangeEnd && iso > start && iso < rangeEnd) return 'in-range';
+    return '';
+  }
+
+  function pick(iso) {
+    if (!isRange) { onChange(iso); return; }
+    // A complete range restarts on the next click; a click at or before the start
+    // moves the start there rather than producing a backwards range.
+    if (!start || end || iso <= start) onChange(formatDateRange(iso, ''));
+    else onChange(formatDateRange(start, iso));
+  }
+
+  function label(iso) {
+    if (!iso) return '—';
+    const y = Number(iso.slice(0, 4));
+    const m = Number(iso.slice(5, 7)) - 1;
+    return locale.dateDisplay(Number(iso.slice(8, 10)), locale.monthNames[m], y);
+  }
+
   return (
-    <input className="form-input" type="date" value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
+    <div className="form-calendar" onMouseLeave={() => setHovered('')}>
+      <div className="form-calendar-header">
+        <button
+          type="button"
+          className="form-calendar-nav"
+          onClick={() => setView(addMonths(view.y, view.m, -1))}
+          disabled={prevDisabled}
+          aria-label={locale.datePrevMonth}
+        >‹</button>
+        <button
+          type="button"
+          className="form-calendar-nav"
+          onClick={() => setView(addMonths(view.y, view.m, 1))}
+          disabled={nextDisabled}
+          aria-label={locale.dateNextMonth}
+        >›</button>
+      </div>
+
+      <div className="form-calendar-months">
+        {months.map(({ y, m }) => (
+          <CalendarMonth
+            key={`${y}-${m}`}
+            y={y}
+            m={m}
+            locale={locale}
+            isDisabled={isDisabled}
+            dayState={dayState}
+            onPick={pick}
+            onHover={isRange ? setHovered : undefined}
+          />
+        ))}
+      </div>
+
+      {(start || end) && (
+        <div className="form-calendar-summary">
+          {isRange ? (
+            <span><strong>{locale.dateFrom}:</strong> {label(start)} · <strong>{locale.dateTo}:</strong> {label(end)}</span>
+          ) : (
+            <span>{label(start)}</span>
+          )}
+          <button type="button" className="form-calendar-clear" onClick={() => onChange('')}>{locale.dateClear}</button>
+        </div>
+      )}
+    </div>
   );
 }
 
