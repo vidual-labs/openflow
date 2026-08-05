@@ -1011,18 +1011,66 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
             </div>
           )}
 
-          {/* Number min/max */}
+          {/* Number range, stepper size and prefilled start value */}
           {step.type === 'number' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
-              <div className="input-group">
-                <label>Min</label>
-                <input className="input" type="number" value={step.min || ''} onChange={e => onChange({ min: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="No minimum" />
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+                <div className="input-group">
+                  <label>Min</label>
+                  <input className="input" type="number" value={step.min ?? ''} onChange={e => onChange({ min: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="No minimum" />
+                </div>
+                <div className="input-group">
+                  <label>Max</label>
+                  <input className="input" type="number" value={step.max ?? ''} onChange={e => onChange({ max: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="No maximum" />
+                </div>
               </div>
-              <div className="input-group">
-                <label>Max</label>
-                <input className="input" type="number" value={step.max || ''} onChange={e => onChange({ max: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="No maximum" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+                <div className="input-group">
+                  <label>Step size</label>
+                  <input className="input" type="number" min={1} value={step.stepSize ?? ''} onChange={e => onChange({ stepSize: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="1" />
+                  <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>How much one +/&minus; click changes the number.</span>
+                </div>
+                <div className="input-group">
+                  <label>Start value</label>
+                  <input className="input" type="number" value={step.defaultValue ?? ''} onChange={e => onChange({ defaultValue: e.target.value !== '' ? parseInt(e.target.value) : undefined })} placeholder="Empty" />
+                  <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>The field starts at this value, so the visitor only needs a few clicks to adjust it. Useful when 0 or 1 is an unlikely answer. Leave empty to start blank.</span>
+                </div>
               </div>
-            </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginTop: 12 }}>
+                <input type="checkbox" checked={step.hideStepper || false} onChange={e => onChange({ hideStepper: e.target.checked })} />
+                Hide the +/&minus; buttons (plain input only)
+              </label>
+            </>
+          )}
+
+          {/* Date: single day vs. timeframe, plus the selectable window */}
+          {step.type === 'date' && (
+            <>
+              <div className="input-group" style={{ marginTop: 12 }}>
+                <label>Selection mode</label>
+                <select className="input" value={step.dateMode || 'single'} onChange={e => onChange({ dateMode: e.target.value })}>
+                  <option value="single">Single day</option>
+                  <option value="range">Date range (from &ndash; to)</option>
+                </select>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>
+                  A calendar is always visible on the step. In range mode the visitor picks a start and an end day, and the answer is stored as "2026-08-10 &ndash; 2026-08-14".
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+                <div className="input-group">
+                  <label>Earliest date</label>
+                  <input className="input" type="date" value={step.minDate || ''} onChange={e => onChange({ minDate: e.target.value || undefined })} />
+                </div>
+                <div className="input-group">
+                  <label>Latest date</label>
+                  <input className="input" type="date" value={step.maxDate || ''} onChange={e => onChange({ maxDate: e.target.value || undefined })} />
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginTop: 12 }}>
+                <input type="checkbox" checked={step.disablePast || false} onChange={e => onChange({ disablePast: e.target.checked })} />
+                Don't allow dates in the past
+              </label>
+            </>
           )}
 
           <div style={{ display: 'flex', gap: 24, marginTop: 16 }}>
