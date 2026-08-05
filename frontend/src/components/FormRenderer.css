@@ -897,6 +897,14 @@
   color: rgba(var(--form-text-rgb, 45, 52, 54), 0.35);
   font-weight: 500;
   white-space: nowrap;
+  /* The hint arrives when the answer does, so it fades in rather than blinking
+     into place beside a button that was already there. */
+  animation: hintFadeIn 0.3s ease-out;
+}
+
+@keyframes hintFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Touch devices have no physical keyboard, so the hint is useless there.

@@ -297,11 +297,13 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     return null;
   }
 
+  // Whether Enter would carry the visitor onwards from here. Until it would, a hint
+  // saying so is a lie — Enter reports what is missing instead — so every hint on
+  // the step waits for this.
+  const stepReady = !!step && !stepValidationError(step);
+
   const showInlineConsent = consentInline && isLastStep;
-  // The inline hint waits until the step's answers pass validation: until then Enter
-  // reports what is missing rather than finishing the form, and promising otherwise
-  // would be a lie. Filling in the last field is what makes it appear.
-  const inlineConsentReady = showInlineConsent && !!step && !stepValidationError(step);
+  const inlineConsentReady = showInlineConsent && stepReady;
 
   // `opts.agree` marks a keystroke as the affirmative act the consent asks for:
   // Enter ticks the box and submits, where the Submit button still wants the box
@@ -563,11 +565,16 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // click, so it is shown whether or not the form enables hints elsewhere —
   // without it the Enter path is invisible. CSS still hides it on touch devices,
   // where there is no keyboard and the box is tapped instead.
+  // Everywhere else the hint waits for the step to be ready to move on, the same
+  // rule the consent hint follows: it appears as the answer lands, which is the
+  // moment it becomes true, and repeating that on every step is what teaches the
+  // visitor that the whole form can be walked through on Enter alone. A step with
+  // nothing required is ready from the outset — Enter does move on from there.
   const enterHint = isConsentStep ? (
     <span className="form-enter-hint">
       {locale.consentEnterBefore}<kbd>Enter ↵</kbd>{locale.consentEnterAfter}
     </span>
-  ) : showEnterHint && !advancesOnClick ? (
+  ) : showEnterHint && !advancesOnClick && stepReady ? (
     <span className="form-enter-hint">
       {locale.enterHintBefore}<kbd>{enterKbdLabel}</kbd>{locale.enterHintAfter}
     </span>

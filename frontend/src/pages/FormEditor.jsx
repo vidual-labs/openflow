@@ -470,6 +470,7 @@ export default function FormEditor() {
                 </label>
                 <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 8, display: 'block' }}>
                   Displays a subtle keyboard shortcut hint next to the Next button (press Enter &#8629;, or Ctrl/&#8984; + Enter for long-text fields).
+                  It fades in on each step as soon as that step's answer is in, so visitors learn that the whole form can be walked through on Enter.
                 </span>
               </div>
               <div className="input-group">
