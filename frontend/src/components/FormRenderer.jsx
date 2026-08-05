@@ -763,46 +763,64 @@ function DateInput({ step, value, onChange }) {
 
   return (
     <div className="form-calendar" onMouseLeave={() => setHovered('')}>
-      <div className="form-calendar-header">
-        <button
-          type="button"
-          className="form-calendar-nav"
-          onClick={() => setView(addMonths(view.y, view.m, -1))}
-          disabled={prevDisabled}
-          aria-label={locale.datePrevMonth}
-        >‹</button>
-        <button
-          type="button"
-          className="form-calendar-nav"
-          onClick={() => setView(addMonths(view.y, view.m, 1))}
-          disabled={nextDisabled}
-          aria-label={locale.dateNextMonth}
-        >›</button>
+      {/* A bare grid of days doesn't say how many dates it wants — visitors on a range
+          step read it as "pick a day" and move on. The step's own description wins if
+          the builder wrote one. */}
+      {!step.description && (
+        <div className="form-calendar-hint">{isRange ? locale.dateHintRange : locale.dateHintSingle}</div>
+      )}
+      {/* The nav arrows pin to this box, not to the whole calendar, so the hint above
+          doesn't push them out of line with the month titles. */}
+      <div className="form-calendar-body">
+        <div className="form-calendar-header">
+          <button
+            type="button"
+            className="form-calendar-nav"
+            onClick={() => setView(addMonths(view.y, view.m, -1))}
+            disabled={prevDisabled}
+            aria-label={locale.datePrevMonth}
+          >‹</button>
+          <button
+            type="button"
+            className="form-calendar-nav"
+            onClick={() => setView(addMonths(view.y, view.m, 1))}
+            disabled={nextDisabled}
+            aria-label={locale.dateNextMonth}
+          >›</button>
+        </div>
+
+        <div className="form-calendar-months">
+          {months.map(({ y, m }) => (
+            <CalendarMonth
+              key={`${y}-${m}`}
+              y={y}
+              m={m}
+              locale={locale}
+              isDisabled={isDisabled}
+              dayState={dayState}
+              onPick={pick}
+              onHover={isRange ? setHovered : undefined}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="form-calendar-months">
-        {months.map(({ y, m }) => (
-          <CalendarMonth
-            key={`${y}-${m}`}
-            y={y}
-            m={m}
-            locale={locale}
-            isDisabled={isDisabled}
-            dayState={dayState}
-            onPick={pick}
-            onHover={isRange ? setHovered : undefined}
-          />
-        ))}
-      </div>
-
-      {(start || end) && (
+      {/* In range mode the From/To pair shows from the start, empty slots and all: two
+          labelled blanks are the clearest signal that two dates are wanted. */}
+      {(isRange || start) && (
         <div className="form-calendar-summary">
           {isRange ? (
-            <span><strong>{locale.dateFrom}:</strong> {label(start)} · <strong>{locale.dateTo}:</strong> {label(end)}</span>
+            <span>
+              <strong>{locale.dateFrom}:</strong> {label(start)}
+              {' · '}
+              <strong>{locale.dateTo}:</strong> {label(end)}
+            </span>
           ) : (
             <span>{label(start)}</span>
           )}
-          <button type="button" className="form-calendar-clear" onClick={() => onChange('')}>{locale.dateClear}</button>
+          {(start || end) && (
+            <button type="button" className="form-calendar-clear" onClick={() => onChange('')}>{locale.dateClear}</button>
+          )}
         </div>
       )}
     </div>
