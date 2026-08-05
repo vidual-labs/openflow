@@ -290,17 +290,36 @@
   }
 }
 
-/* Inline calendar (date field) */
+/* Inline calendar (date field).
+   Day cells are square, so without a cap on the month's width a wide container makes
+   every row as tall as the cells are wide and the calendar outgrows short embeds.
+   --calendar-cell fixes the cell size, and the month is capped at seven of them. */
 .form-calendar {
+  --calendar-cell: 40px;
   position: relative;
-  padding-top: 4px;
+  padding-top: 2px;
+  /* Shrink to the months it holds, so the nav arrows — which pin to this box's edges —
+     sit beside the month instead of drifting out to the edges of a wide container. */
+  width: fit-content;
+  max-width: 100%;
+}
+
+.form-calendar-hint {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: rgba(var(--form-text-rgb, 45, 52, 54), 0.6);
+}
+
+.form-calendar-body {
+  position: relative;
 }
 
 /* The nav arrows overlay the month title row so they sit on either side of it,
    whether one or two months are visible. */
 .form-calendar-header {
   position: absolute;
-  top: 4px;
+  top: 2px;
   left: 0;
   right: 0;
   display: flex;
@@ -310,8 +329,8 @@
 
 .form-calendar-nav {
   pointer-events: auto;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -333,20 +352,24 @@
 
 .form-calendar-months {
   display: flex;
-  gap: 32px;
+  justify-content: center;
+  gap: 24px;
 }
 
+/* An explicit width, not just a cap — the parent's fit-content needs a real max-content
+   to measure, or the months collapse to the width of their longest day number. */
 .form-calendar-month {
-  flex: 1;
+  flex: 0 1 auto;
+  width: calc(var(--calendar-cell) * 7);
   min-width: 0;
 }
 
 .form-calendar-title {
-  height: 36px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--form-text, #2D3436);
 }
@@ -356,25 +379,26 @@
   grid-template-columns: repeat(7, 1fr);
   /* No gap: the in-range band has to run unbroken from one day to the next */
   gap: 0;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .form-calendar-weekday {
   text-align: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
   color: rgba(var(--form-text-rgb, 45, 52, 54), 0.5);
 }
 
+/* Square cells keep the selected day a true circle and the range band unbroken; the
+   month's max-width is what stops them growing, so no min-height is needed here. */
 .form-calendar-day {
   aspect-ratio: 1;
-  min-height: 38px;
   border: none;
   border-radius: 50%;
   background: transparent;
   color: var(--form-text, #2D3436);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
@@ -398,6 +422,13 @@
 .form-calendar-day.in-range {
   background: rgba(var(--form-primary-rgb, 108, 92, 231), 0.14);
   border-radius: 0;
+}
+
+/* Square-cornered so the band joins up, so the circular hover ring would render as a
+   box — deepen the tint instead. */
+.form-calendar-day.in-range:hover {
+  box-shadow: none;
+  background: rgba(var(--form-primary-rgb, 108, 92, 231), 0.26);
 }
 
 .form-calendar-day.selected {
@@ -430,19 +461,19 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 14px;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.12);
-  font-size: 15px;
+  font-size: 13px;
   color: var(--form-text, #2D3436);
 }
 
 .form-calendar-clear {
   border: none;
   background: transparent;
-  padding: 4px 8px;
-  font-size: 14px;
+  padding: 2px 6px;
+  font-size: 13px;
   color: var(--form-primary, #6C5CE7);
   text-decoration: underline;
   cursor: pointer;
@@ -452,6 +483,30 @@
 @media (max-width: 640px) {
   .form-calendar-months > .form-calendar-month:nth-child(2) {
     display: none;
+  }
+}
+
+/* Short frames — a landing-page embed is often only a few hundred pixels tall, and
+   in an iframe these queries resolve against the frame, not the device. Shrink the
+   cell so the whole step still fits without the visitor having to scroll. */
+@media (max-height: 720px) {
+  .form-calendar {
+    --calendar-cell: 36px;
+  }
+}
+
+@media (max-height: 600px) {
+  .form-calendar {
+    --calendar-cell: 32px;
+  }
+
+  .form-calendar-day {
+    font-size: 13px;
+  }
+
+  .form-calendar-title {
+    height: 28px;
+    font-size: 14px;
   }
 }
 

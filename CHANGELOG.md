@@ -2,6 +2,14 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.22.1] - 2026-08-05
+
+### Fixed
+- **The date calendar was too tall for landing-page embeds** — day cells are square so the selected day stays a circle and the range band runs unbroken, but nothing capped their width, so a wide container made every row as tall as the cells were wide: in a 630px-wide frame each cell grew to about 80px and the six rows alone ran close to 500px, pushing the Next button out of the iframe. The cell size is now fixed and the month capped at seven of them, and the calendar shrinks to the width of the months it holds so the ‹ › arrows sit beside the month title instead of drifting to the edges of the container. In the reported embed the whole step, footer included, now fits without scrolling. Short frames get smaller cells still, keyed off `max-height` — inside an iframe that resolves against the frame, not the device.
+
+### Changed
+- **Date steps now say what they are asking for** — a bare grid of days doesn't communicate whether one date or two are wanted, and visitors on a range step were picking a single day and moving on. Every date step now carries a short line above the calendar — "Choose a start and an end date" or "Choose a day", localized — and range steps show the **From** / **To** pair from the outset with empty slots, so two labelled blanks make it obvious that two dates are expected. The line is omitted when the builder has written their own step description, so it never duplicates their wording.
+
 ## [0.22.0] - 2026-08-05
 
 ### Added
