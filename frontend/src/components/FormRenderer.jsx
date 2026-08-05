@@ -204,6 +204,10 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const endScreen = form.end_screen || {};
   const consentRequired = !!endScreen.consentEnabled;
   const consentText = endScreen.consentText || locale.consentDefault;
+  // Where the consent is asked: on the last question step ("inline", the default —
+  // one page, one extra Enter), or as a step of its own after it.
+  const consentAsStep = consentRequired && endScreen.consentMode === 'step';
+  const consentInline = consentRequired && !consentAsStep;
 
   // Conditional logic: filter steps based on answers
   const questionSteps = allSteps.filter(s => {
@@ -223,11 +227,10 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   });
 
-  // The GDPR consent used to ride along as a checkbox under the last question, which
-  // only a mouse or a tap could reach — the visitor had to leave the keyboard for that
-  // one tick. It is now a step of its own at the end of the flow, so it can be agreed
-  // to with Enter the same way every other step is answered.
-  const steps = consentRequired
+  // In "own step" mode the consent gets a step of its own at the end of the flow.
+  // Inline mode keeps it on the last question step instead, so answering the last
+  // field and agreeing happen on one page.
+  const steps = consentAsStep
     ? [...questionSteps, { id: CONSENT_STEP_ID, type: CONSENT_STEP_ID, question: endScreen.consentHeadline || locale.consentStepQuestion }]
     : questionSteps;
 
@@ -275,33 +278,63 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     return s.type === 'group' && Array.isArray(s.fields) ? s.fields : [s];
   }
 
-  const next = useCallback(function next() {
-    // The consent step has no field to validate — it is agreed to or it isn't.
-    if (isConsentStep) {
-      if (!consentGiven) {
-        setError(locale.errorConsentSubmit);
-        return;
-      }
-      handleSubmit();
-      return;
-    }
-    for (const field of stepFields(step)) {
+  // The step's own answers, checked without touching state — `next` uses it to
+  // refuse an unfinished step, the inline consent hint to know the visitor has
+  // reached the point where one more Enter finishes the form.
+  function stepValidationError(s) {
+    for (const field of stepFields(s)) {
       const err = validateField(field, answers[field.id], locale);
-      if (err) {
-        setError(err);
-        return;
-      }
+      if (err) return err;
     }
     // Combined step with "require at least one": at least one sub-field must be filled.
-    if (step.type === 'group' && step.requireOne) {
-      const anyFilled = (step.fields || []).some(f => {
+    if (s.type === 'group' && s.requireOne) {
+      const anyFilled = (s.fields || []).some(f => {
         const v = answers[f.id];
         return !(v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0));
       });
-      if (!anyFilled) {
-        setError(locale.errorRequireOne);
+      if (!anyFilled) return locale.errorRequireOne;
+    }
+    return null;
+  }
+
+  // Whether Enter would carry the visitor onwards from here. Until it would, a hint
+  // saying so is a lie — Enter reports what is missing instead — so every hint on
+  // the step waits for this.
+  const stepReady = !!step && !stepValidationError(step);
+
+  const showInlineConsent = consentInline && isLastStep;
+  const inlineConsentReady = showInlineConsent && stepReady;
+
+  // `opts.agree` marks a keystroke as the affirmative act the consent asks for:
+  // Enter ticks the box and submits, where the Submit button still wants the box
+  // ticked first. Called straight from onClick too, where the argument is an event.
+  const next = useCallback(function next(opts) {
+    const agree = opts?.agree === true;
+    // The consent step has no field to validate — it is agreed to or it isn't.
+    if (isConsentStep) {
+      if (!consentGiven && !agree) {
+        setError(locale.errorConsentSubmit);
         return;
       }
+      setConsentGiven(true);
+      handleSubmit(true);
+      return;
+    }
+    const err = stepValidationError(step);
+    if (err) {
+      setError(err);
+      return;
+    }
+    // Inline consent sits under the last step's field: the same Enter that would
+    // submit the form agrees on the way out.
+    if (isLastStep && consentInline) {
+      if (!consentGiven && !agree) {
+        setError(locale.errorConsentSubmit);
+        return;
+      }
+      setConsentGiven(true);
+      handleSubmit(true);
+      return;
     }
     if (currentStep < steps.length - 1) {
       setDirection('forward');
@@ -348,37 +381,29 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   }
 
-  // Enter on the consent step is itself the affirmative action the screen asks for:
-  // it ticks the box and submits, so agreeing never requires reaching for a pointer.
-  function agreeAndSubmit() {
-    setConsentGiven(true);
-    setError('');
-    handleSubmit(true);
-  }
-
+  // Enter is the affirmative act wherever the consent is shown, so every keyboard
+  // path through the form carries `agree`. It only means anything on the screen
+  // that actually asks for consent.
   function handleKeyDown(e) {
     if (e.key !== 'Enter') return;
     // Enter on a focused button or link has to activate that element — a choice
     // option, the Next button, a footer link. Advancing here instead would eat
     // the keystroke and skip the step without recording the answer.
     if (e.target.closest?.('button, a')) return;
-    // The consent step is served by the window listener below, so the keystroke
-    // isn't handled twice — and therefore never submits twice.
-    if (isConsentStep) return;
     // Textareas need plain Enter for newlines; only advance on Ctrl/Cmd+Enter.
     if (step?.type === 'textarea' && !(e.metaKey || e.ctrlKey)) return;
     e.preventDefault();
-    next();
+    next({ agree: true });
   }
 
-  // Unlike a question step, the consent step has no text input holding the caret,
-  // so after arriving from the previous step a keystroke lands on the document
-  // body — outside the container's own handler, which would never see it.
-  // Listening on the window keeps Enter working wherever focus happens to sit.
-  const agreeRef = useRef(agreeAndSubmit);
-  agreeRef.current = agreeAndSubmit;
+  // A step whose only control is a checkbox — or one the visitor answered by
+  // clicking an option — can leave focus on the document body, out of reach of the
+  // container's own handler. On the screens where Enter agrees, a window listener
+  // picks up those strays; anything inside the form is left to the handler above.
+  const agreeRef = useRef(null);
+  agreeRef.current = () => next({ agree: true });
   useEffect(() => {
-    if (!isConsentStep || submitted) return;
+    if (!(isConsentStep || (consentInline && isLastStep)) || submitted) return;
     // The keystroke that advanced onto this step is still travelling towards the
     // window as this listener goes up, and holding the key sends repeats after it.
     // Arming on the next task, and ignoring auto-repeats, keeps one press from
@@ -389,6 +414,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       if (!armed || e.repeat || e.key !== 'Enter') return;
       // Enter on a focused button or link has to activate that element instead.
       if (e.target.closest?.('button, a')) return;
+      // Inside the form the container's handler already ran; handling it here too
+      // would submit twice. Only keystrokes that missed the form entirely get here.
+      if (containerRef.current?.contains(e.target)) return;
+      // A textarea's plain Enter is a newline, not a submission.
+      if (step?.type === 'textarea' && !(e.metaKey || e.ctrlKey)) return;
       e.preventDefault();
       agreeRef.current();
     }
@@ -397,7 +427,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       clearTimeout(armTimer);
       window.removeEventListener('keydown', onKey);
     };
-  }, [isConsentStep, submitted]);
+  }, [isConsentStep, consentInline, isLastStep, step?.type, submitted]);
 
   // Track form view on mount
   useEffect(() => {
@@ -433,11 +463,19 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // Whether picking an option is all the visitor has to do on this step.
   const advancesOnClick = autoAdvances && !theme?.disableAutoAdvance;
 
+  // Steps answered by clicking leave focus on the option that was clicked.
+  const clickAnswered = !!step && AUTO_ADVANCE_FIELDS.includes(step.type);
+
+  // Picking the last option can't carry the form away while the consent below is
+  // still untouched, and firing the refusal at someone who has just answered would
+  // be scolding them for reading on. The step waits for the agreement instead.
+  const autoAdvanceHeldByConsent = showInlineConsent && !consentGiven;
+
   // Auto-advance for choice-based field types when answer is provided.
   // Capture the step index at schedule time and compare against the ref at
   // fire time so we don't advance if the user has already navigated away.
   useEffect(() => {
-    if (step && answers[step.id] !== undefined && advancesOnClick) {
+    if (step && answers[step.id] !== undefined && advancesOnClick && !autoAdvanceHeldByConsent) {
       const stepAtSchedule = currentStep;
       const timer = setTimeout(() => {
         if (currentStepRef.current === stepAtSchedule) next();
@@ -446,6 +484,17 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers[step?.id]]);
+
+  // On a step answered by clicking, the click leaves focus on the option, where
+  // Enter would only re-pick it. Handing focus to the consent box once the answer
+  // is in makes the hint below it true: Enter agrees, Space ticks. Text steps are
+  // left alone — stealing the caret mid-word would be worse than a dead key.
+  const consentBoxRef = useRef(null);
+  useEffect(() => {
+    if (inlineConsentReady && clickAnswered && !consentGiven) {
+      consentBoxRef.current?.focus();
+    }
+  }, [inlineConsentReady, clickAnswered, consentGiven]);
 
   // Auto-redirect on submission. Navigates window.top so the browser leaves
   // any embedding iframe entirely, instead of just changing the iframe's own
@@ -516,14 +565,44 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // click, so it is shown whether or not the form enables hints elsewhere —
   // without it the Enter path is invisible. CSS still hides it on touch devices,
   // where there is no keyboard and the box is tapped instead.
+  // Everywhere else the hint waits for the step to be ready to move on, the same
+  // rule the consent hint follows: it appears as the answer lands, which is the
+  // moment it becomes true, and repeating that on every step is what teaches the
+  // visitor that the whole form can be walked through on Enter alone. A step with
+  // nothing required is ready from the outset — Enter does move on from there.
   const enterHint = isConsentStep ? (
     <span className="form-enter-hint">
       {locale.consentEnterBefore}<kbd>Enter ↵</kbd>{locale.consentEnterAfter}
     </span>
-  ) : showEnterHint && !advancesOnClick ? (
+  ) : showEnterHint && !advancesOnClick && stepReady ? (
     <span className="form-enter-hint">
       {locale.enterHintBefore}<kbd>{enterKbdLabel}</kbd>{locale.enterHintAfter}
     </span>
+  ) : null;
+
+  // Inline consent brings its own hint, right under the checkbox, so the one by the
+  // button would only say the same thing twice.
+  const stepEnterHint = showInlineConsent ? null : enterHint;
+
+  const consentBlock = showInlineConsent ? (
+    <div className="form-consent-inline">
+      <label className="form-consent">
+        <input
+          ref={consentBoxRef}
+          type="checkbox"
+          checked={consentGiven}
+          onChange={e => { setConsentGiven(e.target.checked); setError(''); }}
+        />
+        <span className="consent-text">{consentText}</span>
+      </label>
+      {inlineConsentReady && (
+        <span className="form-enter-hint">
+          {locale.consentEnterBefore}
+          <kbd>{enterKbdLabel}</kbd>
+          {consentGiven ? locale.consentEnterSubmitAfter : locale.consentEnterAgreeSubmitAfter}
+        </span>
+      )}
+    </div>
   ) : null;
 
   const nextButton = (
@@ -563,10 +642,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
           {step.type === 'group' ? (
             <>
               <GroupInput step={step} answers={answers} setFieldAnswer={setFieldAnswer} />
+              {consentBlock}
               {(buttonPosition === 'below-input' || buttonPosition === 'inline') && (
                 <div className={buttonPosition === 'below-input' ? 'form-below-input-actions' : 'form-inline-actions'}>
                   {nextButton}
-                  {enterHint}
+                  {stepEnterHint}
                 </div>
               )}
             </>
@@ -590,10 +670,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
                     onChange={setAnswer}
                   />
                 )}
+                {consentBlock}
                 {buttonPosition === 'below-input' && (
                   <div className="form-below-input-actions">
                     {nextButton}
-                    {enterHint}
+                    {stepEnterHint}
                   </div>
                 )}
               </div>
@@ -602,7 +683,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
               {buttonPosition === 'inline' && (
                 <div className="form-inline-actions">
                   {nextButton}
-                  {enterHint}
+                  {stepEnterHint}
                 </div>
               )}
             </>
@@ -629,7 +710,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         </button>
         <span className="form-step-count">{currentStep + 1} / {steps.length}</span>
         <div className="form-nav-actions">
-          {buttonPosition === 'footer' && enterHint}
+          {buttonPosition === 'footer' && stepEnterHint}
           {buttonPosition === 'footer' && nextButton}
           {(buttonPosition === 'inline' || buttonPosition === 'below-input') && <span />}
         </div>

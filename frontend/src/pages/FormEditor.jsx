@@ -470,6 +470,7 @@ export default function FormEditor() {
                 </label>
                 <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 8, display: 'block' }}>
                   Displays a subtle keyboard shortcut hint next to the Next button (press Enter &#8629;, or Ctrl/&#8984; + Enter for long-text fields).
+                  It fades in on each step as soon as that step's answer is in, so visitors learn that the whole form can be walked through on Enter.
                 </span>
               </div>
               <div className="input-group">
@@ -642,8 +643,8 @@ export default function FormEditor() {
           <div className="card">
             <h3 style={{ marginBottom: 4 }}>GDPR / Submission Consent</h3>
             <p style={{ color: 'var(--text-light)', fontSize: 13, marginBottom: 16 }}>
-              When enabled, the consent is asked as its own final step before submission. Visitors can agree by pressing
-              Enter — the step shows that hint — or by clicking the box and then Submit.
+              When enabled, visitors must agree before the form is submitted. Either way they can agree by pressing
+              Enter — the hint says so — or by clicking the box and then Submit.
             </p>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 600, marginBottom: 16, cursor: 'pointer' }}>
               <input
@@ -657,14 +658,33 @@ export default function FormEditor() {
             {form.end_screen?.consentEnabled && (
               <>
                 <div className="input-group">
-                  <label>Step Headline (optional)</label>
-                  <input
+                  <label>Where to Ask</label>
+                  <select
                     className="input"
-                    value={form.end_screen?.consentHeadline || ''}
-                    onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentHeadline: e.target.value } })}
-                    placeholder="One last thing"
-                  />
+                    value={form.end_screen?.consentMode === 'step' ? 'step' : 'inline'}
+                    onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentMode: e.target.value } })}
+                    style={{ maxWidth: 340 }}
+                  >
+                    <option value="inline">On the last step — one page, one more Enter</option>
+                    <option value="step">As its own final step</option>
+                  </select>
+                  <p style={{ color: 'var(--text-light)', fontSize: 13, marginTop: 6 }}>
+                    {form.end_screen?.consentMode === 'step'
+                      ? 'The consent gets a screen of its own after the last question.'
+                      : 'The checkbox sits under the last question. Once that question is answered, a hint appears below it and one more Enter agrees and submits.'}
+                  </p>
                 </div>
+                {form.end_screen?.consentMode === 'step' && (
+                  <div className="input-group">
+                    <label>Step Headline (optional)</label>
+                    <input
+                      className="input"
+                      value={form.end_screen?.consentHeadline || ''}
+                      onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentHeadline: e.target.value } })}
+                      placeholder="One last thing"
+                    />
+                  </div>
+                )}
                 <div className="input-group">
                   <label>Consent Text</label>
                   <textarea
