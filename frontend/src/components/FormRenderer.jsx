@@ -179,6 +179,11 @@ export function toRgbTriplet(hex, fallback = '45, 52, 54') {
 
 const BG_SHAPES = { waves: 3, bubbles: 4, aurora: 3, particles: 6, flow: 4 };
 
+// Id and type of the synthetic consent step appended after the last question when
+// the form requires GDPR consent. It is not a configurable field, so it can never
+// collide with a nanoid field id, and its answer lives outside `answers`.
+export const CONSENT_STEP_ID = '__consent__';
+
 export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState(() => initialAnswers(form.steps));
@@ -188,6 +193,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [direction, setDirection] = useState('forward');
   const containerRef = useRef(null);
   const trackedRef = useRef(false);
+  const submittingRef = useRef(false);
   // Always-current ref so auto-advance timer can check if user navigated away
   const currentStepRef = useRef(currentStep);
   useEffect(() => { currentStepRef.current = currentStep; }, [currentStep]);
@@ -195,9 +201,12 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const allSteps = form.steps || [];
   const theme = form.theme || {};
   const locale = LOCALES[theme.language] || LOCALES.en;
+  const endScreen = form.end_screen || {};
+  const consentRequired = !!endScreen.consentEnabled;
+  const consentText = endScreen.consentText || locale.consentDefault;
 
   // Conditional logic: filter steps based on answers
-  const steps = allSteps.filter(s => {
+  const questionSteps = allSteps.filter(s => {
     if (!s.condition) return true;
     const { field, op, value } = s.condition;
     if (!field) return true;
@@ -214,12 +223,18 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   });
 
+  // The GDPR consent used to ride along as a checkbox under the last question, which
+  // only a mouse or a tap could reach — the visitor had to leave the keyboard for that
+  // one tick. It is now a step of its own at the end of the flow, so it can be agreed
+  // to with Enter the same way every other step is answered.
+  const steps = consentRequired
+    ? [...questionSteps, { id: CONSENT_STEP_ID, type: CONSENT_STEP_ID, question: endScreen.consentHeadline || locale.consentStepQuestion }]
+    : questionSteps;
+
   const progress = steps.length > 0 ? ((currentStep + 1) / steps.length) * 100 : 0;
   const step = steps[currentStep];
-  const endScreen = form.end_screen || {};
   const isLastStep = currentStep === steps.length - 1;
-  const consentRequired = !!endScreen.consentEnabled;
-  const consentText = endScreen.consentText || locale.consentDefault;
+  const isConsentStep = !!step && step.id === CONSENT_STEP_ID;
 
   const buttonPosition = theme.buttonPosition || 'footer';
   const showEnterHint = !!theme.showEnterHint;
@@ -261,6 +276,15 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   }
 
   const next = useCallback(function next() {
+    // The consent step has no field to validate — it is agreed to or it isn't.
+    if (isConsentStep) {
+      if (!consentGiven) {
+        setError(locale.errorConsentSubmit);
+        return;
+      }
+      handleSubmit();
+      return;
+    }
     for (const field of stepFields(step)) {
       const err = validateField(field, answers[field.id], locale);
       if (err) {
@@ -279,11 +303,6 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         return;
       }
     }
-    // Check consent on last step
-    if (isLastStep && consentRequired && !consentGiven) {
-      setError(locale.errorConsentSubmit);
-      return;
-    }
     if (currentStep < steps.length - 1) {
       setDirection('forward');
       setCurrentStep(prev => prev + 1);
@@ -301,10 +320,15 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   }
 
-  async function handleSubmit() {
+  // `consentOverride` covers the Enter shortcut, which agrees and submits in one
+  // keystroke: the state update it triggers isn't visible to this call yet.
+  async function handleSubmit(consentOverride) {
+    // A held-down or double-tapped Enter must not post the form twice.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const submitData = { ...answers };
     if (consentRequired) {
-      submitData._consent = consentGiven;
+      submitData._consent = consentOverride === undefined ? consentGiven : consentOverride;
     }
     try {
       await onSubmit(submitData);
@@ -318,8 +342,18 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         });
       }
     } catch (err) {
+      // Failed sends have to stay retryable.
+      submittingRef.current = false;
       setError(err.message || locale.errorSubmitFailed);
     }
+  }
+
+  // Enter on the consent step is itself the affirmative action the screen asks for:
+  // it ticks the box and submits, so agreeing never requires reaching for a pointer.
+  function agreeAndSubmit() {
+    setConsentGiven(true);
+    setError('');
+    handleSubmit(true);
   }
 
   function handleKeyDown(e) {
@@ -328,11 +362,42 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     // option, the Next button, a footer link. Advancing here instead would eat
     // the keystroke and skip the step without recording the answer.
     if (e.target.closest?.('button, a')) return;
+    // The consent step is served by the window listener below, so the keystroke
+    // isn't handled twice — and therefore never submits twice.
+    if (isConsentStep) return;
     // Textareas need plain Enter for newlines; only advance on Ctrl/Cmd+Enter.
     if (step?.type === 'textarea' && !(e.metaKey || e.ctrlKey)) return;
     e.preventDefault();
     next();
   }
+
+  // Unlike a question step, the consent step has no text input holding the caret,
+  // so after arriving from the previous step a keystroke lands on the document
+  // body — outside the container's own handler, which would never see it.
+  // Listening on the window keeps Enter working wherever focus happens to sit.
+  const agreeRef = useRef(agreeAndSubmit);
+  agreeRef.current = agreeAndSubmit;
+  useEffect(() => {
+    if (!isConsentStep || submitted) return;
+    // The keystroke that advanced onto this step is still travelling towards the
+    // window as this listener goes up, and holding the key sends repeats after it.
+    // Arming on the next task, and ignoring auto-repeats, keeps one press from
+    // answering the previous step and agreeing here in the same breath.
+    let armed = false;
+    const armTimer = setTimeout(() => { armed = true; }, 0);
+    function onKey(e) {
+      if (!armed || e.repeat || e.key !== 'Enter') return;
+      // Enter on a focused button or link has to activate that element instead.
+      if (e.target.closest?.('button, a')) return;
+      e.preventDefault();
+      agreeRef.current();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => {
+      clearTimeout(armTimer);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [isConsentStep, submitted]);
 
   // Track form view on mount
   useEffect(() => {
@@ -447,7 +512,15 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // button to reach. It stays for choice steps that do wait for the button
   // (auto-advance turned off, or a multi-select with an "Other" box), where
   // Enter really is the shortcut to continue.
-  const enterHint = showEnterHint && !advancesOnClick ? (
+  // On the consent step the hint carries the keyboard shortcut that replaces the
+  // click, so it is shown whether or not the form enables hints elsewhere —
+  // without it the Enter path is invisible. CSS still hides it on touch devices,
+  // where there is no keyboard and the box is tapped instead.
+  const enterHint = isConsentStep ? (
+    <span className="form-enter-hint">
+      {locale.consentEnterBefore}<kbd>Enter ↵</kbd>{locale.consentEnterAfter}
+    </span>
+  ) : showEnterHint && !advancesOnClick ? (
     <span className="form-enter-hint">
       {locale.enterHintBefore}<kbd>{enterKbdLabel}</kbd>{locale.enterHintAfter}
     </span>
@@ -504,11 +577,19 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
               {step.description && <p className="step-description">{step.description}</p>}
 
               <div className="step-field">
-                <FieldComponent
-                  step={displayStep}
-                  value={answers[step.id]}
-                  onChange={setAnswer}
-                />
+                {isConsentStep ? (
+                  <ConsentStepInput
+                    text={consentText}
+                    checked={consentGiven}
+                    onChange={checked => { setConsentGiven(checked); setError(''); }}
+                  />
+                ) : (
+                  <FieldComponent
+                    step={displayStep}
+                    value={answers[step.id]}
+                    onChange={setAnswer}
+                  />
+                )}
                 {buttonPosition === 'below-input' && (
                   <div className="form-below-input-actions">
                     {nextButton}
@@ -525,14 +606,6 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
                 </div>
               )}
             </>
-          )}
-
-          {/* GDPR consent on last step */}
-          {isLastStep && consentRequired && (
-            <label className="form-consent" style={{ marginTop: 24 }}>
-              <input type="checkbox" checked={consentGiven} onChange={e => { setConsentGiven(e.target.checked); setError(''); }} />
-              <span className="consent-text">{consentText}</span>
-            </label>
           )}
 
           {error && <p className="step-error">{error}</p>}
@@ -1014,6 +1087,18 @@ function AddressInput({ step, value, onChange }) {
         </div>
       ))}
     </div>
+  );
+}
+
+// The GDPR consent as its own step: a large, tappable card that is also the target
+// of the Enter shortcut. The checkbox stays a real checkbox so a pointer, a tap and
+// the Tab/Space route all keep working.
+function ConsentStepInput({ text, checked, onChange }) {
+  return (
+    <label className={`form-consent form-consent-step${checked ? ' checked' : ''}`}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} autoFocus />
+      <span className="consent-text">{text}</span>
+    </label>
   );
 }
 

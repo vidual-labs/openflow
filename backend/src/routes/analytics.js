@@ -96,7 +96,11 @@ router.get('/:formId', (req, res) => {
     },
     stepDropoff: stepEvents.map(se => {
       const s = steps[se.step_index];
-      const label = s?.type === 'group' && Array.isArray(s.fields)
+      // The GDPR consent is a step of its own at the end of the flow, but it isn't
+      // in the form's configured steps — name it rather than showing "Step 8".
+      const label = se.step_id === '__consent__'
+        ? 'Consent'
+        : s?.type === 'group' && Array.isArray(s.fields)
         ? s.fields.map(f => f.label || f.question).filter(Boolean).join(' + ') || `Step ${se.step_index + 1}`
         : s?.label || s?.question || `Step ${se.step_index + 1}`;
       return {

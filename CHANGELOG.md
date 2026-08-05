@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.23.0] - 2026-08-05
+
+### Changed
+- **The GDPR consent is now a step of its own, and can be agreed to with Enter** — the consent checkbox used to be appended under the last question, where the only way to tick it was to aim at a small box with a mouse or a thumb: a visitor who had answered the whole form from the keyboard had to leave it for that one click, right before submitting. Consent now gets its own final step, with the legal text on a large card that is easy to click or tap, and a hint next to the Submit button reading **press `Enter ↵` to agree**. One keystroke ticks the box and submits. The step's headline can be set in the editor (**GDPR / Submission Consent → Step Headline**) and defaults to "One last thing", localized. Clicking the card and then Submit still works exactly as before, as does tabbing to the box and pressing Space, and submitting without agreeing is still refused with the same message. The submitted data is unchanged — consent still arrives as `_consent: true` — and forms with the consent toggle off are untouched.
+  The extra step is counted in the progress bar and the step counter, and shows up in the funnel as **Consent**, so drop-off at the consent screen is finally visible instead of being hidden inside the last question's numbers.
+
 ## [0.22.1] - 2026-08-05
 
 ### Fixed
