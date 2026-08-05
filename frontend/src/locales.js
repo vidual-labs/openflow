@@ -37,6 +37,8 @@ export const LOCALES = {
     consentStepQuestion: 'One last thing',
     consentEnterBefore: 'press ',
     consentEnterAfter: ' to agree',
+    consentEnterAgreeSubmitAfter: ' to agree and submit',
+    consentEnterSubmitAfter: ' to submit',
     // Calendar. weekdayShort is always Sunday-first (matching Date#getDay);
     // the calendar rotates it by weekStartsOn when it draws the header row.
     weekStartsOn: 0,
@@ -90,6 +92,8 @@ export const LOCALES = {
     consentStepQuestion: 'Noch eine Kleinigkeit',
     consentEnterBefore: '',
     consentEnterAfter: ' drücken, um zuzustimmen',
+    consentEnterAgreeSubmitAfter: ' drücken, um zuzustimmen und abzusenden',
+    consentEnterSubmitAfter: ' drücken zum Absenden',
     weekStartsOn: 1,
     weekdayShort: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
     monthNames: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',

@@ -2,6 +2,13 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.24.0] - 2026-08-05
+
+### Changed
+- **The consent is back on the last step by default, and one more Enter finishes the form** — asking for it on a screen of its own (0.23.0) made the keyboard work but cost a page: the visitor typed their last answer, went somewhere else to agree, and submitted there. The checkbox now sits under the last question again. The moment that question is answered, a hint appears below the box — **press `Enter ↵` to agree and submit** — and one keystroke ticks it and sends the form. The hint stays away while the answer is missing or invalid, where Enter would only report what is wrong, and it reads "to submit" once the box is already ticked by hand. Clicking the box and then Submit works as it always did, and Submit with the box untouched is still refused.
+  The separate consent screen is now an option rather than the only behaviour: **GDPR / Submission Consent → Where to Ask** offers *On the last step* (the default) or *As its own final step*, the latter keeping the 0.23.0 screen and its configurable headline. Forms that were saved with 0.23.0 and never touched this setting move to the one-page version.
+- **A last step answered by clicking hands focus to the consent box** — on a choice, rating or image-select question the click leaves focus on the option, where Enter would only re-pick it. Picking the final answer now moves focus to the consent checkbox, so the hint below it is true: Enter agrees and submits, Space ticks the box. Text steps keep the caret where it is. Such a step also no longer auto-advances into the consent refusal the instant an option is picked — it waits for the agreement instead of scolding the visitor for reading on.
+
 ## [0.23.0] - 2026-08-05
 
 ### Changed

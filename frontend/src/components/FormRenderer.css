@@ -772,6 +772,19 @@
   color: var(--form-text, #2D3436);
 }
 
+/* Consent kept on the last step: the checkbox with its keyboard hint directly
+   underneath, so the last answer and the agreement stay on one page. */
+.form-consent-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.form-consent-inline .form-enter-hint {
+  padding-left: 38px;
+}
+
 /* Consent as its own step: a card the size of a choice option, so it is an easy
    tap target and reads as the thing the step is asking for. */
 .form-consent-step {
