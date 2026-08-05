@@ -34,6 +34,9 @@ export const LOCALES = {
     yes: 'Yes',
     no: 'No',
     consentDefault: 'I agree to the privacy policy and terms of service.',
+    consentStepQuestion: 'One last thing',
+    consentEnterBefore: 'press ',
+    consentEnterAfter: ' to agree',
     // Calendar. weekdayShort is always Sunday-first (matching Date#getDay);
     // the calendar rotates it by weekStartsOn when it draws the header row.
     weekStartsOn: 0,
@@ -84,6 +87,9 @@ export const LOCALES = {
     yes: 'Ja',
     no: 'Nein',
     consentDefault: 'Ich stimme der Datenschutzerklärung und den Nutzungsbedingungen zu.',
+    consentStepQuestion: 'Noch eine Kleinigkeit',
+    consentEnterBefore: '',
+    consentEnterAfter: ' drücken, um zuzustimmen',
     weekStartsOn: 1,
     weekdayShort: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
     monthNames: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',

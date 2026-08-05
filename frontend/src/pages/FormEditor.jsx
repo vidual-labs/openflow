@@ -642,7 +642,8 @@ export default function FormEditor() {
           <div className="card">
             <h3 style={{ marginBottom: 4 }}>GDPR / Submission Consent</h3>
             <p style={{ color: 'var(--text-light)', fontSize: 13, marginBottom: 16 }}>
-              When enabled, a consent checkbox is automatically shown on the last step of the form before submission.
+              When enabled, the consent is asked as its own final step before submission. Visitors can agree by pressing
+              Enter — the step shows that hint — or by clicking the box and then Submit.
             </p>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 600, marginBottom: 16, cursor: 'pointer' }}>
               <input
@@ -654,16 +655,27 @@ export default function FormEditor() {
               Require consent before submission
             </label>
             {form.end_screen?.consentEnabled && (
-              <div className="input-group">
-                <label>Consent Text</label>
-                <textarea
-                  className="input"
-                  rows={3}
-                  value={form.end_screen?.consentText || 'I agree to the privacy policy and terms of service.'}
-                  onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentText: e.target.value } })}
-                  placeholder="I agree to the privacy policy and terms of service."
-                />
-              </div>
+              <>
+                <div className="input-group">
+                  <label>Step Headline (optional)</label>
+                  <input
+                    className="input"
+                    value={form.end_screen?.consentHeadline || ''}
+                    onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentHeadline: e.target.value } })}
+                    placeholder="One last thing"
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Consent Text</label>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    value={form.end_screen?.consentText || 'I agree to the privacy policy and terms of service.'}
+                    onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentText: e.target.value } })}
+                    placeholder="I agree to the privacy policy and terms of service."
+                  />
+                </div>
+              </>
             )}
           </div>
 

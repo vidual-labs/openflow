@@ -772,6 +772,31 @@
   color: var(--form-text, #2D3436);
 }
 
+/* Consent as its own step: a card the size of a choice option, so it is an easy
+   tap target and reads as the thing the step is asking for. */
+.form-consent-step {
+  align-items: center;
+  padding: 20px 22px;
+  border: 2px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.12);
+  border-radius: 16px;
+  transition: all 0.2s;
+}
+
+.form-consent-step:hover {
+  border-color: var(--form-primary, #6C5CE7);
+  background: rgba(var(--form-primary-rgb, 108, 92, 231), 0.04);
+}
+
+.form-consent-step.checked {
+  border-color: var(--form-primary, #6C5CE7);
+  background: rgba(var(--form-primary-rgb, 108, 92, 231), 0.08);
+}
+
+.form-consent-step:focus-within {
+  outline: 2px solid var(--form-primary, #6C5CE7);
+  outline-offset: 2px;
+}
+
 /* Image / Icon Select Grid */
 .form-image-grid {
   display: grid;

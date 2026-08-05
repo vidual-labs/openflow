@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.22.1
+# 🌊 OpenFlow v0.23.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -22,7 +22,7 @@
 - **Animated Backgrounds** — 4 stylish CSS motion presets (Waves, Bubbles, Aurora, Geometric) with 2-color support
 - **Configurable Button Position** — Place the "Next" button in the footer bar or inline below the input field
 - **Enter Key Hint** — Optional "press Enter" keyboard shortcut hint next to the Next button
-- **GDPR-Ready** — Consent checkbox auto-appended to the last step (form-level toggle)
+- **GDPR-Ready** — Consent asked as its own final step, agreed to with Enter or a click (form-level toggle)
 - **File Uploads** — Drag & drop with configurable file types and size limits
 
 
