@@ -785,6 +785,27 @@
   padding-left: 38px;
 }
 
+/* First half of the inline consent flow: the hint that offers to confirm the answer,
+   sitting under the field it belongs to and above the consent it leads to. */
+/* Both hints of the inline flow keep their line whether or not they are showing, so
+   handing over from one to the other doesn't resize the step under the visitor. */
+.form-consent-confirm,
+.form-consent-inline .form-consent-hint-slot {
+  min-height: 22px;
+}
+
+.form-consent-confirm {
+  margin-top: 14px;
+}
+
+/* Nothing to reserve where the hints never show. */
+@media (hover: none) and (pointer: coarse) {
+  .form-consent-confirm,
+  .form-consent-inline .form-consent-hint-slot {
+    display: none;
+  }
+}
+
 /* Consent as its own step: a card the size of a choice option, so it is an easy
    tap target and reads as the thing the step is asking for. */
 .form-consent-step {

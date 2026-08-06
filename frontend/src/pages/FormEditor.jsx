@@ -665,13 +665,13 @@ export default function FormEditor() {
                     onChange={e => setForm({ ...form, end_screen: { ...form.end_screen, consentMode: e.target.value } })}
                     style={{ maxWidth: 340 }}
                   >
-                    <option value="inline">On the last step — one page, one more Enter</option>
+                    <option value="inline">On the last step — one page, two presses of Enter</option>
                     <option value="step">As its own final step</option>
                   </select>
                   <p style={{ color: 'var(--text-light)', fontSize: 13, marginTop: 6 }}>
                     {form.end_screen?.consentMode === 'step'
                       ? 'The consent gets a screen of its own after the last question.'
-                      : 'The checkbox sits under the last question. Once that question is answered, a hint appears below it and one more Enter agrees and submits.'}
+                      : 'The checkbox sits under the last question. Enter confirms the answer first; only then does the hint move below the checkbox, where a second Enter is the agreement itself.'}
                   </p>
                 </div>
                 {form.end_screen?.consentMode === 'step' && (

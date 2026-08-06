@@ -39,6 +39,8 @@ export const LOCALES = {
     consentEnterAfter: ' to agree',
     consentEnterAgreeSubmitAfter: ' to agree and submit',
     consentEnterSubmitAfter: ' to submit',
+    // Shown under the last field, before the consent below it is touched.
+    consentEnterConfirmAfter: ' to confirm',
     // Calendar. weekdayShort is always Sunday-first (matching Date#getDay);
     // the calendar rotates it by weekStartsOn when it draws the header row.
     weekStartsOn: 0,
@@ -94,6 +96,7 @@ export const LOCALES = {
     consentEnterAfter: ' drücken, um zuzustimmen',
     consentEnterAgreeSubmitAfter: ' drücken, um zuzustimmen und abzusenden',
     consentEnterSubmitAfter: ' drücken zum Absenden',
+    consentEnterConfirmAfter: ' drücken zum Bestätigen',
     weekStartsOn: 1,
     weekdayShort: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
     monthNames: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',

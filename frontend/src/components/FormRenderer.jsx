@@ -188,6 +188,10 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState(() => initialAnswers(form.steps));
   const [consentGiven, setConsentGiven] = useState(false);
+  // Inline consent is a two-press flow: the first Enter confirms the last answer,
+  // the second one agrees. This marks that the first has happened, so the consent
+  // is never carried along by the keystroke that finished the question.
+  const [answerConfirmed, setAnswerConfirmed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [direction, setDirection] = useState('forward');
@@ -266,6 +270,9 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   function setFieldAnswer(fieldId, value) {
     setAnswers(prev => ({ ...prev, [fieldId]: value }));
     setError('');
+    // Editing an answer takes the confirmation back: the hint returns to the field
+    // until the visitor confirms what they now wrote.
+    setAnswerConfirmed(false);
   }
 
   function setAnswer(value) {
@@ -304,6 +311,10 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   const showInlineConsent = consentInline && isLastStep;
   const inlineConsentReady = showInlineConsent && stepReady;
+  // The second half of the inline flow: the answer is in and confirmed (or the box
+  // was ticked by hand), so the hint has moved down to the checkbox and the next
+  // Enter is the agreement itself — nothing else.
+  const consentAwaited = inlineConsentReady && (answerConfirmed || consentGiven);
 
   // `opts.agree` marks a keystroke as the affirmative act the consent asks for:
   // Enter ticks the box and submits, where the Submit button still wants the box
@@ -325,10 +336,26 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       setError(err);
       return;
     }
-    // Inline consent sits under the last step's field: the same Enter that would
-    // submit the form agrees on the way out.
+    // Inline consent sits under the last step's field, and reaching it takes two
+    // presses: consent has to be a deliberate act of its own, never something the
+    // keystroke that finished the last answer carries along with it.
     if (isLastStep && consentInline) {
-      if (!consentGiven && !agree) {
+      // Box already ticked — by hand, or by the Enter that agreed a moment ago.
+      if (consentGiven) {
+        handleSubmit(true);
+        return;
+      }
+      // First press: the answer is accepted and the hint moves down to the
+      // checkbox. Nothing is agreed to and nothing is sent yet.
+      if (!answerConfirmed) {
+        setAnswerConfirmed(true);
+        // The Submit button is not an agreement, so it still says what is missing —
+        // now with the hint underneath the box pointing at the way to give it.
+        if (!agree) setError(locale.errorConsentSubmit);
+        return;
+      }
+      // Second press, with the answer already confirmed: this one is the consent.
+      if (!agree) {
         setError(locale.errorConsentSubmit);
         return;
       }
@@ -386,6 +413,9 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // that actually asks for consent.
   function handleKeyDown(e) {
     if (e.key !== 'Enter') return;
+    // A held Enter must not run the confirmation and the consent behind it together:
+    // each of the two presses on this screen has to be a press of its own.
+    if (e.repeat && (isConsentStep || showInlineConsent)) return;
     // Enter on a focused button or link has to activate that element — a choice
     // option, the Next button, a footer link. Advancing here instead would eat
     // the keystroke and skip the step without recording the answer.
@@ -452,6 +482,9 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       }
     }
   }, [currentStep]);
+
+  // Leaving a step drops its confirmation: coming back has to ask again.
+  useEffect(() => { setAnswerConfirmed(false); }, [currentStep]);
 
   const AUTO_ADVANCE_FIELDS = ['select', 'multi-select', 'yes-no', 'rating', 'image-select'];
 
@@ -580,9 +613,26 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     </span>
   ) : null;
 
-  // Inline consent brings its own hint, right under the checkbox, so the one by the
-  // button would only say the same thing twice.
+  // The last step of an inline-consent form carries its own pair of hints, one after
+  // the other, so the one by the button would only get in their way.
   const stepEnterHint = showInlineConsent ? null : enterHint;
+
+  // Both hints of the inline flow belong to the consent path, so — like the consent
+  // step's hint — they show whether or not the form uses hints elsewhere: without
+  // them the two presses are invisible. The first sits under the field the visitor
+  // just filled in and offers to confirm it; once it is confirmed the hint is gone
+  // from there and the one under the checkbox has taken over.
+  // The slot is always there once the consent is on the step, so the checkbox below
+  // it doesn't jump up as the hint hands over to the one underneath it.
+  const consentConfirmHint = showInlineConsent ? (
+    <div className="form-consent-confirm">
+      {inlineConsentReady && !consentAwaited && (
+        <span className="form-enter-hint">
+          {locale.enterHintBefore}<kbd>{enterKbdLabel}</kbd>{locale.consentEnterConfirmAfter}
+        </span>
+      )}
+    </div>
+  ) : null;
 
   const consentBlock = showInlineConsent ? (
     <div className="form-consent-inline">
@@ -595,13 +645,17 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         />
         <span className="consent-text">{consentText}</span>
       </label>
-      {inlineConsentReady && (
-        <span className="form-enter-hint">
-          {locale.consentEnterBefore}
-          <kbd>{enterKbdLabel}</kbd>
-          {consentGiven ? locale.consentEnterSubmitAfter : locale.consentEnterAgreeSubmitAfter}
-        </span>
-      )}
+      {/* Reserved like the slot above it: the two hints take turns without the step
+          resizing under the visitor between the presses. */}
+      <div className="form-consent-hint-slot">
+        {consentAwaited && (
+          <span className="form-enter-hint">
+            {locale.consentEnterBefore}
+            <kbd>{enterKbdLabel}</kbd>
+            {consentGiven ? locale.consentEnterSubmitAfter : locale.consentEnterAgreeSubmitAfter}
+          </span>
+        )}
+      </div>
     </div>
   ) : null;
 
@@ -642,6 +696,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
           {step.type === 'group' ? (
             <>
               <GroupInput step={step} answers={answers} setFieldAnswer={setFieldAnswer} />
+              {consentConfirmHint}
               {consentBlock}
               {(buttonPosition === 'below-input' || buttonPosition === 'inline') && (
                 <div className={buttonPosition === 'below-input' ? 'form-below-input-actions' : 'form-inline-actions'}>
@@ -670,6 +725,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
                     onChange={setAnswer}
                   />
                 )}
+                {consentConfirmHint}
                 {consentBlock}
                 {buttonPosition === 'below-input' && (
                   <div className="form-below-input-actions">
