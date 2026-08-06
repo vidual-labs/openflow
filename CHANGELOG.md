@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.25.0] - 2026-08-06
+
+### Changed
+- **Agreeing to the consent is now a press of its own** — 0.24.0 let a single `Enter` finish the last question, tick the consent box and send the form in one keystroke. That is the wrong thing to do with a consent: it made agreeing a side effect of answering, so the visitor could hardly be said to have given it deliberately. The last step still holds the question and the checkbox on one page, but the flow is now two presses. While the answer is being written the hint sits under the field — **press `Enter ↵` to confirm** — and that first press only confirms the answer: nothing is ticked, nothing is sent. The hint then moves down below the checkbox, where it reads **press `Enter ↵` to agree and submit**, and the second press is the agreement itself. Editing the answer afterwards takes the confirmation back and the hint returns to the field, and a held-down `Enter` is ignored on this step, so the two presses can never collapse into one.
+  Everything else on the step is unchanged: ticking the box by hand still shows "to submit" and skips straight to sending, Submit with the box untouched is still refused (now with the hint below the box pointing at the way to give it), a last step answered by clicking still hands focus to the checkbox, and the consent still arrives as `_consent: true`. Both hints keep their line whether or not they are showing, so the step doesn't resize between presses, and neither reserves space on touch devices, where there is no keyboard to hint at. The separate consent screen (**Where to Ask → As its own final step**) is unaffected — it is a step of its own, so agreeing there is already an act of its own.
+
 ## [0.24.0] - 2026-08-05
 
 ### Changed
