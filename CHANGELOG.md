@@ -2,6 +2,22 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.25.1] - 2026-08-09
+
+### Docs
+
+Full review of the public documentation against the code. No behaviour changes.
+
+- **`CLAUDE.md` had drifted a long way out of date** — it still claimed version 0.14.0 (eleven releases behind) and described a database that doesn't exist: a `fields` table for form steps (steps are a JSON column on `forms`) and a `submissions_events` table for analytics (it's `analytics_events`). The eight tables added since — `analytics_events`, `integration_deliveries`, `api_tokens`, `slug_history`, `site_settings` — were missing entirely, as were the delivery queue, backups, API tokens, subdomain middleware and the `utils/` helpers. Infrastructure was described as "backend and frontend services" when the compose file has run a single `app` service since the frontend was folded into the backend image. The "add a field type" recipe pointed at `models/db.js` for validation, which has never held any; field types are defined in `FormEditor.jsx`, validated in `FormRenderer.jsx`, and the server's only check lives in `routes/public.js`. "Field IDs: nanoid" was also wrong — nanoid generates form *slugs*; field ids are `field_<timestamp>`.
+- **The README described a 15th field type that can't be added** — Consent/GDPR was listed among the field types and in the field-type table, but it has been a form-level setting since 0.23.0, not something the builder can insert. It's now documented as what it is, with the count corrected to 14.
+- **The README listed animated backgrounds that don't exist** — "4 presets (Waves, Bubbles, Aurora, Geometric)". There are five, and none of them is Geometric: Waves, Bubbles, Aurora, Particles, Flow.
+- **Features shipped between 0.11.0 and 0.21.0 were missing from the README** — combined steps, the flat-rate pricing filter, form duplication, the end screen's auto-redirect, the form language setting, editable Next/Submit labels, the live theme preview, white-label branding, and the cookie consent banner that gates GTM (which now has a section of its own under GTM Events, since it also gates the ad click IDs the Google Ads integration needs).
+- **The configuration table was missing two variables and misstated two defaults** — `CORS_ORIGINS` and `OPENFLOW_PRIMARY_HOST` were undocumented, and `JWT_SECRET`/`ADMIN_PASSWORD` were listed with the `docker-compose.yml` fallbacks as if they were the app's defaults. Since 0.16.0 the app generates both when unset, which is what you get running the backend outside compose. Both are now labelled by origin, with the same note added to Quick Start so `admin123` doesn't read as a permanent default.
+- **The API reference was about half the surface** — added the auth (`logout`, `me`), form-clone, submission-delete, settings, API-token and backup/restore endpoints, and a note that read-only tokens work on any GET/HEAD endpoint listed.
+- **Refreshed the architecture tree and roadmap** — the tree omitted `tests/`, `utils/`, `docs/`, the Caddy overlay and the fact that the Dockerfile builds the frontend into the backend image. The roadmap still had "custom domain support" as upcoming, which shipped in 0.11.0 as per-form subdomains.
+- **Documented the webhook payload properly, including a signing bug found while checking it** — the README listed the payload as `formId`, `formTitle`, `data`, `timestamp` and never named the signature header. The delivered body also carries `event: "submission"`, the header is `X-OpenFlow-Signature`, and the SSRF check plus the no-redirect rule are worth stating. Checking that claim turned up a real defect: the HMAC is computed over `{formId, formTitle, data, timestamp: Date.now()}` while the body actually sent is `{event, formId, formTitle, data, timestamp: <ISO string>}`, so a receiver verifying the signature against the bytes it received can never get a match. That is a code fix, not a docs fix, so the behaviour is unchanged here and the README carries a warning until it lands.
+- **WordPress plugin metadata contradicted the project's licence** — `openflow.php` and `readme.txt` both declared MIT inside a GPL-3.0 repository; both now declare GPL-3.0, and the plugin header's `Plugin URI` no longer points at the `your-org` placeholder.
+
 ## [0.25.0] - 2026-08-06
 
 ### Changed

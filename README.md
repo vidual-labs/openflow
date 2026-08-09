@@ -1,29 +1,35 @@
-# 🌊 OpenFlow v0.25.0
+# 🌊 OpenFlow v0.25.1
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
 
-[Features](#-features) · [Quick Start](#-quick-start) · [Updating](#-updating) · [Configuration](#️-configuration) · [Architecture](#️-architecture) · [Field Types](#-field-types) · [Integrations](#-integrations) · [Analytics](#-analytics) · [GTM Events](#️-gtm-events) · [Embedding](#-embedding) ([iFrame](#simple-iframe) · [Auto-Resize](#iframe-with-auto-resize) · [WordPress](#wordpress) · [URL Slug](#custom-url-slug) · [Subdomains](#custom-subdomains)) · [API Endpoints](#-api-endpoints) · [Development](#‍-development) · [Roadmap](#️-roadmap) · [License](#-license)
+[Features](#-features) · [Quick Start](#-quick-start) · [Updating](#-updating) · [Configuration](#️-configuration) · [Architecture](#️-architecture) · [Field Types](#-field-types) · [Integrations](#-integrations) · [Analytics](#-analytics) · [GTM Events](#️-gtm-events) ([Cookie Banner](#-cookie-consent-banner)) · [Embedding](#-embedding) ([iFrame](#simple-iframe) · [Auto-Resize](#iframe-with-auto-resize) · [WordPress](#wordpress) · [URL Slug](#custom-url-slug) · [Subdomains](#custom-subdomains)) · [API Endpoints](#-api-endpoints) · [Development](#‍-development) · [Roadmap](#️-roadmap) · [License](#-license)
 
 ## ✨ Features
 
 ### 🎯 Form Builder
 - **Multi-Step Forms** — Typeform-style one-question-at-a-time experience with smooth animations
-- **15 Field Types** — Short Text, Long Text, Number, Date, Single Choice, Multiple Choice, Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Address, Consent/GDPR
+- **14 Field Types** — Short Text, Long Text, Number, Date, Single Choice, Multiple Choice, Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Address
 - **Number Stepper** — Large +/− buttons with a configurable step size and an optional prefilled start value, for quantity questions where 0 or 1 is an unlikely answer
 - **Inline Date Picker** — An always-visible calendar per date step, set to either a single day or a date range (from – to), with selectable-window limits and localized month/weekday names
 - **Conditional Logic** — Show/hide steps based on previous answers (equals, contains, is set, etc.)
+- **Combined Steps** — Merge two adjacent questions onto one screen (e.g. email + phone), optionally requiring just one of them to be answered
+- **Flat-Rate Pricing Filter** — On a choice step, hide budget options that can't cover a rate × quantity answered earlier, so nobody picks an impossible budget
 - **Smart Defaults** — Selecting a field type auto-fills question, label, and placeholder
 - **Visual Editor** — Collapsible question cards, reorder, visual field type picker with icons
 - **Emoji/Icon Picker** — Built-in category-based emoji selector for Image/Icon Select fields
 - **Landing Page Mode** — Add logo, headline, and subline on top of the form
 - **Footer Links** — Add up to 3 links (Privacy Policy, Imprint, Terms) below the form
-- **Theme Customization** — Colors, custom CSS, animated backgrounds, and branding per form
-- **Animated Backgrounds** — 4 stylish CSS motion presets (Waves, Bubbles, Aurora, Geometric) with 2-color support
+- **End Screen** — Custom thank-you title and message, plus an optional redirect URL that can open automatically on submit (breaking out of the iframe when embedded)
+- **Theme Customization** — Colors, custom CSS, animated backgrounds, and branding per form, with a live preview in the Design tab
+- **Animated Backgrounds** — 5 stylish CSS motion presets (Waves, Bubbles, Aurora, Particles, Flow) with 2-color support
 - **Configurable Button Position** — Place the "Next" button in the footer bar or inline below the input field
+- **Editable Button Labels** — Override the built-in "Next" / "Submit" wording per form
+- **Form Language (EN / DE)** — Sets the language of every built-in string shown to respondents, including error messages and calendar month/weekday names
 - **Enter Key Hint** — Optional "press Enter" keyboard shortcut hint next to the Next button
 - **GDPR-Ready** — Consent under the last question or as its own final step, agreed to by a deliberate press of Enter or a click (form-level toggle)
 - **File Uploads** — Drag & drop with configurable file types and size limits
+- **Duplicate a Form** — One-click copy of a form's questions, theme and integrations, created as a draft with copied integrations disabled
 
 
 <img width="1017" height="672" alt="grafik" src="https://github.com/user-attachments/assets/1265603a-4602-44e6-97b0-15c77afb9456" />
@@ -47,16 +53,18 @@
 
 ### 🔌 Embedding & Tracking
 - **iframe Embed** — Drop forms into any landing page (with auto-resize)
-- **Editable URL Slug** — Rename a form's URL anytime (`/f/spring-launch` instead of the auto-generated 8-char code); old links keep working via 301-style redirect
+- **Editable URL Slug** — Rename a form's URL anytime (`/f/spring-launch` instead of the auto-generated 8-char code); old links keep working, and the browser is rewritten to the current URL
 - **Custom Subdomain** — Host each form on its own subdomain of a domain you control (e.g. `acme.forms.example.com`), backed by a single wildcard TLS cert
 - **🏷️ GTM Integration** — Google Tag Manager per form, with step and submit events
+- **🍪 Cookie Consent Banner** — Optional banner shown *before* GTM loads, so tracking only starts once the visitor accepts
 - **WordPress Plugin** — Shortcode `[openflow]`, WPBakery element, and Gutenberg block
 
 ### 🛠️ Infrastructure
-- **🐳 Docker** — One command to start )
+- **🐳 Docker** — One command to start
 - **SQLite** — Zero-config database, no external DB needed
 - **🛡️ Rate Limiting** — Built-in in-memory spam protection
 - **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
+- **🏷️ White-Label Branding** — Admins can swap or hide the vendor logo in the admin sidebar (**Settings → Branding**)
 - **🔑 API Tokens** — Read-only tokens for programmatic API access (e.g. the lodgely connector); created under Settings, hashed at rest, revocable anytime
 - **💾 Backup & Restore** — Admins can download a full JSON snapshot of the database and restore it later; older backups are auto-migrated to the current format on restore
 - **⏰ Scheduled Backups** — A background job writes a rotating backup on an interval to a separate volume, so recovery doesn't depend on someone remembering to click "Download"
@@ -80,6 +88,8 @@ The app runs on `http://localhost:3000`.
 **🔑 Default Login:**
 - Email: `admin@openflow.local`
 - Password: `admin123`
+
+> ⚠️ Those are the fallbacks baked into `docker-compose.yml`. **Change the password after the first login**, or set `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` before the first start. If you run the backend without those compose defaults and leave `ADMIN_PASSWORD` unset, OpenFlow generates a random one-time admin password and prints it to the server log instead.
 
 ---
 
@@ -106,15 +116,19 @@ Environment variables (in `.env` or docker-compose):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `JWT_SECRET` | `change-me-in-production` | 🔐 JWT Signing Key |
+| `JWT_SECRET` | `change-me-in-production` (from `docker-compose.yml`) | 🔐 JWT signing key. Without the compose default, a random secret is generated and persisted next to the database — set this explicitly in production so sessions survive a volume reset |
 | `ADMIN_EMAIL` | `admin@openflow.local` | 👤 Admin email |
-| `ADMIN_PASSWORD` | `admin123` | 🔑 Admin password (only on first start) |
+| `ADMIN_PASSWORD` | `admin123` (from `docker-compose.yml`) | 🔑 Admin password (only on first start). Without the compose default, a random one is generated and printed to the log once |
 | `DB_PATH` | `/app/data/openflow.db` | 💾 SQLite database path |
 | `PORT` | `3000` | 🌐 Server port |
+| `CORS_ORIGINS` | *(empty)* | 🌍 Comma-separated extra origins allowed to call the API. Same-origin requests are always allowed, so this is only needed when the admin UI is served from a different host than the API |
+| `OPENFLOW_PRIMARY_HOST` | *(empty)* | 🌐 Apex host for [custom subdomains](#custom-subdomains). Also implicitly allowed as a CORS origin |
 | `BACKUP_ENABLED` | `true` | ⏰ Set to `false` to disable the scheduled backup job |
-| `BACKUP_DIR` | next to `DB_PATH` | 📁 Where scheduled backups are written (point at a separate volume for real off-box protection) |
+| `BACKUP_DIR` | `/app/backups` (from `docker-compose.yml`; otherwise a `backups/` folder next to `DB_PATH`) | 📁 Where scheduled backups are written (point at a separate volume for real off-box protection) |
 | `BACKUP_INTERVAL_HOURS` | `24` | ⏱️ How often to write a scheduled backup |
 | `BACKUP_RETENTION_COUNT` | `14` | 🗑️ How many scheduled backups to keep before pruning the oldest |
+
+> 💾 `docker-compose.yml` bind-mounts `./backups` on the host into the container, deliberately **outside** the `db-data` volume — so wiping or losing that volume doesn't take the backups with it. Copy `./backups` off the host regularly for real disaster recovery.
 
 ---
 
@@ -122,23 +136,32 @@ Environment variables (in `.env` or docker-compose):
 
 ```
 openflow/
-├── backend/                # 🟢 Express API + SQLite
+├── backend/                        # 🟢 Express API + SQLite (also serves the built frontend)
+│   ├── src/
+│   │   ├── index.js                # Server entry point, CORS, SPA fallback
+│   │   ├── models/                 # DB schema, integrations engine, delivery queue,
+│   │   │                           #   backups, API tokens, rate limiting
+│   │   ├── middleware/             # JWT + API-token auth, per-form subdomain routing
+│   │   ├── routes/                 # auth, forms, submissions, public, integrations,
+│   │   │                           #   analytics, settings, admin
+│   │   └── utils/                  # slug/subdomain rules, CSS sanitizer, SSRF guard
+│   └── tests/                      # Jest + supertest
+├── frontend/                       # ⚛️ React (Vite)
 │   └── src/
-│       ├── index.js        # Server entry point
-│       ├── models/         # DB, Rate Limiting, Integrations engine
-│       ├── middleware/      # JWT Auth
-│       └── routes/         # API endpoints
-├── frontend/               # ⚛️ React (Vite)
-│   └── src/
-│       ├── components/     # FormRenderer, IntegrationsPanel
-│       ├── pages/          # Admin + Public Views
-│       └── styles/         # CSS
-├── wordpress-plugin/       # 🔌 WordPress integration
+│       ├── main.jsx                # /f/:slug, /embed/:slug, and the admin SPA
+│       ├── components/             # FormRenderer, IntegrationsPanel, shared admin UI
+│       ├── pages/                  # Admin pages + public form/embed views
+│       ├── locales.js              # Respondent-facing strings (EN / DE)
+│       └── styles/                 # CSS
+├── wordpress-plugin/               # 🔌 WordPress integration
 │   └── openflow/
-│       ├── openflow.php    # Shortcode + WPBakery + Gutenberg
-│       └── block.js        # Gutenberg block editor
-├── Dockerfile
-└── docker-compose.yml
+│       ├── openflow.php            # Shortcode + WPBakery + Gutenberg
+│       └── block.js                # Gutenberg block editor
+├── docs/integrations/              # 📚 Per-integration setup walkthroughs
+├── Dockerfile                      # Multi-stage: builds the frontend into the backend image
+├── docker-compose.yml
+├── docker-compose.subdomains.yml   # Optional Caddy overlay for custom subdomains
+└── Caddyfile
 ```
 
 ---
@@ -167,8 +190,11 @@ openflow/
 | 📧 Email Address | Email with validation | |
 | 📞 Phone Number | Phone number input | |
 | 🌐 Website URL | URL with validation | |
-| 🏠 Address | Composite address field | Street, Postal Code, City, Country |
-| 🔒 Consent / GDPR | Checkbox with configurable legal text | |
+| 🏠 Address | Composite address field (sub-field labels are editable) | Street, Postal Code, City, Country |
+
+> 🔒 **Consent / GDPR is not a field type** — it's a per-form setting in the **GTM / GDPR** tab. Switch it on and the consent checkbox with your legal text is added either under the last question or as its own final step; it arrives in the submission as `_consent`.
+
+Any two adjacent questions can be **combined** into a single step (e.g. email + phone side by side) via the **Combine** buttons in the editor, and split apart again at any time.
 
 ---
 
@@ -179,8 +205,11 @@ Configure integrations per form in the **Integrations** tab of the form editor.
 ### 🔗 Webhook
 Send submission data to any URL on each submission.
 - Configurable HTTP method (POST/PUT)
-- Optional HMAC-SHA256 signing with shared secret
-- Payload includes `formId`, `formTitle`, `data`, `timestamp`
+- JSON payload: `event` (always `"submission"`), `formId`, `formTitle`, `data` (keyed by field id), `timestamp` (ISO 8601)
+- Optional HMAC-SHA256 signing with a shared secret, sent as an `X-OpenFlow-Signature` header
+- The target URL is checked against private/internal address ranges before the request is made, and redirects are not followed
+
+> ⚠️ **Known issue:** the `X-OpenFlow-Signature` digest is currently computed over a slightly different object than the one actually sent (it omits `event` and uses a millisecond `timestamp`), so signature verification on the receiving end will not match. Leave the secret blank until this is fixed, or verify by shared-secret transport instead.
 
 ### 📧 Email Notification
 Receive an email with a formatted HTML table of each submission.
@@ -263,6 +292,14 @@ OpenFlow automatically pushes events to the Google Tag Manager dataLayer:
 |-------|---------|------|
 | `openflow_step` | Each step change | `formId`, `stepIndex`, `stepId` |
 | `openflow_submit` | Form submitted | `formId`, `formTitle` |
+
+Set the container ID per form under **GTM / GDPR → GTM Container ID** (it must look like `GTM-XXXXXXX`).
+
+### 🍪 Cookie consent banner
+
+Optionally, a consent banner can be shown **before** the GTM container is loaded — GTM only fires once the visitor accepts, and the choice is remembered in their browser so the banner doesn't reappear. Enable it under **GTM / GDPR → Cookie / Tracking Consent Banner**; the message and both button labels are editable. A GTM container ID must be set first.
+
+The same consent gates the ad click IDs (`gclid`/`gbraid`/`wbraid`) that the [Google Ads integration](#-google-ads-server-side-conversion) relies on.
 
 ---
 
@@ -410,16 +447,23 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `POST /api/public/form/:slug/submit` — Submit response
 - `POST /api/public/track` — Track analytics event
 
+### Auth
+- `POST /api/auth/login` — Log in (sets a `token` httpOnly cookie and returns the JWT)
+- `POST /api/auth/logout` — Clear the session cookie
+- `GET /api/auth/me` — Current user
+
 ### Admin (auth required)
-- `POST /api/auth/login` — Log in
 - `GET /api/forms` — List all forms
+- `GET /api/forms/:id` — Get one form (including its `steps`)
 - `POST /api/forms` — Create form
+- `POST /api/forms/:id/clone` — Duplicate a form (draft copy, integrations disabled)
 - `PUT /api/forms/:id` — Update form
 - `DELETE /api/forms/:id` — Delete form
-- `GET /api/submissions/:formId` — Get submissions (paginated)
+- `GET /api/submissions/:formId` — Get submissions (paginated, newest first)
 - `GET /api/submissions/:formId/export` — CSV export
-- `GET /api/admin/backups` — List backups written by the scheduler
-- `GET /api/admin/backups/:filename` — Download a specific scheduled backup
+- `DELETE /api/submissions/:formId/:submissionId` — Delete a submission
+- `GET /api/settings` — Read global settings (public) — branding and the configured primary host
+- `PUT /api/settings/:key` — Update a global setting (admin only)
 
 ### Integrations (auth required)
 - `GET /api/integrations/:formId` — List integrations
@@ -440,6 +484,20 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `PUT /api/auth/users/:id` — Update user role/password
 - `DELETE /api/auth/users/:id` — Delete user
 
+### API Tokens (session auth only — a token can never manage tokens)
+- `GET /api/auth/tokens` — List your tokens (prefix + last used, never the secret)
+- `POST /api/auth/tokens` — Mint a token (the plaintext `ofw_…` value is returned **once**)
+- `DELETE /api/auth/tokens/:id` — Revoke a token
+
+### Backup & Restore (admin only)
+- `GET /api/admin/backup/info` — Summary of current DB contents and backup format version
+- `GET /api/admin/backup` — Download a full JSON backup
+- `POST /api/admin/restore` — Restore from a JSON backup
+- `GET /api/admin/backups` — List backups written by the scheduler
+- `GET /api/admin/backups/:filename` — Download a specific scheduled backup
+
+> 🔑 Read-only API tokens (`Authorization: Bearer ofw_…`) may call any **GET/HEAD** endpoint above on behalf of their owner. Every other method is rejected.
+
 ---
 
 ## 🧑‍💻 Development
@@ -454,6 +512,12 @@ cd frontend && npm install && npm run dev
 
 Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 
+Run the backend test suite (Jest + supertest):
+
+```bash
+cd backend && npm test
+```
+
 ---
 
 ## 🗺️ Roadmap
@@ -462,7 +526,8 @@ Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
 - ✅ **Phase 2**: Webhook, email notifications, Google Sheets integration
 - ✅ **Phase 3**: Conditional logic, file uploads, custom CSS per form, multi-user support, landing page header/footer
 - ✅ **Phase 4**: Analytics dashboard, simplified Google Sheets, dark mode, delete protection for live forms
-- 🔜 **Phase 5**: A/B testing, custom domain support, form templates
+- ✅ **Phase 5**: Editable slugs and per-form subdomains, backup & restore, read-only API tokens, retrying integration deliveries, server-side Google Ads conversions
+- 🔜 **Phase 6**: A/B testing, form templates, more languages
 
 ---
 
