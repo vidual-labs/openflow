@@ -1,11 +1,12 @@
 <?php
 /**
  * Plugin Name: OpenFlow Form Embed
- * Plugin URI: https://github.com/your-org/openflow
+ * Plugin URI: https://github.com/vidual-labs/openflow
  * Description: Embed OpenFlow lead generation forms via shortcode or WPBakery element. Connect to your self-hosted OpenFlow instance.
  * Version: 1.0.0
  * Author: OpenFlow
- * License: MIT
+ * License: GPL-3.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain: openflow
  */
 
