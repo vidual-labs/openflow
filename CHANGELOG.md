@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.29.0] - 2026-08-12
+
+### Fixed
+- **Responsive admin nav on mobile** (`App.jsx`, `styles/global.css`). Below 768px the sidebar used to squash itself into a single horizontal row (`flex-direction: row`, `height: auto`), which made the nav links side-scroll and clipped the account email / theme toggle / log out / version-and-GitHub footer block out of view. It's replaced with a proper off-canvas drawer: a sticky top bar (logo + hamburger) opens the sidebar as a full-height slide-in panel with a dimmed backdrop, keeping the sidebar's normal vertical layout (stacked nav links, footer pinned to the bottom via `margin-top: auto`). The drawer closes on backdrop click or route change. Desktop layout (>768px) is unchanged.
+
 ## [0.28.0] - 2026-08-12
 
 ### Accessibility
