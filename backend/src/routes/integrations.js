@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
+const { encrypt, decrypt } = require('../models/encryption');
 const { v4: uuid } = require('uuid');
 
 const router = Router();
@@ -14,7 +15,7 @@ router.get('/:formId', (req, res) => {
 
   const integrations = db.prepare('SELECT * FROM integrations WHERE form_id = ? ORDER BY created_at DESC').all(req.params.formId);
   integrations.forEach(i => {
-    try { i.config = JSON.parse(i.config); } catch { i.config = {}; }
+    try { i.config = JSON.parse(decrypt(i.config)); } catch { i.config = {}; }
   });
   res.json({ integrations });
 });
@@ -32,11 +33,11 @@ router.post('/:formId', (req, res) => {
 
   const id = uuid();
   db.prepare('INSERT INTO integrations (id, form_id, type, enabled, config) VALUES (?, ?, ?, ?, ?)').run(
-    id, req.params.formId, type, enabled !== undefined ? (enabled ? 1 : 0) : 1, JSON.stringify(config || {})
+    id, req.params.formId, type, enabled !== undefined ? (enabled ? 1 : 0) : 1, encrypt(JSON.stringify(config || {}))
   );
 
   const integration = db.prepare('SELECT * FROM integrations WHERE id = ?').get(id);
-  integration.config = JSON.parse(integration.config);
+  integration.config = JSON.parse(decrypt(integration.config));
   res.status(201).json({ integration });
 });
 
@@ -52,13 +53,13 @@ router.put('/:formId/:integrationId', (req, res) => {
   const { config, enabled } = req.body;
 
   db.prepare('UPDATE integrations SET config = COALESCE(?, config), enabled = COALESCE(?, enabled) WHERE id = ?').run(
-    config ? JSON.stringify(config) : null,
+    config ? encrypt(JSON.stringify(config)) : null,
     enabled !== undefined ? (enabled ? 1 : 0) : null,
     req.params.integrationId
   );
 
   const updated = db.prepare('SELECT * FROM integrations WHERE id = ?').get(req.params.integrationId);
-  updated.config = JSON.parse(updated.config);
+  updated.config = JSON.parse(decrypt(updated.config));
   res.json({ integration: updated });
 });
 
@@ -100,7 +101,7 @@ router.post('/:formId/:integrationId/test', async (req, res) => {
   // real Google Ads account. Instead, just verify the OAuth credentials work.
   if (integration.type === 'google_ads_conversion') {
     try {
-      await testGoogleAdsCredentials(JSON.parse(integration.config));
+      await testGoogleAdsCredentials(JSON.parse(decrypt(integration.config)));
       return res.json({ results: [{ id: integration.id, type: integration.type, ok: true }] });
     } catch (err) {
       return res.json({ results: [{ id: integration.id, type: integration.type, ok: false, error: err.message }] });
@@ -109,7 +110,7 @@ router.post('/:formId/:integrationId/test', async (req, res) => {
 
   try {
     // Run just this one integration
-    const config = JSON.parse(integration.config);
+    const config = JSON.parse(decrypt(integration.config));
     const singleDb = {
       prepare: () => ({
         all: () => [{ ...integration, config: JSON.stringify(config) }],

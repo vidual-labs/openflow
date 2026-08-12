@@ -5,6 +5,7 @@ const { authMiddleware, signToken, requireSession } = require('../middleware/aut
 const apiTokens = require('../models/apiTokens');
 const { checkRateLimit, isRateLimited } = require('../models/rateLimit');
 const { logAuditEvent } = require('../models/auditLog');
+const logger = require('../utils/logger');
 
 const router = Router();
 
@@ -42,7 +43,7 @@ router.post('/login', (req, res) => {
   }
 
   logAuditEvent({ userId: user.id, action: 'login_succeeded', target: user.email, ip: clientIp(req) });
-  const token = signToken(user.id);
+  const token = signToken(user.id, user.token_version || 0);
   res.cookie('token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -121,7 +122,7 @@ router.put('/users/:id', authMiddleware, requireAdmin, (req, res) => {
 
   const { role, password } = req.body;
   if (role) {
-    db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role === 'admin' ? 'admin' : 'user', req.params.id);
+    db.prepare('UPDATE users SET role = ?, token_version = token_version + 1 WHERE id = ?').run(role === 'admin' ? 'admin' : 'user', req.params.id);
     logAuditEvent({ userId: req.userId, action: 'user_role_changed', target: user.email, ip: clientIp(req), details: { role: role === 'admin' ? 'admin' : 'user' } });
   }
   if (password) {
@@ -129,12 +130,26 @@ router.put('/users/:id', authMiddleware, requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 10 characters' });
     }
     const hash = bcrypt.hashSync(password, 10);
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.params.id);
+    db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?').run(hash, req.params.id);
     logAuditEvent({ userId: req.userId, action: 'user_password_changed', target: user.email, ip: clientIp(req) });
   }
 
   const updated = db.prepare('SELECT id, email, role, created_at FROM users WHERE id = ?').get(req.params.id);
   res.json({ user: updated });
+});
+
+// Force-expire a user's existing sessions (any JWT already issued to them)
+// without touching their password — e.g. after a suspected compromise or
+// before a role change takes visible effect. Takes effect on their very
+// next request via the token_version check in authMiddleware.
+router.post('/users/:id/revoke-sessions', authMiddleware, requireAdmin, (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  db.prepare('UPDATE users SET token_version = token_version + 1 WHERE id = ?').run(req.params.id);
+  logAuditEvent({ userId: req.userId, action: 'user_sessions_revoked', target: user.email, ip: clientIp(req) });
+  res.json({ ok: true });
 });
 
 // Delete user (admin only)
@@ -152,7 +167,7 @@ router.delete('/users/:id', authMiddleware, requireAdmin, (req, res) => {
     logAuditEvent({ userId: req.userId, action: 'user_deleted', target: targetUser.email, ip: clientIp(req) });
     res.json({ ok: true });
   } catch (err) {
-    console.error('Delete user error:', err);
+    logger.error('delete_user_failed', { error: err.message });
     res.status(500).json({ error: 'Failed to delete user' });
   }
 });

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createBackup } = require('./backup');
+const logger = require('../utils/logger');
 
 // Where scheduled backups land. Defaults next to the DB file so it rides
 // along in the existing `db-data` volume out of the box, but operators can
@@ -65,7 +66,7 @@ function readScheduledBackup(filename) {
 
 function startBackupScheduler(db) {
   if (process.env.BACKUP_ENABLED === 'false') {
-    console.log('Scheduled backups disabled (BACKUP_ENABLED=false)');
+    logger.info('scheduled_backups_disabled');
     return null;
   }
   const intervalHours = Number(process.env.BACKUP_INTERVAL_HOURS) > 0 ? Number(process.env.BACKUP_INTERVAL_HOURS) : 24;
@@ -75,16 +76,16 @@ function startBackupScheduler(db) {
     try {
       const filename = writeScheduledBackup(db);
       pruneOldBackups(retentionCount);
-      console.log(`Scheduled backup written: ${filename}`);
+      logger.info('scheduled_backup_written', { filename });
     } catch (err) {
-      console.error('Scheduled backup failed:', err.message);
+      logger.error('scheduled_backup_failed', { error: err.message });
     }
   };
 
   run();
   const timer = setInterval(run, intervalHours * 60 * 60 * 1000);
   timer.unref();
-  console.log(`Scheduled backups enabled: every ${intervalHours}h, keeping last ${retentionCount}, dir=${backupDir()}`);
+  logger.info('scheduled_backups_enabled', { intervalHours, retentionCount, dir: backupDir() });
   return timer;
 }
 

@@ -57,6 +57,15 @@ export default function Users() {
     loadUsers();
   }
 
+  async function handleRevokeSessions(user) {
+    if (!confirm(`Log "${user.email}" out of all existing sessions?`)) return;
+    try {
+      await api.revokeUserSessions(user.id);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   return (
     <div>
       <PageHeader title="Users">
@@ -99,7 +108,7 @@ export default function Users() {
               <th>Email</th>
               <th>Role</th>
               <th>Created</th>
-              <th style={{ width: 120 }}>Actions</th>
+              <th style={{ width: 220 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -116,6 +125,9 @@ export default function Users() {
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button className="btn btn-sm btn-secondary" onClick={() => toggleRole(user)} title="Toggle role">
                       {user.role === 'admin' ? 'Demote' : 'Promote'}
+                    </button>
+                    <button className="btn btn-sm btn-secondary" onClick={() => handleRevokeSessions(user)} title="Invalidate this user's existing login sessions">
+                      Log out everywhere
                     </button>
                     {currentUser?.id !== user.id && (
                       <button className="btn btn-sm btn-danger" onClick={() => handleDelete(user.id)}>Delete</button>

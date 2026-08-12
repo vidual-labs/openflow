@@ -158,6 +158,17 @@ function initDb() {
     console.log('Migration: added role column to users');
   }
 
+  // Migrate: add token_version column to users (existing DBs). Bumped on
+  // password change, role change, or an explicit admin "log out everywhere"
+  // so a stolen/old JWT stops working immediately instead of riding out its
+  // full 7-day expiry — see middleware/auth.js.
+  try {
+    db.prepare('SELECT token_version FROM users LIMIT 1').get();
+  } catch {
+    db.exec('ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0');
+    console.log('Migration: added token_version column to users');
+  }
+
   // Migrate: add subdomain column to forms (existing DBs).
   // SQLite can't add a column with a UNIQUE constraint inline, so we add the
   // column nullable and enforce uniqueness with a partial unique index.

@@ -2,6 +2,28 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.27.1] - 2026-08-12
+
+### Fixed
+- **Fixed two pre-existing, always-broken test suites**, surfaced by the CI added in 0.27.0. `tests/auth.test.js`'s `DELETE /api/auth/users/:id` block asserted a non-admin user could delete another user and that a non-admin deleting themselves returned "Cannot delete yourself" — both wrong, since that route has always been admin-only (`requireAdmin` runs first and returns 403 for a non-admin, before any self-delete check). It also seeded its admin/user rows once in a `beforeAll`, which the test suite's global per-test cleanup then deleted before most of the block's tests ran, leaving their session cookies pointing at rows (and, since 0.27.0, a `token_version`) that no longer existed. `tests/validation.test.js`'s "accept valid event types" case posted to a form id that was never seeded, so the route's 404 was mistaken for a validation bug. Fixed the assertions to match actual (correct) behavior and seeded the rows each test needs.
+
+## [0.27.0] - 2026-08-12
+
+### Security
+- **Session/token revocation** — users now carry a `token_version`, embedded in every JWT. Changing a user's password or role bumps it, immediately invalidating any JWT issued before the change instead of letting it keep working for up to 7 more days. Admins can also force this on demand via a new **"Log out everywhere"** button on the Users page (`POST /api/auth/users/:id/revoke-sessions`), without touching the user's password.
+- **Encrypted integration secrets at rest** — `integrations.config` (SMTP passwords, Google service-account keys, OAuth refresh tokens, webhook HMAC secrets) is now encrypted with AES-256-GCM before being written to SQLite, via a new `models/encryption.js`. The key is read from `ENCRYPTION_KEY` if set, or generated and persisted next to the database (mirroring `JWT_SECRET`'s existing behavior) — see the new config-table entry and the "Security & Production Notes" section in the README for the backup caveat. Pre-existing plaintext rows keep working and are re-encrypted the next time they're saved.
+- **Added `SECURITY.md`** with a private vulnerability-reporting process (GitHub Security Advisories) and a supported-versions statement.
+
+### Added
+- **`GET /api/health`** — liveness/readiness endpoint (database connectivity + uptime), unauthenticated, for container orchestrators and uptime monitors.
+- **Structured logging** — a new `utils/logger.js` emits single-line JSON for HTTP requests, integration-delivery failures, scheduled-backup runs, and startup/shutdown events, replacing free-form `console.log`/`console.error` calls in those paths.
+- **CI** (`.github/workflows/ci.yml`) — runs the backend Jest suite and a frontend production build on every PR and push to `main`, plus a non-blocking `npm audit` report for both packages.
+
+### Docs
+- Documented the TLS-termination requirement (reverse proxy / the bundled Caddy subdomains overlay — the base Compose file serves plain HTTP) and the single-instance architecture constraint (in-memory rate limiter and backup scheduler don't coordinate across replicas) as explicit, accepted tradeoffs rather than undiscovered gaps.
+- Clarified what's automatic vs. manual for backups: scheduled local snapshots and on-demand admin downloads exist today; uploading them off-box to cloud storage is left to the operator.
+- Documented three deferred items so they're a visible roadmap note rather than a silent gap: 2FA, admin UI localization, and automated data-retention/GDPR-erasure tooling.
+
 ## [0.26.0] - 2026-08-12
 
 ### Security

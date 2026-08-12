@@ -1,4 +1,5 @@
 const { getDb } = require('./db');
+const logger = require('../utils/logger');
 
 // Records a security-relevant event. Never throws — a logging failure must
 // not block the action it's recording (e.g. a login should still succeed
@@ -10,7 +11,7 @@ function logAuditEvent({ userId = null, action, target = null, ip = null, detail
       'INSERT INTO audit_log (user_id, action, target, ip, details) VALUES (?, ?, ?, ?, ?)'
     ).run(userId, action, target, ip, details ? JSON.stringify(details) : null);
   } catch (err) {
-    console.error('Failed to write audit log entry:', err.message);
+    logger.error('audit_log_write_failed', { error: err.message });
   }
 }
 
