@@ -15,11 +15,18 @@ RUN npm install --production
 
 # Stage 3: Runtime (clean, no build tools)
 FROM node:20-alpine
+RUN apk add --no-cache su-exec
 WORKDIR /app
 COPY --from=backend-build /app/node_modules ./node_modules
 COPY backend/package.json ./
 COPY backend/ ./
 COPY --from=frontend-build /build/dist ./public
-RUN mkdir -p /app/data
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN mkdir -p /app/data /app/backups && chown -R node:node /app && chmod +x /usr/local/bin/docker-entrypoint.sh
+# Stays root at container start on purpose: the entrypoint fixes ownership
+# of the mounted volumes (which may predate this image, or be freshly
+# created by Docker as root) before dropping to the unprivileged `node`
+# user to actually run the app. See docker-entrypoint.sh.
 EXPOSE 3000
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "src/index.js"]

@@ -56,20 +56,26 @@ async function runWebhook(config, formId, formTitle, data) {
   if (!url) throw new Error('Webhook URL is required');
   await assertSafeUrl(url);
 
+  // Signature is computed over the exact serialized bytes sent as the body,
+  // so a receiver can verify it by HMAC-ing the raw request body it received.
+  // (Previously this signed a differently-shaped, differently-timestamped
+  // payload than what was actually sent, so no receiver could ever
+  // reproduce a matching signature. Fixing this changes the signature value
+  // for anyone with a webhook that already worked around the mismatch.)
+  const payload = { event: 'submission', formId, formTitle, data, timestamp: new Date().toISOString() };
+  const body = JSON.stringify(payload);
+
   const headers = { 'Content-Type': 'application/json' };
   if (secret) {
     const crypto = require('crypto');
-    const body = JSON.stringify({ formId, formTitle, data, timestamp: Date.now() });
     const signature = crypto.createHmac('sha256', secret).update(body).digest('hex');
     headers['X-OpenFlow-Signature'] = signature;
   }
 
-  const payload = { event: 'submission', formId, formTitle, data, timestamp: new Date().toISOString() };
-
   const res = await fetch(url, {
     method: method.toUpperCase(),
     headers,
-    body: JSON.stringify(payload),
+    body,
     signal: AbortSignal.timeout(10000),
     // Don't auto-follow redirects: a validated public URL could redirect to
     // an internal address, bypassing the assertSafeUrl check above.

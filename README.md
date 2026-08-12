@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.25.3
+# 🌊 OpenFlow v0.26.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -69,6 +69,7 @@
 - **💾 Backup & Restore** — Admins can download a full JSON snapshot of the database and restore it later; older backups are auto-migrated to the current format on restore
 - **⏰ Scheduled Backups** — A background job writes a rotating backup on an interval to a separate volume, so recovery doesn't depend on someone remembering to click "Download"
 - **🔁 Retrying Integration Deliveries** — Failed webhook/email/Sheets deliveries retry with backoff instead of silently dropping the lead; exhausted retries surface as a dead letter you can manually retry from the Integrations tab
+- **📋 Audit Log** — Logins (success/failure), user/role changes, settings changes, and backup/restore are recorded with actor, IP and timestamp for post-incident review (`GET /api/admin/audit-log`, admin only)
 - **🌙 Dark Mode** — Auto/light/dark theme toggle for the admin interface
 - **🛡️ Delete Protection** — Published forms require typing the form name to confirm deletion
 - **Responsive** — Optimized for mobile and desktop
@@ -85,11 +86,9 @@ docker compose up -d --build
 
 The app runs on `http://localhost:3000`.
 
-**🔑 Default Login:**
-- Email: `admin@openflow.local`
-- Password: `admin123`
-
-> ⚠️ Those are the fallbacks baked into `docker-compose.yml`. **Change the password after the first login**, or set `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` before the first start. If you run the backend without those compose defaults and leave `ADMIN_PASSWORD` unset, OpenFlow generates a random one-time admin password and prints it to the server log instead.
+**🔑 First Login:**
+- Email: `admin@openflow.local` (or your `ADMIN_EMAIL`)
+- Password: OpenFlow never ships a hardcoded default. If `ADMIN_PASSWORD` isn't set, a random one-time password is generated on first start and printed **once** to the container log (`docker compose logs app`) — copy it from there to log in, then change it. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` before the first start to control both explicitly instead.
 
 ---
 
@@ -116,9 +115,9 @@ Environment variables (in `.env` or docker-compose):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `JWT_SECRET` | `change-me-in-production` (from `docker-compose.yml`) | 🔐 JWT signing key. Without the compose default, a random secret is generated and persisted next to the database — set this explicitly in production so sessions survive a volume reset |
+| `JWT_SECRET` | *(none — auto-generated)* | 🔐 JWT signing key. If unset, a random secret is generated and persisted next to the database — set this explicitly in production so sessions survive a volume reset |
 | `ADMIN_EMAIL` | `admin@openflow.local` | 👤 Admin email |
-| `ADMIN_PASSWORD` | `admin123` (from `docker-compose.yml`) | 🔑 Admin password (only on first start). Without the compose default, a random one is generated and printed to the log once |
+| `ADMIN_PASSWORD` | *(none — auto-generated)* | 🔑 Admin password (only on first start). If unset, a random one is generated and printed to the log once |
 | `DB_PATH` | `/app/data/openflow.db` | 💾 SQLite database path |
 | `PORT` | `3000` | 🌐 Server port |
 | `CORS_ORIGINS` | *(empty)* | 🌍 Comma-separated extra origins allowed to call the API. Same-origin requests are always allowed, so this is only needed when the admin UI is served from a different host than the API |
@@ -206,10 +205,8 @@ Configure integrations per form in the **Integrations** tab of the form editor.
 Send submission data to any URL on each submission.
 - Configurable HTTP method (POST/PUT)
 - JSON payload: `event` (always `"submission"`), `formId`, `formTitle`, `data` (keyed by field id), `timestamp` (ISO 8601)
-- Optional HMAC-SHA256 signing with a shared secret, sent as an `X-OpenFlow-Signature` header
+- Optional HMAC-SHA256 signing with a shared secret, sent as an `X-OpenFlow-Signature` header — the signature is computed over the exact JSON bytes sent as the body, so a receiver can verify it by HMAC-ing the raw request body it received
 - The target URL is checked against private/internal address ranges before the request is made, and redirects are not followed
-
-> ⚠️ **Known issue:** the `X-OpenFlow-Signature` digest is currently computed over a slightly different object than the one actually sent (it omits `event` and uses a millisecond `timestamp`), so signature verification on the receiving end will not match. Leave the secret blank until this is fixed, or verify by shared-secret transport instead.
 
 ### 📧 Email Notification
 Receive an email with a formatted HTML table of each submission.
@@ -496,6 +493,9 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `GET /api/admin/backups` — List backups written by the scheduler
 - `GET /api/admin/backups/:filename` — Download a specific scheduled backup
 
+### Audit Log (admin only)
+- `GET /api/admin/audit-log?limit=200` — Recent security-relevant events (logins, user/role changes, settings changes, backup/restore), newest first. Not included in backups — it's a trail of what happened to the instance, not instance data to restore.
+
 > 🔑 Read-only API tokens (`Authorization: Bearer ofw_…`) may call any **GET/HEAD** endpoint above on behalf of their owner. Every other method is rejected.
 
 ---
@@ -533,9 +533,7 @@ cd backend && npm test
 
 ## 📄 License
 
-GPL 3.0
-
-Not for use with weapons, fossil fuels or right wing politics.
+GPL 3.0 — see [LICENSE](LICENSE).
 
 ---
 
