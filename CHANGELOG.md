@@ -2,6 +2,16 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.25.3] - 2026-08-12
+
+### Changed
+- **Made the new mailto/tel links in email notifications optional** — some setups route leads through lodgely for tracking, and a one-tap "call now" link that never touches lodgely means the lead can be worked without ever being marked there. The email integration gets its own **"Make email and phone answers clickable"** checkbox, independent of the lodgely link, so this can be turned off per integration where that routing matters. Defaults to on.
+
+## [0.25.2] - 2026-08-12
+
+### Changed
+- **Email notifications now link phone and email answers** — a submission's `email`-type and `phone`-type field values in the notification email table are wrapped in `mailto:`/`tel:` links, so a client reading a lead notification can call or email the lead with one tap instead of copying the value out first. Phone numbers keep their original display text; the `tel:` href strips everything but digits and a leading `+`. Other field types are unaffected.
+
 ## [0.25.1] - 2026-08-09
 
 ### Docs
