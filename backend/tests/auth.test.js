@@ -73,13 +73,18 @@ describe('Authentication', () => {
     let adminId;
     let userId;
 
-    beforeAll(async () => {
+    // A per-test (not per-suite) beforeEach: the global beforeEach in
+    // setup.js wipes the users table before every test, which would
+    // otherwise delete the admin/user rows a beforeAll seeded once and
+    // leave `adminCookie`/`userCookie` referencing rows (and, since session
+    // revocation landed, a token_version) that no longer exist in the DB.
+    beforeEach(async () => {
       const db = require('../src/models/db').getDb();
-      
+
       adminId = uuid();
       const adminHash = bcrypt.hashSync('adminpass', 10);
       db.prepare('INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)').run(adminId, 'admin@test.com', adminHash, 'admin');
-      
+
       userId = uuid();
       const userHash = bcrypt.hashSync('userpass', 10);
       db.prepare('INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)').run(userId, 'user@test.com', userHash, 'user');
@@ -101,16 +106,15 @@ describe('Authentication', () => {
         db.prepare('INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)').run(testUserId, 'test@test.com', hash, 'user');
       });
 
-      it('should allow authenticated user to delete another user', async () => {
+      it('rejects a non-admin user (this endpoint is admin-only)', async () => {
         const res = await request(app)
           .delete(`/api/auth/users/${testUserId}`)
           .set('Cookie', userCookie);
-        expect(res.status).toBe(200);
-        expect(res.body.ok).toBe(true);
+        expect(res.status).toBe(403);
 
         const db = require('../src/models/db').getDb();
-        const deleted = db.prepare('SELECT id FROM users WHERE id = ?').get(testUserId);
-        expect(deleted).toBeUndefined();
+        const stillThere = db.prepare('SELECT id FROM users WHERE id = ?').get(testUserId);
+        expect(stillThere).toBeDefined();
       });
 
       it('should allow admin to delete another user', async () => {
@@ -120,10 +124,10 @@ describe('Authentication', () => {
         expect(res.status).toBe(200);
       });
 
-      it('should return 400 when user tries to delete themselves', async () => {
+      it('should return 400 when an admin tries to delete themselves', async () => {
         const res = await request(app)
-          .delete(`/api/auth/users/${userId}`)
-          .set('Cookie', userCookie);
+          .delete(`/api/auth/users/${adminId}`)
+          .set('Cookie', adminCookie);
         expect(res.status).toBe(400);
         expect(res.body.error).toBe('Cannot delete yourself');
       });

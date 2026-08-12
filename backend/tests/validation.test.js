@@ -31,6 +31,17 @@ describe('Input Validation', () => {
   });
 
   describe('Analytics event validation', () => {
+    // "accept valid event types" below submits against a real form id
+    // (the route 404s on an unknown formId before validating the event),
+    // so seed one after the global per-test wipe in setup.js.
+    beforeEach(() => {
+      const db = require('../src/models/db').getDb();
+      db.prepare('INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)')
+        .run('validation-user', 'validation@test.com', 'x', 'user');
+      db.prepare('INSERT INTO forms (id, user_id, title, slug, steps) VALUES (?, ?, ?, ?, ?)')
+        .run('form-1', 'validation-user', 'Validation Test Form', 'validation-test-form', '[]');
+    });
+
     it('should return 400 if formId is missing', async () => {
       const res = await request(app)
         .post('/api/public/track')

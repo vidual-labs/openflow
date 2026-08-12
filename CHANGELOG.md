@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.27.1] - 2026-08-12
+
+### Fixed
+- **Fixed two pre-existing, always-broken test suites**, surfaced by the CI added in 0.27.0. `tests/auth.test.js`'s `DELETE /api/auth/users/:id` block asserted a non-admin user could delete another user and that a non-admin deleting themselves returned "Cannot delete yourself" — both wrong, since that route has always been admin-only (`requireAdmin` runs first and returns 403 for a non-admin, before any self-delete check). It also seeded its admin/user rows once in a `beforeAll`, which the test suite's global per-test cleanup then deleted before most of the block's tests ran, leaving their session cookies pointing at rows (and, since 0.27.0, a `token_version`) that no longer existed. `tests/validation.test.js`'s "accept valid event types" case posted to a form id that was never seeded, so the route's 404 was mistaken for a validation bug. Fixed the assertions to match actual (correct) behavior and seeded the rows each test needs.
+
 ## [0.27.0] - 2026-08-12
 
 ### Security
