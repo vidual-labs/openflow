@@ -2,6 +2,18 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.26.0] - 2026-08-12
+
+### Security
+- **Removed the insecure `JWT_SECRET`/`ADMIN_PASSWORD` fallbacks from `docker-compose.yml`** — they defaulted to `change-me-in-production` and `admin123`, which silently overrode the app's own safe behavior (auto-generating and persisting a random JWT secret, and printing a random one-time admin password) for anyone deploying via the documented `docker compose up -d --build` path without manually setting those env vars. Every default install now gets a unique secret and a unique admin password, same as running the backend outside compose already did.
+- **Fixed the webhook HMAC signature bug** — the `X-OpenFlow-Signature` digest was computed over a different, differently-timestamped object than the one actually sent as the request body, so a receiver verifying the signature against the bytes it received could never get a match. The digest is now computed over the exact serialized body. This changes the signature value, so anyone who built a workaround around the old mismatch needs to switch to verifying against the real body.
+- **Added an audit log** — logins (success and failure), user creation/role/password changes and deletion, site-settings changes, and backup downloads/restores are now recorded with actor, IP, and timestamp in a new `audit_log` table, viewable by admins at `GET /api/admin/audit-log`. It's excluded from backups/restores on purpose — it's a trail of what happened to an instance, not instance data to roll back with it.
+- **Dockerfile now runs as an unprivileged user** — the runtime container previously ran as root; it now drops to the `node` user built into the base image after fixing ownership of `/app`.
+- **Added a baseline container resource limit** in `docker-compose.yml` (2 CPUs / 1GB memory) so a runaway process can't take down the whole host by default.
+
+### Changed
+- **Removed the non-standard field-of-use restriction from the README's license section** — GPLv3 itself forbids adding further restrictions (§7/§10), and the added line ("not for use with weapons, fossil fuels or right wing politics") was legally unenforceable but created ambiguity for any legal/procurement review. The README now points plainly at `LICENSE` (GPLv3, no additional terms).
+
 ## [0.25.3] - 2026-08-12
 
 ### Changed

@@ -1,8 +1,13 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
+const { logAuditEvent } = require('../models/auditLog');
 
 const router = Router();
+
+function clientIp(req) {
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
 
 const ALLOWED_KEYS = ['branding'];
 
@@ -42,6 +47,7 @@ router.put('/:key', authMiddleware, (req, res) => {
   db.prepare('INSERT INTO site_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
     .run(key, JSON.stringify(value));
 
+  logAuditEvent({ userId: req.userId, action: 'settings_updated', target: key, ip: clientIp(req) });
   res.json({ ok: true, [key]: value });
 });
 

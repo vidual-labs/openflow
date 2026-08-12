@@ -4,6 +4,7 @@ const { getDb } = require('../models/db');
 const { authMiddleware, signToken, requireSession } = require('../middleware/auth');
 const apiTokens = require('../models/apiTokens');
 const { checkRateLimit, isRateLimited } = require('../models/rateLimit');
+const { logAuditEvent } = require('../models/auditLog');
 
 const router = Router();
 
@@ -36,9 +37,11 @@ router.post('/login', (req, res) => {
   if (!user || !passwordOk) {
     checkRateLimit(ipKey, 20, 60);
     checkRateLimit(emailKey, 10, 60);
+    logAuditEvent({ action: 'login_failed', target: String(email).toLowerCase(), ip: clientIp(req) });
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
+  logAuditEvent({ userId: user.id, action: 'login_succeeded', target: user.email, ip: clientIp(req) });
   const token = signToken(user.id);
   res.cookie('token', token, {
     httpOnly: true,
@@ -106,6 +109,7 @@ router.post('/users', authMiddleware, requireAdmin, (req, res) => {
     id, email, hash, role === 'admin' ? 'admin' : 'user'
   );
 
+  logAuditEvent({ userId: req.userId, action: 'user_created', target: email, ip: clientIp(req), details: { role: role === 'admin' ? 'admin' : 'user' } });
   res.status(201).json({ user: { id, email, role: role === 'admin' ? 'admin' : 'user' } });
 });
 
@@ -118,6 +122,7 @@ router.put('/users/:id', authMiddleware, requireAdmin, (req, res) => {
   const { role, password } = req.body;
   if (role) {
     db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role === 'admin' ? 'admin' : 'user', req.params.id);
+    logAuditEvent({ userId: req.userId, action: 'user_role_changed', target: user.email, ip: clientIp(req), details: { role: role === 'admin' ? 'admin' : 'user' } });
   }
   if (password) {
     if (password.length < 10) {
@@ -125,6 +130,7 @@ router.put('/users/:id', authMiddleware, requireAdmin, (req, res) => {
     }
     const hash = bcrypt.hashSync(password, 10);
     db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.params.id);
+    logAuditEvent({ userId: req.userId, action: 'user_password_changed', target: user.email, ip: clientIp(req) });
   }
 
   const updated = db.prepare('SELECT id, email, role, created_at FROM users WHERE id = ?').get(req.params.id);
@@ -138,11 +144,12 @@ router.delete('/users/:id', authMiddleware, requireAdmin, (req, res) => {
     if (req.params.id === req.userId) {
       return res.status(400).json({ error: 'Cannot delete yourself' });
     }
-    const targetUser = db.prepare('SELECT role FROM users WHERE id = ?').get(req.params.id);
+    const targetUser = db.prepare('SELECT email, role FROM users WHERE id = ?').get(req.params.id);
     if (!targetUser) {
       return res.status(404).json({ error: 'User not found' });
     }
     db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+    logAuditEvent({ userId: req.userId, action: 'user_deleted', target: targetUser.email, ip: clientIp(req) });
     res.json({ ok: true });
   } catch (err) {
     console.error('Delete user error:', err);

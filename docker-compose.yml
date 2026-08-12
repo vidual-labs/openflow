@@ -6,9 +6,16 @@ services:
     environment:
       - NODE_ENV=production
       - DB_PATH=/app/data/openflow.db
-      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      # Leave JWT_SECRET / ADMIN_PASSWORD unset here rather than defaulting
+      # them to a known value: the app already generates and persists a
+      # random JWT secret, and a random one-time admin password printed to
+      # the log, whenever these are absent. A hardcoded fallback here would
+      # silently override that and ship every default install with a
+      # publicly-known secret and admin password. Set JWT_SECRET and
+      # ADMIN_PASSWORD explicitly (e.g. in a .env file) to control them.
+      - JWT_SECRET=${JWT_SECRET:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@openflow.local}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       # Scheduled backups: written every BACKUP_INTERVAL_HOURS, keeping the
       # last BACKUP_RETENTION_COUNT. BACKUP_DIR below points at a bind mount
       # (./backups on the host) instead of the db-data volume, so a lost or
@@ -21,6 +28,14 @@ services:
       - db-data:/app/data
       - ./backups:/app/backups
     restart: unless-stopped
+    # Baseline resource cap so a runaway process (or an abusive request
+    # pattern) can't take down the whole host. Raise if your form/submission
+    # volume needs more headroom.
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1g
 
 volumes:
   db-data:

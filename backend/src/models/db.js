@@ -131,6 +131,23 @@ function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_deliveries_form ON integration_deliveries(form_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_deliveries_due ON integration_deliveries(status, next_attempt_at);
+
+    -- Trail of security-relevant events (logins, user/admin changes, backup
+    -- and restore) for post-incident review. user_id is nullable (e.g. a
+    -- failed login for an email that doesn't exist has no user to attribute
+    -- it to) and intentionally has no FOREIGN KEY, so deleting a user never
+    -- deletes their history from the log.
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      action TEXT NOT NULL,
+      target TEXT,
+      ip TEXT,
+      details TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
   `);
 
   // Migrate: add role column if missing (existing DBs)
