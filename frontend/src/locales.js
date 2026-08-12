@@ -55,6 +55,10 @@ export const LOCALES = {
     dateClear: 'Clear',
     datePrevMonth: 'Previous month',
     dateNextMonth: 'Next month',
+    // Accessibility: not shown visually, only exposed to assistive tech.
+    previousStep: 'Previous question',
+    stepProgress: (current, total) => `Step ${current} of ${total}`,
+    starRating: (n, max) => `${n} out of ${max} stars`,
   },
   de: {
     next: 'Weiter',
@@ -109,5 +113,8 @@ export const LOCALES = {
     dateClear: 'Zurücksetzen',
     datePrevMonth: 'Vorheriger Monat',
     dateNextMonth: 'Nächster Monat',
+    previousStep: 'Vorherige Frage',
+    stepProgress: (current, total) => `Frage ${current} von ${total}`,
+    starRating: (n, max) => `${n} von ${max} Sternen`,
   },
 };
