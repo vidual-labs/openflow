@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.27.1
+# 🌊 OpenFlow v0.28.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -76,6 +76,7 @@
 - **📊 Structured Logging** — Request, integration-delivery, and backup events are logged as single-line JSON so they can be piped into any log aggregator
 - **🌙 Dark Mode** — Auto/light/dark theme toggle for the admin interface
 - **🛡️ Delete Protection** — Published forms require typing the form name to confirm deletion
+- **♿ Accessible Forms** — Labeled questions, announced errors, keyboard-operable file uploads, and a progress bar and choice controls exposed to assistive tech (WCAG 2.1 AA pass on `/f/:slug` and `/embed/:slug`)
 - **Responsive** — Optimized for mobile and desktop
 
 ---

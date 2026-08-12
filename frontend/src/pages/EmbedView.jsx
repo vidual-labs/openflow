@@ -11,13 +11,17 @@ function CookieBanner({ form, onAccept, onDecline }) {
   const primary = form.theme?.primaryColor || '#6C5CE7';
 
   return (
-    <div style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
-      background: '#fff', borderTop: '1px solid #e0e0e0',
-      boxShadow: '0 -4px 24px rgba(0,0,0,0.10)',
-      padding: '16px 24px',
-      display: 'flex', flexDirection: 'column', gap: 12,
-    }}>
+    <div
+      role="region"
+      aria-label="Cookie preferences"
+      style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
+        background: '#fff', borderTop: '1px solid #e0e0e0',
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.10)',
+        padding: '16px 24px',
+        display: 'flex', flexDirection: 'column', gap: 12,
+      }}
+    >
       <p style={{ margin: 0, fontSize: 14, color: '#2D3436', lineHeight: 1.5 }}>{text}</p>
       <div style={{ display: 'flex', gap: 10 }}>
         <button
@@ -61,6 +65,19 @@ export default function EmbedView() {
       else root.removeAttribute('data-theme');
     };
   }, []);
+
+  // Keep the document's declared language in sync with the form's respondent-
+  // facing language, so assistive tech uses the right pronunciation/voice
+  // (WCAG 3.1.1) instead of whatever the host page's <html lang> happens to be.
+  useEffect(() => {
+    const root = document.documentElement;
+    const prev = root.getAttribute('lang');
+    root.setAttribute('lang', form?.theme?.language === 'de' ? 'de' : 'en');
+    return () => {
+      if (prev) root.setAttribute('lang', prev);
+      else root.removeAttribute('lang');
+    };
+  }, [form?.theme?.language]);
 
   useEffect(() => {
     api.getPublicForm(slug)
@@ -138,7 +155,7 @@ export default function EmbedView() {
   }, []);
 
   if (error) return <div style={{ padding: 40, textAlign: 'center' }}>Form not found</div>;
-  if (!form) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
+  if (!form) return <div style={{ padding: 40, textAlign: 'center' }} role="status" aria-live="polite">Loading...</div>;
 
   return (
     <>

@@ -114,12 +114,13 @@ function GroupInput({ step, answers, setFieldAnswer }) {
       {(step.fields || []).map((field, idx) => {
         const Field = FIELD_TYPES[field.type] || TextInput;
         const display = applyPricingFilter(field, answers);
+        const questionId = `step-question-${field.id}`;
         return (
           <div key={field.id} className="form-group-field" style={idx > 0 ? { marginTop: 24 } : undefined}>
             {field.label && <span className="step-label">{field.label}</span>}
-            {field.question && <h3 className="step-question group-subquestion">{field.question}</h3>}
+            {field.question && <h3 className="step-question group-subquestion" id={questionId}>{field.question}</h3>}
             {field.description && <p className="step-description">{field.description}</p>}
-            <div className="step-field">
+            <div className="step-field" role="group" aria-labelledby={field.question ? questionId : undefined}>
               <Field step={display} value={answers[field.id]} onChange={(v) => setFieldAnswer(field.id, v)} />
             </div>
           </div>
@@ -667,7 +668,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
 
   return (
     <LocaleContext.Provider value={locale}>
-    <div className={`form-renderer ${embedded ? 'embedded' : ''}`} style={themeVars} onKeyDown={handleKeyDown} ref={containerRef}>
+    <div className={`form-renderer ${embedded ? 'embedded' : ''}`} style={themeVars} onKeyDown={handleKeyDown} ref={containerRef} role="form" aria-label={form.title || undefined}>
       {/* Custom CSS */}
       {theme.customCss && <style>{theme.customCss}</style>}
 
@@ -687,7 +688,14 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         </div>
       )}
 
-      <div className="form-progress">
+      <div
+        className="form-progress"
+        role="progressbar"
+        aria-valuenow={Math.round(progress)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={locale.stepProgress(currentStep + 1, steps.length)}
+      >
         <div className="form-progress-bar" style={{ width: `${progress}%` }} />
       </div>
 
@@ -708,10 +716,10 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
           ) : (
             <>
               {step.label && <span className="step-label">{step.label}</span>}
-              <h2 className="step-question">{step.question}</h2>
+              <h2 className="step-question" id={`step-question-${step.id}`}>{step.question}</h2>
               {step.description && <p className="step-description">{step.description}</p>}
 
-              <div className="step-field">
+              <div className="step-field" role="group" aria-labelledby={`step-question-${step.id}`}>
                 {isConsentStep ? (
                   <ConsentStepInput
                     text={consentText}
@@ -745,7 +753,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
             </>
           )}
 
-          {error && <p className="step-error">{error}</p>}
+          {error && <p className="step-error" role="alert">{error}</p>}
         </div>
       </div>
 
@@ -761,7 +769,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       )}
 
       <div className="form-nav">
-        <button className="form-nav-btn" onClick={prev} disabled={currentStep === 0}>
+        <button className="form-nav-btn" onClick={prev} disabled={currentStep === 0} aria-label={locale.previousStep}>
           &#8592;
         </button>
         <span className="form-step-count">{currentStep + 1} / {steps.length}</span>
@@ -972,7 +980,7 @@ function DateInput({ step, value, onChange }) {
   }
 
   return (
-    <div className="form-calendar" onMouseLeave={() => setHovered('')}>
+    <div className="form-calendar" onMouseLeave={() => setHovered('')} role="group" aria-label={isRange ? locale.dateHintRange : locale.dateHintSingle}>
       {/* A bare grid of days doesn't say how many dates it wants — visitors on a range
           step read it as "pick a day" and move on. The step's own description wins if
           the builder wrote one. */}
@@ -1045,7 +1053,7 @@ function SelectInput({ step, value, onChange }) {
         const optValue = typeof opt === 'string' ? opt : (opt.value ?? opt.label);
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
-          <button key={i} className={`form-option ${value === optValue ? 'selected' : ''}`} onClick={() => onChange(optValue)}>
+          <button key={i} className={`form-option ${value === optValue ? 'selected' : ''}`} onClick={() => onChange(optValue)} aria-pressed={value === optValue}>
             {optLabel}
           </button>
         );
@@ -1109,7 +1117,7 @@ function MultiSelectInput({ step, value, onChange }) {
         const optValue = typeof opt === 'string' ? opt : (opt.value ?? opt.label);
         const optLabel = typeof opt === 'string' ? opt : opt.label;
         return (
-          <button key={i} className={`form-option ${chosen.includes(optValue) ? 'selected' : ''}`} onClick={() => toggle(optValue)}>
+          <button key={i} className={`form-option ${chosen.includes(optValue) ? 'selected' : ''}`} onClick={() => toggle(optValue)} aria-pressed={chosen.includes(optValue)}>
             <span className="option-key">{chosen.includes(optValue) ? '✓' : ''}</span>
             {optLabel}
           </button>
@@ -1117,7 +1125,7 @@ function MultiSelectInput({ step, value, onChange }) {
       })}
       {step.allowOther && (
         <>
-          <button className={`form-option ${otherOpen ? 'selected' : ''}`} onClick={toggleOther}>
+          <button className={`form-option ${otherOpen ? 'selected' : ''}`} onClick={toggleOther} aria-pressed={otherOpen}>
             <span className="option-key">{otherOpen ? '✓' : ''}</span>
             {step.otherLabel || locale.otherOption}
           </button>
@@ -1141,10 +1149,10 @@ function YesNoInput({ step, value, onChange }) {
   const locale = useLocale();
   return (
     <div className="form-options form-yesno">
-      <button className={`form-option ${value === 'yes' ? 'selected' : ''}`} onClick={() => onChange('yes')}>
+      <button className={`form-option ${value === 'yes' ? 'selected' : ''}`} onClick={() => onChange('yes')} aria-pressed={value === 'yes'}>
         {locale.yes}
       </button>
-      <button className={`form-option ${value === 'no' ? 'selected' : ''}`} onClick={() => onChange('no')}>
+      <button className={`form-option ${value === 'no' ? 'selected' : ''}`} onClick={() => onChange('no')} aria-pressed={value === 'no'}>
         {locale.no}
       </button>
     </div>
@@ -1152,11 +1160,18 @@ function YesNoInput({ step, value, onChange }) {
 }
 
 function RatingInput({ step, value, onChange }) {
+  const locale = useLocale();
   const max = step.max || 5;
   return (
     <div className="form-rating">
       {Array.from({ length: max }, (_, i) => i + 1).map(n => (
-        <button key={n} className={`rating-star ${value >= n ? 'active' : ''}`} onClick={() => onChange(n)}>
+        <button
+          key={n}
+          className={`rating-star ${value >= n ? 'active' : ''}`}
+          onClick={() => onChange(n)}
+          aria-pressed={value === n}
+          aria-label={locale.starRating(n, max)}
+        >
           {value >= n ? '★' : '☆'}
         </button>
       ))}
@@ -1189,18 +1204,20 @@ function AddressInput({ step, value, onChange }) {
       {step.showCountry !== false && (
         <input className="form-input" type="text" placeholder={al.country || locale.addressCountry} value={data.country || ''} onChange={e => update('country', e.target.value)} />
       )}
-      {customFields.map((field, idx) => (
+      {customFields.map((field, idx) => {
+        const fieldLabelId = `addr-label-${field.id || idx}`;
+        return (
         <div key={field.id || idx} style={{ marginTop: 12 }}>
           {field.type === 'text' && (
             <>
-              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--form-text)' }}>{field.label}</label>
-              <input className="form-input" type="text" value={data[field.id] || ''} onChange={e => update(field.id, e.target.value)} />
+              <label id={fieldLabelId} htmlFor={`addr-input-${field.id}`} style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--form-text)' }}>{field.label}</label>
+              <input id={`addr-input-${field.id}`} className="form-input" type="text" value={data[field.id] || ''} onChange={e => update(field.id, e.target.value)} />
             </>
           )}
           {field.type === 'dropdown' && (
             <>
-              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--form-text)' }}>{field.label}</label>
-              <select className="form-input" value={data[field.id] || ''} onChange={e => update(field.id, e.target.value)}>
+              <label id={fieldLabelId} htmlFor={`addr-input-${field.id}`} style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--form-text)' }}>{field.label}</label>
+              <select id={`addr-input-${field.id}`} className="form-input" value={data[field.id] || ''} onChange={e => update(field.id, e.target.value)}>
                 <option value="">{locale.addressSelect}</option>
                 {(field.options || '').split(',').map((opt, i) => (
                   <option key={i} value={opt.trim()}>{opt.trim()}</option>
@@ -1210,8 +1227,8 @@ function AddressInput({ step, value, onChange }) {
           )}
           {field.type === 'radio' && (
             <>
-              <label style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--form-text)' }}>{field.label}</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span id={fieldLabelId} style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--form-text)' }}>{field.label}</span>
+              <div role="radiogroup" aria-labelledby={fieldLabelId} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {(field.options || '').split(',').map((opt, i) => (
                   <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
                     <input type="radio" name={field.id} value={opt.trim()} checked={data[field.id] === opt.trim()} onChange={e => update(field.id, e.target.value)} />
@@ -1222,7 +1239,8 @@ function AddressInput({ step, value, onChange }) {
             </>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -1278,6 +1296,20 @@ function FileUploadInput({ step, value, onChange }) {
       <div
         className={`file-dropzone ${value ? 'has-file' : ''}`}
         onClick={() => fileRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        aria-label={value ? fileName : locale.fileUploadPrompt}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            // This div isn't a real <button>, so the form-wide Enter handler
+            // (which advances/submits the step, and skips real buttons/links
+            // via e.target.closest('button, a')) would otherwise also fire
+            // for this keystroke — stop it here the same way it stops for those.
+            e.stopPropagation();
+            fileRef.current?.click();
+          }
+        }}
       >
         {value ? (
           <>
@@ -1294,7 +1326,7 @@ function FileUploadInput({ step, value, onChange }) {
         )}
       </div>
       <input ref={fileRef} type="file" accept={step.accept || '*'} onChange={handleFile} style={{ display: 'none' }} />
-      {error && <p className="step-error" style={{ marginTop: 8 }}>{error}</p>}
+      {error && <p className="step-error" role="alert" style={{ marginTop: 8 }}>{error}</p>}
     </div>
   );
 }
@@ -1313,6 +1345,7 @@ function ImageSelectInput({ step, value, onChange }) {
             key={i}
             className={`form-image-option ${value === optValue ? 'selected' : ''}`}
             onClick={() => onChange(optValue)}
+            aria-pressed={value === optValue}
           >
             {optImage ? (
               <img src={optImage} alt={optLabel} className="image-option-img" />

@@ -2,6 +2,21 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.28.0] - 2026-08-12
+
+### Accessibility
+- **WCAG 2.1 AA pass on the public form renderer** (`FormRenderer.jsx`, `FormView.jsx`, `EmbedView.jsx`):
+  - The question heading is now programmatically associated with its field (`aria-labelledby`) instead of being a purely visual label, for both single-question and combined ("group") steps.
+  - Validation errors are announced via `role="alert"` instead of only appearing visually.
+  - Choice-style controls (single/multi-select, yes/no, image-select, star rating) expose their selected state via `aria-pressed`, and star ratings get a descriptive `aria-label` ("3 out of 5 stars").
+  - The progress bar exposes `role="progressbar"` with `aria-valuenow`/`aria-valuemin`/`aria-valuemax` and a localized "Step N of M" label.
+  - The file-upload dropzone is now keyboard-operable (`role="button"`, `tabIndex`, Enter/Space triggers the file picker) — previously it only responded to a mouse click.
+  - The "previous question" nav button, which had no visible text, gets a localized `aria-label`.
+  - `<html lang>` now tracks the form's respondent-facing language (EN/DE) on both `/f/:slug` and `/embed/:slug`, instead of always reporting the admin shell's language.
+  - Address sub-field labels (text/dropdown/radio-group custom fields) are now programmatically linked to their inputs via `htmlFor`/`aria-labelledby` rather than being unassociated sibling text.
+  - The cookie-consent banner and the calendar are given accessible group labels.
+- New locale strings (`previousStep`, `stepProgress`, `starRating`) added to both EN and DE in `locales.js` for the assistive-tech-only labels above.
+
 ## [0.27.1] - 2026-08-12
 
 ### Fixed
