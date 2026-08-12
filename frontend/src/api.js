@@ -58,6 +58,7 @@ export const api = {
   createUser: (data) => request('/auth/users', { method: 'POST', body: JSON.stringify(data) }),
   updateUser: (id, data) => request(`/auth/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteUser: (id) => request(`/auth/users/${id}`, { method: 'DELETE' }),
+  revokeUserSessions: (id) => request(`/auth/users/${id}/revoke-sessions`, { method: 'POST' }),
 
   // Analytics
   getAnalyticsOverview: (days = 30) => request(`/analytics/overview?days=${days}`),

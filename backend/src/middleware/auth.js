@@ -60,6 +60,17 @@ function authMiddleware(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
+
+    // Reject tokens minted before the user's last password change, role
+    // change, or an explicit "log out everywhere" — otherwise a compromised
+    // or since-demoted account's JWT keeps working for up to 7 more days.
+    const { getDb } = require('../models/db');
+    const db = getDb();
+    const user = db.prepare('SELECT token_version FROM users WHERE id = ?').get(payload.userId);
+    if (!user || (user.token_version || 0) !== (payload.tv || 0)) {
+      return res.status(401).json({ error: 'Session revoked. Please log in again.' });
+    }
+
     req.userId = payload.userId;
     req.authVia = 'session';
     next();
@@ -68,8 +79,8 @@ function authMiddleware(req, res, next) {
   }
 }
 
-function signToken(userId) {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+function signToken(userId, tokenVersion = 0) {
+  return jwt.sign({ userId, tv: tokenVersion }, JWT_SECRET, { expiresIn: '7d' });
 }
 
 // Must run after authMiddleware (relies on req.userId). Rejects non-admins.

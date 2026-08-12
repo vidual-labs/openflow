@@ -1,9 +1,9 @@
-# 🌊 OpenFlow v0.26.0
+# 🌊 OpenFlow v0.27.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
 
-[Features](#-features) · [Quick Start](#-quick-start) · [Updating](#-updating) · [Configuration](#️-configuration) · [Architecture](#️-architecture) · [Field Types](#-field-types) · [Integrations](#-integrations) · [Analytics](#-analytics) · [GTM Events](#️-gtm-events) ([Cookie Banner](#-cookie-consent-banner)) · [Embedding](#-embedding) ([iFrame](#simple-iframe) · [Auto-Resize](#iframe-with-auto-resize) · [WordPress](#wordpress) · [URL Slug](#custom-url-slug) · [Subdomains](#custom-subdomains)) · [API Endpoints](#-api-endpoints) · [Development](#‍-development) · [Roadmap](#️-roadmap) · [License](#-license)
+[Features](#-features) · [Quick Start](#-quick-start) · [Updating](#-updating) · [Configuration](#️-configuration) · [Architecture](#️-architecture) · [Field Types](#-field-types) · [Integrations](#-integrations) · [Analytics](#-analytics) · [GTM Events](#️-gtm-events) ([Cookie Banner](#-cookie-consent-banner)) · [Embedding](#-embedding) ([iFrame](#simple-iframe) · [Auto-Resize](#iframe-with-auto-resize) · [WordPress](#wordpress) · [URL Slug](#custom-url-slug) · [Subdomains](#custom-subdomains)) · [API Endpoints](#-api-endpoints) · [Development](#‍-development) · [Security & Production Notes](#-security--production-notes) · [Roadmap](#️-roadmap) · [License](#-license)
 
 ## ✨ Features
 
@@ -70,6 +70,10 @@
 - **⏰ Scheduled Backups** — A background job writes a rotating backup on an interval to a separate volume, so recovery doesn't depend on someone remembering to click "Download"
 - **🔁 Retrying Integration Deliveries** — Failed webhook/email/Sheets deliveries retry with backoff instead of silently dropping the lead; exhausted retries surface as a dead letter you can manually retry from the Integrations tab
 - **📋 Audit Log** — Logins (success/failure), user/role changes, settings changes, and backup/restore are recorded with actor, IP and timestamp for post-incident review (`GET /api/admin/audit-log`, admin only)
+- **🔒 Session Revocation** — Changing a user's password or role, or clicking **Log out everywhere** on the Users page, immediately invalidates that user's existing login sessions instead of letting a stale JWT keep working for up to 7 more days
+- **🔐 Encrypted Integration Secrets** — SMTP passwords, Google service-account keys, OAuth refresh tokens and webhook HMAC secrets are encrypted (AES-256-GCM) before being stored, so a leaked database file or backup JSON doesn't hand over live credentials
+- **❤️ Health Check** — `GET /api/health` reports database connectivity and uptime for uptime monitors and container orchestrators
+- **📊 Structured Logging** — Request, integration-delivery, and backup events are logged as single-line JSON so they can be piped into any log aggregator
 - **🌙 Dark Mode** — Auto/light/dark theme toggle for the admin interface
 - **🛡️ Delete Protection** — Published forms require typing the form name to confirm deletion
 - **Responsive** — Optimized for mobile and desktop
@@ -116,6 +120,7 @@ Environment variables (in `.env` or docker-compose):
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `JWT_SECRET` | *(none — auto-generated)* | 🔐 JWT signing key. If unset, a random secret is generated and persisted next to the database — set this explicitly in production so sessions survive a volume reset |
+| `ENCRYPTION_KEY` | *(none — auto-generated)* | 🔐 64 hex chars (32 bytes). Encrypts integration secrets (SMTP passwords, Google credentials, webhook HMAC secrets) at rest. If unset, a random key is generated and persisted next to the database — set this explicitly in production **and back it up separately from the database**, since losing it makes existing encrypted integration config unrecoverable |
 | `ADMIN_EMAIL` | `admin@openflow.local` | 👤 Admin email |
 | `ADMIN_PASSWORD` | *(none — auto-generated)* | 🔑 Admin password (only on first start). If unset, a random one is generated and printed to the log once |
 | `DB_PATH` | `/app/data/openflow.db` | 💾 SQLite database path |
@@ -440,6 +445,7 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 ## 📡 API Endpoints
 
 ### Public (no auth)
+- `GET /api/health` — Liveness/readiness check (database connectivity + uptime), for orchestrators and uptime monitors
 - `GET /api/public/form/:slug` — Load published form
 - `POST /api/public/form/:slug/submit` — Submit response
 - `POST /api/public/track` — Track analytics event
@@ -478,8 +484,9 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 ### User Management (admin only)
 - `GET /api/auth/users` — List all users
 - `POST /api/auth/users` — Create/invite user
-- `PUT /api/auth/users/:id` — Update user role/password
+- `PUT /api/auth/users/:id` — Update user role/password (either one immediately revokes that user's existing sessions)
 - `DELETE /api/auth/users/:id` — Delete user
+- `POST /api/auth/users/:id/revoke-sessions` — Force-expire a user's existing sessions without changing their password ("Log out everywhere")
 
 ### API Tokens (session auth only — a token can never manage tokens)
 - `GET /api/auth/tokens` — List your tokens (prefix + last used, never the secret)
@@ -517,6 +524,59 @@ Run the backend test suite (Jest + supertest):
 ```bash
 cd backend && npm test
 ```
+
+---
+
+## 🔒 Security & Production Notes
+
+### TLS
+
+The base `docker-compose.yml` serves plain HTTP on `:3000` — it does not
+terminate TLS itself. Put a reverse proxy in front in production:
+- Use the bundled [Custom Subdomains](#custom-subdomains) Caddy overlay
+  (`docker-compose.subdomains.yml`) if you want per-form subdomains, which
+  gets you TLS for free.
+- Otherwise, put OpenFlow behind any reverse proxy you already run (Caddy,
+  Nginx, Traefik, a managed load balancer) and terminate TLS there. This is
+  a deliberate deployment-layer decision, not something the app does for
+  you — most self-hosters already have a reverse proxy in front of every
+  service on their box.
+
+### Single-instance architecture
+
+OpenFlow's rate limiter (`models/rateLimit.js`) and scheduled-backup job
+(`models/backupScheduler.js`) are in-process and in-memory by design — this
+keeps the app a genuinely zero-dependency, single SQLite file deployment
+with nothing else to run (no Redis, no external queue). This is an accepted
+tradeoff, not a bug: run **one** container per OpenFlow instance. Running
+multiple replicas behind a load balancer will not share rate-limit state
+between them (each replica enforces its own limits independently) and will
+write duplicate scheduled backups. Horizontal scaling would need a shared
+store for both and is not currently supported.
+
+### Backups: what's automatic vs. manual
+
+- **Automatic today**: a background job (`BACKUP_ENABLED`, on by default)
+  writes a full JSON snapshot to `./backups` on an interval
+  (`BACKUP_INTERVAL_HOURS`) and prunes old ones (`BACKUP_RETENTION_COUNT`).
+  Admins can also trigger an on-demand download anytime from **Backup** in
+  the admin UI, or `GET /api/admin/backup`.
+- **Not automatic**: OpenFlow does not upload backups to S3/cloud storage
+  for you. `./backups` is a host-local bind mount — copy it off-box on a
+  schedule that matches your recovery requirements (`rsync`, a cron job, or
+  your cloud provider's own volume backup tooling all work fine against a
+  plain directory of JSON files).
+
+### Deferred for now
+
+The following are known gaps, deliberately not addressed yet:
+- **Two-factor authentication (2FA)** — password + session-revocation only.
+- **Admin UI localization** — only respondent-facing form strings ship in
+  EN/DE (`frontend/src/locales.js`); the admin interface itself is
+  English-only.
+- **Automated data-retention / GDPR erasure workflows** — submissions can be
+  deleted one at a time or exported as CSV, but there's no policy-driven
+  auto-expiry or bulk "erase everything for this data subject" tool yet.
 
 ---
 

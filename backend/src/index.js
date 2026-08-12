@@ -2,6 +2,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const { version } = require('../package.json');
+const logger = require('./utils/logger');
 const { initDb, getDb } = require('./models/db');
 const { startBackupScheduler } = require('./models/backupScheduler');
 const { startDeliveryWorker } = require('./models/deliveryQueue');
@@ -75,6 +76,35 @@ app.use('/api/admin/restore', express.json({ limit: '50mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
+// One structured log line per request. Skipped for /api/health so the
+// liveness probe (which orchestrators may hit every few seconds) doesn't
+// flood the log.
+app.use((req, res, next) => {
+  if (req.path === '/api/health') return next();
+  const start = Date.now();
+  res.on('finish', () => {
+    logger.info('http_request', {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      durationMs: Date.now() - start,
+    });
+  });
+  next();
+});
+
+// Liveness/readiness check for orchestrators and uptime monitoring. No auth
+// (must be reachable before/without a session) and no sensitive data.
+app.get('/api/health', (req, res) => {
+  try {
+    getDb().prepare('SELECT 1').get();
+    res.json({ status: 'ok', version, uptimeSeconds: Math.round(process.uptime()) });
+  } catch (err) {
+    logger.error('health_check_failed', { error: err.message });
+    res.status(503).json({ status: 'error', error: 'Database unavailable' });
+  }
+});
+
 // Resolve the per-form subdomain (if any) before any other route runs so
 // admin APIs can be blocked and the catch-all can inject the form slug
 // into index.html.
@@ -140,9 +170,9 @@ app.get('*', (req, res) => {
 async function start() {
   try {
     initDb();
-    console.log('Database initialized');
+    logger.info('database_initialized');
   } catch (err) {
-    console.error('Database initialization failed:', err.message);
+    logger.error('database_initialization_failed', { error: err.message });
     process.exit(1);
   }
 
@@ -150,11 +180,11 @@ async function start() {
   startDeliveryWorker(getDb());
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`OpenFlow running on http://0.0.0.0:${PORT}`);
+    logger.info('server_started', { port: PORT, version });
   });
 }
 
 start().catch((err) => {
-  console.error('Startup failed:', err);
+  logger.error('startup_failed', { error: err.message });
   process.exit(1);
 });

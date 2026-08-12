@@ -1,5 +1,6 @@
 const { v4: uuid } = require('uuid');
 const { runIntegration } = require('./integrations');
+const logger = require('../utils/logger');
 
 // Backoff schedule (minutes) between delivery attempts. After the last entry
 // is exhausted the delivery is marked 'dead' for manual retry — a lead
@@ -48,7 +49,7 @@ async function attemptDelivery(db, { id, integration, formId, formTitle, data, s
          SET status = 'dead', attempts = ?, last_error = ?, updated_at = datetime('now')
          WHERE id = ?`
       ).run(attempts, message, id);
-      console.error(`Integration ${integration.type}/${integration.id} exhausted retries:`, message);
+      logger.error('integration_delivery_exhausted', { type: integration.type, integrationId: integration.id, error: message });
     } else {
       db.prepare(
         `UPDATE integration_deliveries
@@ -120,7 +121,7 @@ async function retryDelivery(db, deliveryId) {
 
 function startDeliveryWorker(db, intervalMs = 30000) {
   const timer = setInterval(() => {
-    processDueDeliveries(db).catch(err => console.error('Delivery worker sweep failed:', err.message));
+    processDueDeliveries(db).catch(err => logger.error('delivery_worker_sweep_failed', { error: err.message }));
   }, intervalMs);
   timer.unref();
   return timer;

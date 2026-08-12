@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { checkRateLimit } = require('../models/rateLimit');
 const { v4: uuid } = require('uuid');
+const logger = require('../utils/logger');
 
 const router = Router();
 
@@ -119,7 +120,7 @@ router.post('/form/:slug/submit', async (req, res) => {
   // with backoff instead of silently losing the lead.
   const { enqueueAndAttempt } = require('../models/deliveryQueue');
   enqueueAndAttempt(db, form.id, form.title, id, data, steps, metadata).catch(err => {
-    console.error('Integration delivery error:', err.message);
+    logger.error('integration_delivery_failed', { formId: form.id, error: err.message });
   });
 });
 
@@ -144,7 +145,7 @@ router.post('/track', (req, res) => {
       'INSERT INTO analytics_events (form_id, event, session_id, step_index, step_id) VALUES (?, ?, ?, ?, ?)'
     ).run(formId, event, sessionId || null, stepIndex ?? null, stepId || null);
   } catch (err) {
-    console.error('Analytics event insert failed:', err.message);
+    logger.error('analytics_event_insert_failed', { formId, error: err.message });
   }
 
   res.json({ ok: true });

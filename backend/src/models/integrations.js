@@ -2,6 +2,8 @@ const nodemailer = require('nodemailer');
 const { google } = require('googleapis');
 const { flattenFields } = require('../utils/steps');
 const { assertSafeUrl } = require('../utils/ssrf');
+const { decrypt } = require('./encryption');
+const logger = require('../utils/logger');
 
 // ──────────────────────────────────────────
 // Run all integrations for a form submission
@@ -11,7 +13,7 @@ const { assertSafeUrl } = require('../utils/ssrf');
 // callers (immediate fire-and-forget, or the retrying delivery queue) can
 // each decide how to handle/record the error.
 async function runIntegration(integration, formId, formTitle, submissionData, steps, metadata = {}) {
-  const config = JSON.parse(integration.config);
+  const config = JSON.parse(decrypt(integration.config));
   switch (integration.type) {
     case 'webhook':
       return runWebhook(config, formId, formTitle, submissionData);
@@ -40,7 +42,7 @@ async function runIntegrations(db, formId, formTitle, submissionData, steps, met
       await runIntegration(integration, formId, formTitle, submissionData, steps, metadata);
       results.push({ id: integration.id, type: integration.type, ok: true });
     } catch (err) {
-      console.error(`Integration ${integration.type}/${integration.id} failed:`, err.message);
+      logger.error('integration_failed', { type: integration.type, integrationId: integration.id, error: err.message });
       results.push({ id: integration.id, type: integration.type, ok: false, error: err.message });
     }
   }
