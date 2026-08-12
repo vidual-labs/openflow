@@ -59,7 +59,7 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
     const actualType = type === 'google_sheets_sa' ? 'google_sheets' : type;
     const defaults = {
       webhook: { url: '', secret: '', method: 'POST' },
-      email: { smtp_host: '', smtp_port: 587, smtp_user: '', smtp_pass: '', smtp_secure: false, to: '', from: '', subject: '', lodgely_link_enabled: false, lodgely_url: '', lodgely_button_text: '' },
+      email: { smtp_host: '', smtp_port: 587, smtp_user: '', smtp_pass: '', smtp_secure: false, to: '', from: '', subject: '', contact_links_enabled: true, lodgely_link_enabled: false, lodgely_url: '', lodgely_button_text: '' },
       google_sheets: { mode: 'apps_script', apps_script_url: '' },
       google_sheets_sa: { mode: 'service_account', credentials_json: '', spreadsheet_id: '', sheet_name: 'Sheet1' },
       google_ads_conversion: {
@@ -302,6 +302,10 @@ function EmailConfig({ config, onChange }) {
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
         <input type="checkbox" checked={config.smtp_secure || false} onChange={e => onChange('smtp_secure', e.target.checked)} />
         Use SSL/TLS (port 465)
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, gridColumn: '1 / -1' }}>
+        <input type="checkbox" checked={config.contact_links_enabled !== false} onChange={e => onChange('contact_links_enabled', e.target.checked)} />
+        Make email and phone answers clickable (mailto: / tel: links)
       </label>
       <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 12 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: config.lodgely_link_enabled ? 12 : 0 }}>

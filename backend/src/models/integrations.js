@@ -99,6 +99,7 @@ function escapeHtmlAttr(str) {
 async function runEmail(config, formId, formTitle, data, steps) {
   const {
     smtp_host, smtp_port = 587, smtp_user, smtp_pass, smtp_secure = false, to, from, subject,
+    contact_links_enabled = true,
     lodgely_link_enabled, lodgely_url, lodgely_button_text,
   } = config;
 
@@ -120,7 +121,7 @@ async function runEmail(config, formId, formTitle, data, steps) {
     if (Array.isArray(val)) val = val.join(', ');
 
     let valueHtml = escapeHtmlAttr(val);
-    if (typeof rawVal === 'string' && rawVal.trim()) {
+    if (contact_links_enabled && typeof rawVal === 'string' && rawVal.trim()) {
       if (field.type === 'email') {
         valueHtml = `<a href="mailto:${escapeHtmlAttr(rawVal.trim())}">${valueHtml}</a>`;
       } else if (field.type === 'phone') {

@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.25.3] - 2026-08-12
+
+### Changed
+- **Made the new mailto/tel links in email notifications optional** — some setups route leads through lodgely for tracking, and a one-tap "call now" link that never touches lodgely means the lead can be worked without ever being marked there. The email integration gets its own **"Make email and phone answers clickable"** checkbox, independent of the lodgely link, so this can be turned off per integration where that routing matters. Defaults to on.
+
 ## [0.25.2] - 2026-08-12
 
 ### Changed
