@@ -113,11 +113,23 @@ async function runEmail(config, formId, formTitle, data, steps) {
 
   // Build a nice HTML table from submission data (one row per field, groups expanded)
   const rows = flattenFields(steps).map(field => {
-    let val = data[field.id];
+    const rawVal = data[field.id];
+    let val = rawVal;
     if (val === undefined || val === null) val = '-';
     if (typeof val === 'object') val = JSON.stringify(val);
     if (Array.isArray(val)) val = val.join(', ');
-    return `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#555;">${escapeHtmlAttr(field.label || field.question || field.id)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${escapeHtmlAttr(val)}</td></tr>`;
+
+    let valueHtml = escapeHtmlAttr(val);
+    if (typeof rawVal === 'string' && rawVal.trim()) {
+      if (field.type === 'email') {
+        valueHtml = `<a href="mailto:${escapeHtmlAttr(rawVal.trim())}">${valueHtml}</a>`;
+      } else if (field.type === 'phone') {
+        const telNumber = rawVal.replace(/[^\d+]/g, '');
+        if (telNumber) valueHtml = `<a href="tel:${escapeHtmlAttr(telNumber)}">${valueHtml}</a>`;
+      }
+    }
+
+    return `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:600;color:#555;">${escapeHtmlAttr(field.label || field.question || field.id)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">${valueHtml}</td></tr>`;
   }).join('');
 
   const lodgelyLink = lodgely_link_enabled && lodgely_url

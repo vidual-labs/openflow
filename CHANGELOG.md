@@ -2,6 +2,11 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.25.2] - 2026-08-12
+
+### Changed
+- **Email notifications now link phone and email answers** — a submission's `email`-type and `phone`-type field values in the notification email table are wrapped in `mailto:`/`tel:` links, so a client reading a lead notification can call or email the lead with one tap instead of copying the value out first. Phone numbers keep their original display text; the `tel:` href strips everything but digits and a leading `+`. Other field types are unaffected.
+
 ## [0.25.1] - 2026-08-09
 
 ### Docs
