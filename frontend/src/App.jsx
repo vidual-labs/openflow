@@ -21,6 +21,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(getInitialTheme);
   const [branding, setBranding] = useState({ logoVisible: true, logoUrl: '' });
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,6 +31,10 @@ export default function App() {
       api.getSettings().then(d => { if (d.settings?.branding) setBranding(b => ({ ...b, ...d.settings.branding })); }).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -63,7 +68,19 @@ export default function App() {
 
   return (
     <div className="admin-layout">
-      <aside className="admin-sidebar">
+      <header className="admin-topbar">
+        <span className="admin-topbar-brand"><LogoMark size={24} className="logo-mark" />OpenFlow</span>
+        <button
+          className="admin-menu-toggle"
+          onClick={() => setMenuOpen(o => !o)}
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? '✕' : '☰'}
+        </button>
+      </header>
+      {menuOpen && <div className="admin-sidebar-backdrop" onClick={() => setMenuOpen(false)} />}
+      <aside className={`admin-sidebar${menuOpen ? ' open' : ''}`}>
         <h1><LogoMark size={28} className="logo-mark" />OpenFlow</h1>
         <nav>
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
