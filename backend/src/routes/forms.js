@@ -259,4 +259,34 @@ router.delete('/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Try reaching a calon instance's availability endpoint, for the "Test connection"
+// button on a date-timeslot field. Mirrors the integration test endpoints
+// (routes/integrations.js) in spirit, but reads instead of sending anything.
+router.post('/:id/calon-test', async (req, res) => {
+  const db = getDb();
+  const form = db.prepare('SELECT id FROM forms WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
+  if (!form) return res.status(404).json({ error: 'Form not found' });
+
+  const { baseUrl, resourceSlug } = req.body || {};
+  if (!baseUrl || typeof baseUrl !== 'string') {
+    return res.status(400).json({ error: 'baseUrl is required' });
+  }
+
+  const now = new Date();
+  const to = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  try {
+    const { fetchCalonAvailability } = require('../models/calon');
+    const { timezone, slots } = await fetchCalonAvailability({
+      baseUrl,
+      resourceSlug: resourceSlug || 'default',
+      from: now.toISOString(),
+      to: to.toISOString(),
+    });
+    res.json({ ok: true, timezone, slotCount: slots.length });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message || 'Could not reach calon' });
+  }
+});
+
 module.exports = router;

@@ -36,6 +36,7 @@ export const api = {
   updateForm: (id, data) => request(`/forms/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   cloneForm: (id) => request(`/forms/${id}/clone`, { method: 'POST' }),
   deleteForm: (id) => request(`/forms/${id}`, { method: 'DELETE' }),
+  testCalonConnection: (id, data) => request(`/forms/${id}/calon-test`, { method: 'POST', body: JSON.stringify(data) }),
 
   getSubmissions: (formId, page = 1) => request(`/submissions/${formId}?page=${page}`),
   exportSubmissions: (formId) => `${BASE}/submissions/${formId}/export`,

@@ -2,6 +2,26 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.30.0] - 2026-08-16
+
+### Added
+- **New field type: Date & Timeslot** (`FormEditor.jsx`, `FormRenderer.jsx`). Lets a form
+  ask for a booking-style date and time in one step: a calendar to pick a day, then a row
+  of time buttons for that day. With nothing configured, times are generated from the
+  field's own slot length, daily window, and how many days ahead are selectable — no
+  external service required.
+- **Optional connection to [calon](https://github.com/vidual-labs/calon)**, a self-hosted
+  booking tool, for the Date & Timeslot field. When a field is pointed at a calon instance
+  and calendar, it shows that calendar's real, conflict-checked availability instead of
+  the generated times — the backend fetches it server-side
+  (`GET /api/public/form/:slug/availability`) through the same SSRF guard used for
+  webhooks, so the browser never talks to calon directly and no credential is needed
+  (calon's availability read is itself public and read-only). A "Test connection" button
+  in the field's settings confirms the URL and calendar resolve before it goes live
+  (`POST /api/forms/:id/calon-test`). Without a calon connection, the field still works
+  standalone — the picked date and time land in the submission like any other field, for
+  email, webhooks, or a lodgely pull.
+
 ## [0.29.0] - 2026-08-12
 
 ### Fixed

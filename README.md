@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.29.0
+# 🌊 OpenFlow v0.30.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -9,7 +9,8 @@
 
 ### 🎯 Form Builder
 - **Multi-Step Forms** — Typeform-style one-question-at-a-time experience with smooth animations
-- **14 Field Types** — Short Text, Long Text, Number, Date, Single Choice, Multiple Choice, Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Address
+- **15 Field Types** — Short Text, Long Text, Number, Date, Date & Timeslot, Single Choice, Multiple Choice, Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Address
+- **Optional [calon](https://github.com/vidual-labs/calon) connection** — point a Date & Timeslot field at a self-hosted calon instance and it shows that calendar's real, conflict-checked availability instead of a generated time list; entirely optional, nothing else about the form depends on it
 - **Number Stepper** — Large +/− buttons with a configurable step size and an optional prefilled start value, for quantity questions where 0 or 1 is an unlikely answer
 - **Inline Date Picker** — An always-visible calendar per date step, set to either a single day or a date range (from – to), with selectable-window limits and localized month/weekday names
 - **Conditional Logic** — Show/hide steps based on previous answers (equals, contains, is set, etc.)
@@ -181,6 +182,7 @@ openflow/
 | 📄 Long Text | Multi-line text | |
 | 🔢 Number | Numeric input with min/max | |
 | 📅 Date | Date picker | |
+| 📆 Date & Timeslot | Pick a day, then a time on that day. Generates its own times, or shows real availability from a connected [calon](https://github.com/vidual-labs/calon) instance | |
 | ☑️ Single Choice | Choose one option | ✓ |
 | ✅ Multiple Choice | Choose multiple options, optionally with an "Other" free-text field | |
 | 👍 Yes / No | Binary choice | ✓ |
