@@ -12,6 +12,7 @@ const FIELD_TYPES = [
   { value: 'textarea', label: 'Long Text', icon: '📄', defaults: { question: 'Tell us more...', label: 'Details', placeholder: 'Type your answer...' } },
   { value: 'number', label: 'Number', icon: '🔢', defaults: { question: 'Enter a number', label: 'Number', placeholder: '0' } },
   { value: 'date', label: 'Date', icon: '📅', defaults: { question: 'Pick a date', label: 'Date', placeholder: '' } },
+  { value: 'date-timeslot', label: 'Date & Timeslot', icon: '📆', defaults: { question: 'Pick a date and time', label: 'Appointment', placeholder: '', durationMin: 30, windowStart: '09:00', windowEnd: '17:00', rangeDays: 14, calon: { enabled: false, baseUrl: '', resourceSlug: 'default' } } },
   { value: 'select', label: 'Single Choice', icon: '☑️', defaults: { question: 'Choose one option', label: 'Choice', placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'] } },
   { value: 'multi-select', label: 'Multiple Choice', icon: '✅', defaults: { question: 'Choose one or more options', label: 'Selection', placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'] } },
   { value: 'yes-no', label: 'Yes / No', icon: '👍', defaults: { question: 'Is this correct?', label: 'Confirmation', placeholder: '' } },
@@ -129,6 +130,13 @@ export default function FormEditor() {
       // Type-specific defaults
       ...(defaults.options ? { options: defaults.options } : {}),
       ...(defaults.consentText ? { consentText: defaults.consentText } : {}),
+      ...(newType === 'date-timeslot' ? {
+        durationMin: defaults.durationMin,
+        windowStart: defaults.windowStart,
+        windowEnd: defaults.windowEnd,
+        rangeDays: defaults.rangeDays,
+        calon: defaults.calon,
+      } : {}),
     };
     setForm({ ...form, steps });
   }
@@ -261,6 +269,7 @@ export default function FormEditor() {
           {form.steps.map((step, i) => (
             <StepEditor
               key={step.id}
+              formId={id}
               step={step}
               index={i}
               total={form.steps.length}
@@ -817,10 +826,44 @@ window.addEventListener('message', function(e) {
   );
 }
 
+// "Test connection" button for a date-timeslot field's calon panel — hits the
+// same admin-only proxy the editor otherwise never needs, just to prove the
+// URL and resource slug actually resolve before the field goes live.
+function CalonTestButton({ formId, baseUrl, resourceSlug }) {
+  const [status, setStatus] = useState(null);
+  const [testing, setTesting] = useState(false);
+
+  async function test() {
+    setTesting(true);
+    setStatus(null);
+    try {
+      const result = await api.testCalonConnection(formId, { baseUrl, resourceSlug });
+      setStatus({ ok: true, message: `Connected — ${result.slotCount} slot(s) free in the next 24h (${result.timezone}).` });
+    } catch (err) {
+      setStatus({ ok: false, message: err.message || 'Could not reach calon' });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <button type="button" className="btn btn-sm btn-secondary" onClick={test} disabled={testing}>
+        {testing ? 'Testing…' : 'Test connection'}
+      </button>
+      {status && (
+        <p style={{ fontSize: 12, marginTop: 8, color: status.ok ? 'var(--success)' : 'var(--danger)' }}>
+          {status.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ===========================
    StepEditor - Collapsible question card
    =========================== */
-function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange, onChangeType, onMove, onCombine, onSplit, onRemove }) {
+function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, onChange, onChangeType, onMove, onCombine, onSplit, onRemove }) {
   const isGroup = step.type === 'group';
   const fieldDef = isGroup ? null : FIELD_TYPE_MAP[step.type];
   // Combining is only offered between two adjacent single questions (max 2 per step).
@@ -913,7 +956,7 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
           </div>
 
           {/* Placeholder - not for types that don't use it */}
-          {!['select', 'multi-select', 'yes-no', 'rating', 'image-select', 'address'].includes(step.type) && (
+          {!['select', 'multi-select', 'yes-no', 'rating', 'image-select', 'address', 'date-timeslot'].includes(step.type) && (
             <div className="input-group" style={{ marginTop: 12 }}>
               <label>Placeholder</label>
               <input className="input" value={step.placeholder || ''} onChange={e => onChange({ placeholder: e.target.value })} placeholder="Placeholder text..." />
@@ -1102,6 +1145,64 @@ function StepEditor({ step, index, total, allSteps, expanded, onToggle, onChange
                 <input type="checkbox" checked={step.disablePast || false} onChange={e => onChange({ disablePast: e.target.checked })} />
                 Don't allow dates in the past
               </label>
+            </>
+          )}
+
+          {/* Date & Timeslot: standalone slot generation, plus an optional calon connection */}
+          {step.type === 'date-timeslot' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 12 }}>
+                <div className="input-group">
+                  <label>Slot length (minutes)</label>
+                  <input className="input" type="number" min={5} value={step.durationMin ?? 30} onChange={e => onChange({ durationMin: parseInt(e.target.value) || 30 })} />
+                </div>
+                <div className="input-group">
+                  <label>Daily window</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input className="input" type="time" value={step.windowStart || '09:00'} onChange={e => onChange({ windowStart: e.target.value })} />
+                    <span>&ndash;</span>
+                    <input className="input" type="time" value={step.windowEnd || '17:00'} onChange={e => onChange({ windowEnd: e.target.value })} />
+                  </div>
+                </div>
+                <div className="input-group">
+                  <label>Days ahead selectable</label>
+                  <input className="input" type="number" min={1} max={31} value={step.rangeDays ?? 14} onChange={e => onChange({ rangeDays: parseInt(e.target.value) || 14 })} />
+                </div>
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>
+                Used to generate the selectable times. Ignored for any day calon (below) reports real availability for — calon's own scheduling rules decide those.
+              </span>
+
+              <div style={{ marginTop: 16, padding: 16, background: 'var(--panel)', borderRadius: 10 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                  <input type="checkbox" checked={step.calon?.enabled || false} onChange={e => onChange({ calon: { ...(step.calon || {}), enabled: e.target.checked } })} />
+                  Connect to calon for real-time availability
+                </label>
+                <p style={{ fontSize: 12, color: 'var(--text-light)', margin: '8px 0 0' }}>
+                  Optional — calon is a separate, self-hosted booking tool
+                  (<a href="https://github.com/vidual-labs/calon" target="_blank" rel="noopener noreferrer">vidual-labs/calon</a>).
+                  With no connection, visitors pick from the generated times above with no conflict
+                  checking, which still works fine for a simple lead form.
+                </p>
+
+                {step.calon?.enabled && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginTop: 12 }}>
+                      <div className="input-group">
+                        <label>calon URL</label>
+                        <input className="input" value={step.calon?.baseUrl || ''} onChange={e => onChange({ calon: { ...(step.calon || {}), baseUrl: e.target.value } })} placeholder="https://calon.example.com" />
+                      </div>
+                      <div className="input-group">
+                        <label>Calendar (resource slug)</label>
+                        <input className="input" value={step.calon?.resourceSlug || 'default'} onChange={e => onChange({ calon: { ...(step.calon || {}), resourceSlug: e.target.value } })} placeholder="default" />
+                      </div>
+                    </div>
+                    {step.calon?.baseUrl && (
+                      <CalonTestButton formId={formId} baseUrl={step.calon.baseUrl} resourceSlug={step.calon.resourceSlug} />
+                    )}
+                  </>
+                )}
+              </div>
             </>
           )}
 

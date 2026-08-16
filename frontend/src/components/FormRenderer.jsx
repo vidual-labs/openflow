@@ -41,6 +41,7 @@ const FIELD_TYPES = {
   rating: RatingInput,
   number: NumberInput,
   date: DateInput,
+  'date-timeslot': DateTimeslotInput,
   website: WebsiteInput,
   address: AddressInput,
   contact: AddressInput, // backward compat
@@ -63,6 +64,20 @@ export function formatDateRange(start, end) {
 export function parseDateValue(value) {
   const [start = '', end = ''] = String(value || '').split(DATE_RANGE_SEPARATOR);
   return { start, end };
+}
+
+// A date + timeslot answer is stored the same way, for the same reason: a plain
+// string works everywhere downstream with no special-casing. "2026-09-02 09:30"
+// standalone, or "2026-09-02 09:30 Europe/Berlin" when the slot came from a
+// connected calon instance, whose timezone is worth keeping unambiguous.
+export function formatDateTimeslot(date, time, timezone) {
+  if (!date || !time) return date || '';
+  return timezone ? `${date} ${time} ${timezone}` : `${date} ${time}`;
+}
+
+export function parseDateTimeslotValue(value) {
+  const [date = '', time = '', timezone = ''] = String(value || '').split(' ');
+  return { date, time, timezone };
 }
 
 // Empty string, null, undefined and unparseable text all mean "no number here"; only a
@@ -99,6 +114,11 @@ function validateField(field, value, locale) {
   if (field.type === 'date' && field.dateMode === 'range' && value && !parseDateValue(value).end) {
     return locale.errorDateRangeEnd;
   }
+  // A date picked with no time yet is a valid-looking, non-empty answer, so — like
+  // an unfinished date range above — this has to be caught even on optional steps.
+  if (field.type === 'date-timeslot' && value && !parseDateTimeslotValue(value).time) {
+    return locale.errorDateTimeslotTime;
+  }
   if ((field.type === 'address' || field.type === 'contact') && field.required) {
     const c = value || {};
     if (!c.street || !c.postalCode || !c.city) return locale.errorAddress;
@@ -108,7 +128,7 @@ function validateField(field, value, locale) {
 
 // Renders the sub-fields of a combined ("group") step stacked vertically.
 // Each sub-field keeps its own id, so answers stay keyed per field.
-function GroupInput({ step, answers, setFieldAnswer }) {
+function GroupInput({ step, answers, setFieldAnswer, formSlug }) {
   return (
     <div className="form-group-fields">
       {(step.fields || []).map((field, idx) => {
@@ -121,7 +141,7 @@ function GroupInput({ step, answers, setFieldAnswer }) {
             {field.question && <h3 className="step-question group-subquestion" id={questionId}>{field.question}</h3>}
             {field.description && <p className="step-description">{field.description}</p>}
             <div className="step-field" role="group" aria-labelledby={field.question ? questionId : undefined}>
-              <Field step={display} value={answers[field.id]} onChange={(v) => setFieldAnswer(field.id, v)} />
+              <Field step={display} value={answers[field.id]} onChange={(v) => setFieldAnswer(field.id, v)} formSlug={formSlug} />
             </div>
           </div>
         );
@@ -703,7 +723,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         <div className={`form-step ${direction === 'forward' ? 'slide-in-forward' : 'slide-in-back'}`} key={currentStep}>
           {step.type === 'group' ? (
             <>
-              <GroupInput step={step} answers={answers} setFieldAnswer={setFieldAnswer} />
+              <GroupInput step={step} answers={answers} setFieldAnswer={setFieldAnswer} formSlug={form.slug} />
               {consentConfirmHint}
               {consentBlock}
               {(buttonPosition === 'below-input' || buttonPosition === 'inline') && (
@@ -731,6 +751,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
                     step={displayStep}
                     value={answers[step.id]}
                     onChange={setAnswer}
+                    formSlug={form.slug}
                   />
                 )}
                 {consentConfirmHint}
@@ -1038,6 +1059,143 @@ function DateInput({ step, value, onChange }) {
           )}
           {(start || end) && (
             <button type="button" className="form-calendar-clear" onClick={() => onChange('')}>{locale.dateClear}</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Groups calon's `slots` (each `{start, end, timezone}`, start like
+// "2026-09-02T09:30:00+02:00") into { "2026-09-02": ["09:30", ...] }. calon
+// already expressed them in the resource's own timezone, so this is just
+// slicing the ISO string — no timezone math needed on this side at all.
+function groupCalonSlotsByDate(slots) {
+  const byDate = {};
+  for (const slot of slots || []) {
+    const date = slot.start.slice(0, 10);
+    const time = slot.start.slice(11, 16);
+    (byDate[date] || (byDate[date] = [])).push(time);
+  }
+  return byDate;
+}
+
+// The no-calon fallback: every day in the field's range gets the same list of
+// times, spaced by `durationMin` across `windowStart`..`windowEnd`. No weekday
+// or blackout awareness — that's exactly what connecting calon buys you.
+function generateStandaloneSlots(step) {
+  const duration = Math.max(5, parseInt(step.durationMin, 10) || 30);
+  const rangeDays = Math.min(Math.max(parseInt(step.rangeDays, 10) || 14, 1), 90);
+  const [sh, sm] = (step.windowStart || '09:00').split(':').map(Number);
+  const [eh, em] = (step.windowEnd || '17:00').split(':').map(Number);
+  const endMinutes = (eh || 0) * 60 + (em || 0);
+
+  const times = [];
+  for (let cursor = (sh || 0) * 60 + (sm || 0); cursor + duration <= endMinutes; cursor += duration) {
+    times.push(`${String(Math.floor(cursor / 60)).padStart(2, '0')}:${String(cursor % 60).padStart(2, '0')}`);
+  }
+
+  const byDate = {};
+  const base = new Date();
+  for (let i = 0; i < rangeDays; i++) {
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+    byDate[toISO(d.getFullYear(), d.getMonth(), d.getDate())] = times;
+  }
+  return byDate;
+}
+
+function DateTimeslotInput({ step, value, onChange, formSlug }) {
+  const locale = useLocale();
+  const { date: selDate, time: selTime } = parseDateTimeslotValue(value);
+  const calonEnabled = !!(step.calon?.enabled && step.calon?.baseUrl);
+
+  const [remote, setRemote] = useState(null);
+  const [loading, setLoading] = useState(calonEnabled);
+
+  useEffect(() => {
+    if (!calonEnabled || !formSlug) {
+      setRemote(null);
+      setLoading(false);
+      return undefined;
+    }
+    let cancelled = false;
+    setLoading(true);
+    const baseUrl = window.__OPENFLOW_BASE_URL__ || '';
+    fetch(`${baseUrl}/api/public/form/${encodeURIComponent(formSlug)}/availability?fieldId=${encodeURIComponent(step.id)}`)
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error('unavailable'))))
+      .then(body => { if (!cancelled) setRemote(body); })
+      // calon unreachable or misconfigured: fall back to the standalone
+      // generator below rather than blocking the step entirely.
+      .catch(() => { if (!cancelled) setRemote(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [calonEnabled, formSlug, step.id]);
+
+  const timezone = remote?.timezone || '';
+  const slotsByDate = React.useMemo(
+    () => (remote ? groupCalonSlotsByDate(remote.slots) : generateStandaloneSlots(step)),
+    [remote, step]
+  );
+  const availableDates = Object.keys(slotsByDate).sort();
+
+  const anchor = (selDate && slotsByDate[selDate]) ? selDate : (availableDates[0] || todayISO());
+  const [view, setView] = useState(() => ({ y: Number(anchor.slice(0, 4)), m: Number(anchor.slice(5, 7)) - 1 }));
+
+  // The view above is seeded from today's month before calon has answered. If the
+  // real availability that lands is somewhere else — this month is fully booked —
+  // jump the calendar there instead of leaving the visitor on an all-disabled month.
+  useEffect(() => {
+    if (!remote) return;
+    const dates = Object.keys(groupCalonSlotsByDate(remote.slots)).sort();
+    if (!selDate && dates[0]) {
+      setView({ y: Number(dates[0].slice(0, 4)), m: Number(dates[0].slice(5, 7)) - 1 });
+    }
+    // Only on a fresh fetch result, and only if the visitor hasn't already picked a
+    // date — re-centering the calendar under them would be jarring.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remote]);
+
+  if (loading) {
+    return <div className="form-calendar-hint">{locale.dateTimeslotLoading}</div>;
+  }
+
+  function isDisabled(iso) { return !slotsByDate[iso]; }
+  function dayState(iso) { return iso === selDate ? 'selected' : ''; }
+  function pickDate(iso) { onChange(formatDateTimeslot(iso, '', timezone)); }
+  function pickTime(t) { onChange(formatDateTimeslot(selDate, t, timezone)); }
+
+  const minIso = availableDates[0];
+  const maxIso = availableDates[availableDates.length - 1];
+  const prevDisabled = !!minIso && toISO(view.y, view.m, 1) <= minIso;
+  const nextDisabled = !!maxIso && toISO(view.y, view.m, daysInMonth(view.y, view.m)) >= maxIso;
+  const times = selDate ? (slotsByDate[selDate] || []) : [];
+
+  return (
+    <div className="form-calendar" role="group" aria-label={locale.dateTimeslotPickDate}>
+      {!step.description && <div className="form-calendar-hint">{locale.dateTimeslotPickDate}</div>}
+      <div className="form-calendar-body">
+        <div className="form-calendar-header">
+          <button type="button" className="form-calendar-nav" onClick={() => setView(addMonths(view.y, view.m, -1))} disabled={prevDisabled} aria-label={locale.datePrevMonth}>‹</button>
+          <button type="button" className="form-calendar-nav" onClick={() => setView(addMonths(view.y, view.m, 1))} disabled={nextDisabled} aria-label={locale.dateNextMonth}>›</button>
+        </div>
+        <div className="form-calendar-months">
+          <CalendarMonth y={view.y} m={view.m} locale={locale} isDisabled={isDisabled} dayState={dayState} onPick={pickDate} />
+        </div>
+      </div>
+
+      {selDate && (
+        <div className="form-dateslot-times">
+          <div className="form-calendar-hint">{locale.dateTimeslotPickTime}</div>
+          {times.length === 0 ? (
+            <p className="form-dateslot-empty">{locale.dateTimeslotNoSlots}</p>
+          ) : (
+            <div className="form-options">
+              {times.map(t => (
+                <button key={t} type="button" className={`form-option ${selTime === t ? 'selected' : ''}`} onClick={() => pickTime(t)} aria-pressed={selTime === t}>
+                  {t}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       )}

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.29.0 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.30.0 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -105,10 +105,24 @@ fields table:
 - **Conditional Logic**: Show/hide rules based on previous answers (stored in step config)
 
 ### Form Field Types
-14 types the builder can add (`FIELD_TYPES` in `frontend/src/pages/FormEditor.jsx`):
-Short Text, Long Text, Number, Date, Single Choice, Multiple Choice, Yes/No,
-Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Address. Each
+15 types the builder can add (`FIELD_TYPES` in `frontend/src/pages/FormEditor.jsx`):
+Short Text, Long Text, Number, Date, Date & Timeslot, Single Choice, Multiple Choice,
+Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Address. Each
 has validation, placeholder, help text, and conditional visibility.
+
+**Date & Timeslot** is a two-stage picker (day, then a time on that day) meant for
+booking-style forms. With nothing configured it generates times itself from the field's
+own `windowStart`/`windowEnd`/`durationMin`/`rangeDays`, with no conflict checking — good
+enough for a simple lead form. It can optionally be pointed at a self-hosted
+[calon](https://github.com/vidual-labs/calon) instance (`step.calon.baseUrl` +
+`resourceSlug`), in which case the times shown are calon's own real availability instead.
+The backend proxies that read (`GET /api/public/form/:slug/availability`,
+`backend/src/models/calon.js`) — the browser never talks to calon directly — through the
+same `utils/ssrf.js#assertSafeUrl` guard as any other operator-supplied URL. The answer is
+stored as one plain string, `"2026-09-02 09:30"` (or with a trailing IANA timezone when it
+came from calon), for the same reason a date range is ("Add a New Field Type" below /
+`FormRenderer.jsx`'s `DATE_RANGE_SEPARATOR` comment): every downstream consumer (CSV,
+webhooks, the e-mail table, the lodgely connector) just works on plain text.
 
 **Consent/GDPR is not a field type** — it's a form-level setting (**GTM / GDPR**
 tab) that either appends a checkbox under the last question or adds a synthetic

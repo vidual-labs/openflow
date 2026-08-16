@@ -469,6 +469,17 @@
   color: var(--form-text, #2D3436);
 }
 
+.form-dateslot-times {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.12);
+}
+
+.form-dateslot-empty {
+  font-size: 13px;
+  color: rgba(var(--form-text-rgb, 45, 52, 54), 0.6);
+}
+
 .form-calendar-clear {
   border: none;
   background: transparent;

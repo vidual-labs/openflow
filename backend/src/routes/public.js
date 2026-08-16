@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { checkRateLimit } = require('../models/rateLimit');
 const { v4: uuid } = require('uuid');
+const { flattenFields } = require('../utils/steps');
 const logger = require('../utils/logger');
 
 const router = Router();
@@ -46,6 +47,57 @@ router.get('/form/:slug', (req, res) => {
     return res.status(500).json({ error: 'Form data is corrupted' });
   }
   res.json({ form });
+});
+
+// Read live availability from the calon instance a `date-timeslot` field is
+// connected to (public — anyone who can load the form can already see the
+// field, and calon's own availability read is itself unauthenticated).
+router.get('/form/:slug/availability', async (req, res) => {
+  const ip = clientIp(req);
+  const allowed = checkRateLimit(`availability:${ip}`, 20, 60);
+  if (!allowed) {
+    return res.status(429).json({ error: 'Too many requests, please try again later' });
+  }
+
+  const fieldId = req.query.fieldId;
+  if (!fieldId || typeof fieldId !== 'string') {
+    return res.status(400).json({ error: 'fieldId is required' });
+  }
+
+  const db = getDb();
+  let form = db.prepare('SELECT id, steps FROM forms WHERE slug = ? AND published = 1').get(req.params.slug);
+  if (!form) {
+    const historic = db.prepare('SELECT form_id FROM slug_history WHERE old_slug = ?').get(req.params.slug);
+    if (historic) {
+      form = db.prepare('SELECT id, steps FROM forms WHERE id = ? AND published = 1').get(historic.form_id);
+    }
+  }
+  if (!form) return res.status(404).json({ error: 'Form not found' });
+
+  const steps = JSON.parse(form.steps);
+  const field = flattenFields(steps).find(f => f.id === fieldId);
+  if (!field || field.type !== 'date-timeslot' || !field.calon?.enabled || !field.calon?.baseUrl) {
+    return res.status(404).json({ error: 'No calon-connected date/timeslot field with that id' });
+  }
+
+  const rangeDays = Math.min(Math.max(parseInt(field.rangeDays, 10) || 14, 1), 31);
+  const now = new Date();
+  const to = new Date(now.getTime() + rangeDays * 24 * 60 * 60 * 1000);
+
+  try {
+    const { fetchCalonAvailability } = require('../models/calon');
+    const { timezone, slots } = await fetchCalonAvailability({
+      baseUrl: field.calon.baseUrl,
+      resourceSlug: field.calon.resourceSlug,
+      from: now.toISOString(),
+      to: to.toISOString(),
+      durationMin: field.durationMin,
+    });
+    res.json({ timezone, slots });
+  } catch (err) {
+    logger.error('calon_availability_fetch_failed', { formId: form.id, fieldId, error: err.message });
+    res.status(502).json({ error: 'Could not reach calon' });
+  }
 });
 
 // Submit form response (public)
