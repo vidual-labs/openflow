@@ -596,7 +596,7 @@ The following are known gaps, deliberately not addressed yet:
 
 ## Ethical use
 
-OpenFlow is a marketing tool. We ask, as a non-binding ethical request, that you do not use lodgely to run lead intake for clients in:
+OpenFlow is a marketing tool. We ask, as a non-binding ethical request, that you do not use it for clients in:
 
     Weapons and armaments
     Fossil-fuel energy (extraction, refining, distribution, generation)
