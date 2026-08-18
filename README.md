@@ -592,6 +592,19 @@ The following are known gaps, deliberately not addressed yet:
 - ✅ **Phase 5**: Editable slugs and per-form subdomains, backup & restore, read-only API tokens, retrying integration deliveries, server-side Google Ads conversions
 - 🔜 **Phase 6**: A/B testing, form templates, more languages
 
+--
+
+## Ethical use
+
+OpenFlow is a marketing tool. We ask, as a non-binding ethical request, that you do not use lodgely to run lead intake for clients in:
+
+    Weapons and armaments
+    Fossil-fuel energy (extraction, refining, distribution, generation)
+    Internal-combustion / fossil-fuel passenger vehicles — electric vehicles, bicycles and public transit are explicitly fine.
+
+This is a request from the maintainers, not a legal restriction (lodgely remains GPL-3.0). See the preamble in LICENSE for the full statement.
+
+
 ---
 
 ## 📄 License
@@ -600,6 +613,3 @@ GPL 3.0 — see [LICENSE](LICENSE).
 
 ---
 
-<p align="center">
-  <sub>🤖 Vibecoded with <a href="https://anthropic.com">Claude Opus 4.6</a> by Anthropic</sub>
-</p>
