@@ -2,6 +2,17 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.32.0] - 2026-08-20
+
+### Added
+- **`HOST_PORT` env var** for the published-image `docker-compose.yml`. The
+  host-side port (`docker-compose.yml`'s `ports:` mapping) was previously
+  hardcoded to `3000:3000`, so anyone running on a different host port had
+  to hand-edit `docker-compose.yml` — which then conflicted with every
+  future `git pull` that touched the same file. It's now
+  `"${HOST_PORT:-3000}:3000"`, so a port change is a one-line addition to
+  `.env` instead, and updates stay a clean pull.
+
 ## [0.31.0] - 2026-08-20
 
 ### Added
