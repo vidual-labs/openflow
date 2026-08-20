@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.30.0 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.31.0 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -57,7 +57,7 @@ OpenFlow is a **full-stack application** with three main components:
 - **Versioning**: The plugin carries its **own** version (`OPENFLOW_VERSION` in `openflow.php` + the `Stable tag` in `readme.txt`), independent of the app version
 
 ### Infrastructure
-- **Docker**: A single `app` service in `docker-compose.yml`. The multi-stage `Dockerfile` builds the frontend and copies `dist/` into the backend's `public/`, so one container serves both the API and the UI.
+- **Docker**: A single `app` service in `docker-compose.yml`. The multi-stage `Dockerfile` builds the frontend and copies `dist/` into the backend's `public/`, so one container serves both the API and the UI. `.github/workflows/docker-publish.yml` builds and pushes a multi-arch (`linux/amd64`/`linux/arm64`) image to `ghcr.io/vidual-labs/openflow` (tags: `latest` + the `backend/package.json` version) on every push to `main`, so `docker-compose.yml` can `image:` it directly — `docker compose pull && docker compose up -d` needs no local build; `--build` still works for source builds.
 - **Optional overlay**: `docker-compose.subdomains.yml` + `Caddyfile` add a Caddy reverse proxy that terminates TLS with a wildcard cert, for per-form subdomains
 - **Database**: SQLite (zero-config, no external DB)
 - **Volumes**: `db-data` (the SQLite DB) and a `./backups` bind mount (scheduled backups)

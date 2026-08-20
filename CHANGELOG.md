@@ -2,6 +2,19 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.31.0] - 2026-08-20
+
+### Added
+- **Published Docker image**. `.github/workflows/docker-publish.yml` builds and
+  pushes a multi-arch (`linux/amd64`/`linux/arm64`) image to
+  `ghcr.io/vidual-labs/openflow` (tags: `latest` and the current version) on
+  every push to `main`. `docker-compose.yml` now points `app`'s `image:` at
+  it, so the Quick Start / Updating flow is `docker compose pull && docker
+  compose up -d` — no local build required. `docker compose up -d --build`
+  still builds from source for contributors or a customized `Dockerfile`.
+  New `OPENFLOW_VERSION` env var pins a specific tag instead of always
+  tracking `latest`.
+
 ## [0.30.0] - 2026-08-16
 
 ### Added
