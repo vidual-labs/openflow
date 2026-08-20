@@ -1,5 +1,9 @@
 services:
   app:
+    # `docker compose pull && docker compose up -d` uses the published image
+    # below (no local build needed); `docker compose up -d --build` still
+    # builds from source, e.g. for contributors or a customized Dockerfile.
+    image: ghcr.io/vidual-labs/openflow:${OPENFLOW_VERSION:-latest}
     build: .
     ports:
       - "3000:3000"

@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.30.0
+# 🌊 OpenFlow v0.31.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -61,7 +61,7 @@
 - **WordPress Plugin** — Shortcode `[openflow]`, WPBakery element, and Gutenberg block
 
 ### 🛠️ Infrastructure
-- **🐳 Docker** — One command to start
+- **🐳 Docker** — One command to start, from an official pre-built multi-arch image (`ghcr.io/vidual-labs/openflow`) or from source
 - **SQLite** — Zero-config database, no external DB needed
 - **🛡️ Rate Limiting** — Built-in in-memory spam protection
 - **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
@@ -87,6 +87,17 @@
 ```bash
 git clone https://github.com/vidual-labs/openflow.git
 cd openflow
+docker compose pull
+docker compose up -d
+```
+
+This pulls the official pre-built image from `ghcr.io/vidual-labs/openflow`
+(multi-arch: `linux/amd64` + `linux/arm64`) — no local build required.
+
+Building from source instead (e.g. if you're contributing, or changed the
+`Dockerfile`):
+
+```bash
 docker compose up -d --build
 ```
 
@@ -105,8 +116,11 @@ To update an existing Docker installation:
 ```bash
 cd openflow
 git pull
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
+
+(Building from source instead: `git pull && docker compose up -d --build`.)
 
 Your data is safe — the SQLite database is stored in a Docker volume (`db-data`) and persists across rebuilds.
 
@@ -129,6 +143,7 @@ Environment variables (in `.env` or docker-compose):
 | `PORT` | `3000` | 🌐 Server port |
 | `CORS_ORIGINS` | *(empty)* | 🌍 Comma-separated extra origins allowed to call the API. Same-origin requests are always allowed, so this is only needed when the admin UI is served from a different host than the API |
 | `OPENFLOW_PRIMARY_HOST` | *(empty)* | 🌐 Apex host for [custom subdomains](#custom-subdomains). Also implicitly allowed as a CORS origin |
+| `OPENFLOW_VERSION` | `latest` | 🐳 Image tag `docker-compose.yml` pulls (e.g. `0.31.0` to pin a version instead of always tracking `latest`) |
 | `BACKUP_ENABLED` | `true` | ⏰ Set to `false` to disable the scheduled backup job |
 | `BACKUP_DIR` | `/app/backups` (from `docker-compose.yml`; otherwise a `backups/` folder next to `DB_PATH`) | 📁 Where scheduled backups are written (point at a separate volume for real off-box protection) |
 | `BACKUP_INTERVAL_HOURS` | `24` | ⏱️ How often to write a scheduled backup |
