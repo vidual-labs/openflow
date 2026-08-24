@@ -455,28 +455,6 @@ export default function FormEditor() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="input-group">
-                <label>Form Language</label>
-                <select
-                  className="input"
-                  value={form.theme?.language || 'en'}
-                  onChange={e => setForm({ ...form, theme: { ...form.theme, language: e.target.value } })}
-                >
-                  <option value="en">English</option>
-                  <option value="de">Deutsch (German)</option>
-                </select>
-                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Sets the language for all built-in UI text shown to respondents.</span>
-              </div>
-              <div className="input-group">
-                <label>Next Button Label</label>
-                <input
-                  className="input"
-                  value={form.theme?.nextButtonLabel || ''}
-                  onChange={e => setForm({ ...form, theme: { ...form.theme, nextButtonLabel: e.target.value } })}
-                  placeholder="Next"
-                />
-                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Leave blank to use the default "Next →"</span>
-              </div>
-              <div className="input-group">
                 <label>Enter Key Hint</label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, cursor: 'pointer', marginTop: 8 }}>
                   <input
@@ -508,6 +486,16 @@ export default function FormEditor() {
                 </span>
               </div>
               <div className="input-group">
+                <label>Next Button Label</label>
+                <input
+                  className="input"
+                  value={form.theme?.nextButtonLabel || ''}
+                  onChange={e => setForm({ ...form, theme: { ...form.theme, nextButtonLabel: e.target.value } })}
+                  placeholder="Next"
+                />
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Leave blank to use the default "Next →"</span>
+              </div>
+              <div className="input-group">
                 <label>Submit Button Label</label>
                 <input
                   className="input"
@@ -520,26 +508,40 @@ export default function FormEditor() {
             </div>
           </div>
 
-          {/* Font */}
+          {/* Language & Typography */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <span style={{ fontSize: 20 }}>🔤</span>
               <div>
-                <h3 style={{ margin: 0 }}>Typography</h3>
-                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Choose a font family for your form.</p>
+                <h3 style={{ margin: 0 }}>Language & Typography</h3>
+                <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Set the respondent-facing language and font for your form.</p>
               </div>
             </div>
-            <div className="input-group">
-              <label>Font Family</label>
-              <select className="input" value={form.theme?.fontFamily || 'inherit'} onChange={e => setForm({ ...form, theme: { ...form.theme, fontFamily: e.target.value } })} style={{ maxWidth: 320 }}>
-                <option value="inherit">System Default</option>
-                <option value="'Inter', sans-serif">Inter</option>
-                <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
-                <option value="'DM Sans', sans-serif">DM Sans</option>
-                <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
-                <option value="Georgia, serif">Georgia (Serif)</option>
-                <option value="'Courier New', monospace">Courier New (Mono)</option>
-              </select>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="input-group">
+                <label>Form Language</label>
+                <select
+                  className="input"
+                  value={form.theme?.language || 'en'}
+                  onChange={e => setForm({ ...form, theme: { ...form.theme, language: e.target.value } })}
+                >
+                  <option value="en">English</option>
+                  <option value="de">Deutsch (German)</option>
+                </select>
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Sets the language for all built-in UI text shown to respondents.</span>
+              </div>
+              <div className="input-group">
+                <label>Font Family</label>
+                <select className="input" value={form.theme?.fontFamily || 'inherit'} onChange={e => setForm({ ...form, theme: { ...form.theme, fontFamily: e.target.value } })}>
+                  <option value="inherit">System Default</option>
+                  <option value="'Inter', sans-serif">Inter</option>
+                  <option value="'Space Grotesk', sans-serif">Space Grotesk</option>
+                  <option value="'DM Sans', sans-serif">DM Sans</option>
+                  <option value="'Plus Jakarta Sans', sans-serif">Plus Jakarta Sans</option>
+                  <option value="Georgia, serif">Georgia (Serif)</option>
+                  <option value="'Courier New', monospace">Courier New (Mono)</option>
+                </select>
+              </div>
             </div>
           </div>
 

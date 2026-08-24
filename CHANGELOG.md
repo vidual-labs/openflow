@@ -2,6 +2,15 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.32.2] - 2026-08-24
+
+### Fixed
+- **Design tab**: "Form Language" was grouped with the Enter Key Hint /
+  Auto-Advance settings, which had nothing to do with language. It now lives
+  together with Font Family in a combined "Language & Typography" card. The
+  Button & Navigation card is back to two clean, height-matched pairs (Enter
+  Key Hint / Auto-Advance, Next Button Label / Submit Button Label).
+
 ## [0.32.1] - 2026-08-24
 
 ### Fixed
