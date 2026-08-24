@@ -2,6 +2,25 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.32.1] - 2026-08-24
+
+### Fixed
+- **Animated backgrounds** (Design tab). Waves, Bubbles, Particles and Flow
+  used to render as flat, hard-edged shapes at low opacity while Aurora alone
+  had blur and gradients — they now all get the same soft, glowing, organic
+  treatment (gradient fills, blur, glow, irregular blob shapes for Bubbles,
+  light-trail gradients for Flow) so every option feels equally alive.
+- **Accent color** now actually shows up: it previously only fed the animated
+  background blobs, so a page with no animation (or a subtle one) made the
+  Accent Color field look like a no-op. The Next/Submit button, the end-screen
+  icon and the progress bar now blend Primary → Accent as a gradient, both on
+  the live form and in the Design tab's live preview.
+- **Design tab layout**: "Button Position" (a two-card picker) and "Form
+  Language" (a plain dropdown) sat side by side in the same row, which read as
+  visually mismatched. Button Position now gets its own full-width row above
+  Form Language, which pairs instead with the similarly compact Next Button
+  Label field.
+
 ## [0.32.0] - 2026-08-20
 
 ### Added

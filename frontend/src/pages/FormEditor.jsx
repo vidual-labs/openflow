@@ -427,6 +427,32 @@ export default function FormEditor() {
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Control the position of the "Next" button and keyboard hints.</p>
               </div>
             </div>
+            <div className="input-group" style={{ marginBottom: 16 }}>
+              <label>Button Position</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[
+                  { value: 'footer', label: 'Footer Bar', desc: 'Fixed navigation bar at the bottom' },
+                  { value: 'inline', label: 'Below Input', desc: 'Button below question & input' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setForm({ ...form, theme: { ...form.theme, buttonPosition: opt.value } })}
+                    style={{
+                      flex: 1, padding: '12px 14px', textAlign: 'left',
+                      border: (form.theme?.buttonPosition || 'footer') === opt.value ? '2px solid var(--primary, #6C5CE7)' : '2px solid var(--border, #e0e0e0)',
+                      borderRadius: 10,
+                      background: (form.theme?.buttonPosition || 'footer') === opt.value ? 'rgba(108,92,231,0.08)' : 'var(--card, #fafafa)',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 14, color: (form.theme?.buttonPosition || 'footer') === opt.value ? 'var(--primary, #6C5CE7)' : 'var(--text, #333)' }}>
+                      {opt.label}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-light, #999)', marginTop: 2 }}>{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="input-group">
                 <label>Form Language</label>
@@ -441,30 +467,14 @@ export default function FormEditor() {
                 <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Sets the language for all built-in UI text shown to respondents.</span>
               </div>
               <div className="input-group">
-                <label>Button Position</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {[
-                    { value: 'footer', label: 'Footer Bar', desc: 'Fixed navigation bar at the bottom' },
-                    { value: 'inline', label: 'Below Input', desc: 'Button below question & input' },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setForm({ ...form, theme: { ...form.theme, buttonPosition: opt.value } })}
-                      style={{
-                        flex: 1, padding: '12px 14px', textAlign: 'left',
-                        border: (form.theme?.buttonPosition || 'footer') === opt.value ? '2px solid var(--primary, #6C5CE7)' : '2px solid var(--border, #e0e0e0)',
-                        borderRadius: 10,
-                        background: (form.theme?.buttonPosition || 'footer') === opt.value ? 'rgba(108,92,231,0.08)' : 'var(--card, #fafafa)',
-                        cursor: 'pointer', transition: 'all 0.15s',
-                      }}
-                    >
-                      <div style={{ fontWeight: 700, fontSize: 14, color: (form.theme?.buttonPosition || 'footer') === opt.value ? 'var(--primary, #6C5CE7)' : 'var(--text, #333)' }}>
-                        {opt.label}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-light, #999)', marginTop: 2 }}>{opt.desc}</div>
-                    </button>
-                  ))}
-                </div>
+                <label>Next Button Label</label>
+                <input
+                  className="input"
+                  value={form.theme?.nextButtonLabel || ''}
+                  onChange={e => setForm({ ...form, theme: { ...form.theme, nextButtonLabel: e.target.value } })}
+                  placeholder="Next"
+                />
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Leave blank to use the default "Next →"</span>
               </div>
               <div className="input-group">
                 <label>Enter Key Hint</label>
@@ -496,16 +506,6 @@ export default function FormEditor() {
                 <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 8, display: 'block' }}>
                   Auto-advance only works for choice-based fields (single choice, multiple choice, yes/no, rating, image select).
                 </span>
-              </div>
-              <div className="input-group">
-                <label>Next Button Label</label>
-                <input
-                  className="input"
-                  value={form.theme?.nextButtonLabel || ''}
-                  onChange={e => setForm({ ...form, theme: { ...form.theme, nextButtonLabel: e.target.value } })}
-                  placeholder="Next"
-                />
-                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Leave blank to use the default "Next →"</span>
               </div>
               <div className="input-group">
                 <label>Submit Button Label</label>
@@ -2094,7 +2094,7 @@ function ThemePreview({ theme }) {
         </div>
         <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>How does your form look?</div>
         <button style={{
-          background: primaryColor, color: '#fff',
+          background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`, color: '#fff',
           border: 'none', padding: '10px 22px',
           borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'default',
         }}>
