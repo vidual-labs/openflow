@@ -292,7 +292,26 @@ beyond an admin account:
 [calon](https://github.com/vidual-labs/calon) — a self-hosted, single-container
 booking engine — is wired into OpenFlow **directly**: a Date & Timeslot field is
 pointed at a calon instance and talks to it through OpenFlow's own backend, with
-no separate webhook or plugin required. Once connected, OpenFlow:
+no separate webhook or plugin required.
+
+> **Requirements — read this first.**
+>
+> - **Two separate deployments.** This is not a feature inside OpenFlow —
+>   **calon is its own application that must be deployed separately** at a URL
+>   that **OpenFlow can reach**. Without a running, reachable calon instance
+>   (and the matching `[sources.openflow]` block on the calon side), none of the
+>   booking or calendar functionality works.
+> - **The calendar write is done by calon, never by OpenFlow.** OpenFlow only
+>   sends the chosen slot to calon. It is calon — a service you run alongside
+>   OpenFlow — that reads the calendar's free/busy and **writes accepted
+>   bookings into Google Calendar or Microsoft 365**. OpenFlow holds no calendar
+>   credentials and makes no calls to Google or Microsoft at all.
+> - **Calendar sync is opt-in and extra.** The core of the link — availability +
+>   booking into calon — works with just the two deployments. The extra step of
+>   landing events in a real calendar requires additionally enabling the
+>   `[calendars.*]` provider block on the calon side.
+
+Once connected, OpenFlow:
 
 - **Shows real availability** — the field stops generating its own list of times
   and instead renders the slots calon reports for that calendar as genuinely
@@ -322,10 +341,11 @@ no separate webhook or plugin required. Once connected, OpenFlow:
 
 #### Calendar sync (Google & Microsoft 365)
 
-The calendar write is owned by **calon**, not OpenFlow — OpenFlow only tells calon
-which slot was chosen. To actually land events in a real calendar, connect that
-calon resource's own calendar in `config/calon.toml` (see the
-["Resource calendar sync" section of calon's self-hosting guide](https://github.com/vidual-labs/calon/blob/main/docs/self-hosting.md)):
+As noted above, the write is **calon's job** — OpenFlow only tells calon which slot was
+chosen. To actually land events on a real calendar, connect that calon resource's own
+calendar in `config/calon.toml` (see the ["Resource calendar sync" section of calon's
+self-hosting guide](https://github.com/vidual-labs/calon/blob/main/docs/self-hosting.md))
+before the first booking:
 
 ```toml
 [calendars.default]
