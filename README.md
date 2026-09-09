@@ -366,6 +366,14 @@ refresh_token = "…"       # the out-of-band OAuth refresh token
   and paste the refresh token into the config; calon then only refreshes tokens and calls
   the API.
 
+#### Where it fits in your overall flow
+
+![Openflow → Calon flow: capture leads, optionally write a calendar entry via Calon](https://github.com/user-attachments/assets/PLACEHOLDER)
+*OpenFlow captures leads from form sources (B2B leads, job applications, appointment
+requests). The final step — writing an accepted slot into a calendar — is the **optional,
+built-in Calon link**; the dashed arrow is that direct OpenFlow → Calon path. Lodgely is a
+sibling intake/triage example, not a required hop for the Calon calendar step.*
+
 #### On the calon side
 
 Enable the OpenFlow source (a `[sources.openflow]` block in `config/calon.toml`) mapping the
