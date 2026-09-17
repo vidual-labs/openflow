@@ -13,6 +13,17 @@ All notable changes to OpenFlow are documented in this file.
   events to Events Manager's Test Events tool instead of counting them as
   real leads.
 
+## [0.32.3] - 2026-09-17
+
+### Fixed
+- **Email & Google Sheets (service account) integrations**: multi-choice
+  answers (checkboxes) were sent as raw JSON array text (e.g.
+  `["Option A","Option B"]`) instead of a readable comma-separated list. The
+  code checked `typeof val === 'object'` before `Array.isArray(val)`, so
+  arrays — which are objects in JS — always hit the JSON-stringify branch
+  first and never reached the join. Arrays are now joined with `, ` before
+  any other object formatting is considered.
+
 ## [0.32.2] - 2026-08-24
 
 ### Fixed
