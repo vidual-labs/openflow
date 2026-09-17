@@ -27,8 +27,8 @@ router.post('/:formId', (req, res) => {
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
   const { type, config, enabled } = req.body;
-  if (!type || !['webhook', 'email', 'google_sheets', 'google_ads_conversion'].includes(type)) {
-    return res.status(400).json({ error: 'Invalid integration type. Use: webhook, email, google_sheets, google_ads_conversion' });
+  if (!type || !['webhook', 'email', 'google_sheets', 'google_ads_conversion', 'meta_conversion_api'].includes(type)) {
+    return res.status(400).json({ error: 'Invalid integration type. Use: webhook, email, google_sheets, google_ads_conversion, meta_conversion_api' });
   }
 
   const id = uuid();
@@ -94,7 +94,7 @@ router.post('/:formId/:integrationId/test', async (req, res) => {
   const testData = {};
   steps.forEach(s => { testData[s.id] = `Test value for ${s.label || s.id}`; });
 
-  const { runIntegrations, testGoogleAdsCredentials } = require('../models/integrations');
+  const { runIntegrations, testGoogleAdsCredentials, testMetaConversionApiCredentials } = require('../models/integrations');
 
   // A synthetic test submission has no real gclid, so actually running this
   // integration would either fail outright or upload a fake conversion to a
@@ -105,6 +105,22 @@ router.post('/:formId/:integrationId/test', async (req, res) => {
       return res.json({ results: [{ id: integration.id, type: integration.type, ok: true }] });
     } catch (err) {
       return res.json({ results: [{ id: integration.id, type: integration.type, ok: false, error: err.message }] });
+    }
+  }
+
+  // Same concern as Google Ads above: a synthetic test submission would post
+  // a fake (but real) Lead event to the advertiser's Meta account. Only run
+  // it for real when a test_event_code is configured — Meta then routes the
+  // event to the Test Events tool instead of counting it as a real lead.
+  if (integration.type === 'meta_conversion_api') {
+    const config = JSON.parse(decrypt(integration.config));
+    if (!config.test_event_code) {
+      try {
+        await testMetaConversionApiCredentials(config);
+        return res.json({ results: [{ id: integration.id, type: integration.type, ok: true }] });
+      } catch (err) {
+        return res.json({ results: [{ id: integration.id, type: integration.type, ok: false, error: err.message }] });
+      }
     }
   }
 

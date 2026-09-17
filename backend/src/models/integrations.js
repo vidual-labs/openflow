@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const { google } = require('googleapis');
 const { flattenFields } = require('../utils/steps');
 const { assertSafeUrl } = require('../utils/ssrf');
@@ -26,6 +27,8 @@ async function runIntegration(integration, formId, formTitle, submissionData, st
       return runGoogleSheets(config, formId, submissionData, steps);
     case 'google_ads_conversion':
       return runGoogleAdsConversion(config, submissionData, metadata);
+    case 'meta_conversion_api':
+      return runMetaConversionApi(config, submissionData, steps, metadata);
     default:
       throw new Error(`Unknown integration type: ${integration.type}`);
   }
@@ -353,4 +356,78 @@ async function testGoogleAdsCredentials(config) {
   await getGoogleAdsAccessToken(config);
 }
 
-module.exports = { runIntegrations, runIntegration, testGoogleAdsCredentials };
+const META_GRAPH_API_VERSION = 'v21.0';
+
+async function runMetaConversionApi(config, data, steps, metadata) {
+  const { pixel_id, access_token, currency_code = 'USD', default_value, value_field_id, test_event_code } = config;
+  if (!pixel_id || !access_token) {
+    throw new Error('Meta Pixel ID and access token are required');
+  }
+
+  // No client-side Pixel is required — matching relies on the IP/user agent
+  // captured on every submission, plus hashed email/phone when the form
+  // collects them (Meta requires user data to be hashed with SHA-256).
+  const userData = {};
+  if (metadata?.ip) userData.client_ip_address = metadata.ip;
+  if (metadata?.userAgent) userData.client_user_agent = metadata.userAgent;
+  flattenFields(steps).forEach(field => {
+    const raw = data[field.id];
+    if (raw === undefined || raw === null || String(raw).trim() === '') return;
+    if (field.type === 'email') {
+      userData.em = [crypto.createHash('sha256').update(String(raw).trim().toLowerCase()).digest('hex')];
+    } else if (field.type === 'phone') {
+      userData.ph = [crypto.createHash('sha256').update(String(raw).replace(/[^0-9]/g, '')).digest('hex')];
+    }
+  });
+
+  let value = default_value !== undefined && default_value !== '' ? Number(default_value) : undefined;
+  if (value_field_id) {
+    const raw = data[value_field_id];
+    const parsed = Number(raw);
+    if (raw !== undefined && !Number.isNaN(parsed)) value = parsed;
+  }
+
+  const event = {
+    event_name: 'Lead',
+    event_time: Math.floor(new Date(metadata?.submittedAt || Date.now()).getTime() / 1000),
+    action_source: 'website',
+    user_data: userData,
+  };
+  if (value !== undefined) event.custom_data = { value, currency: currency_code };
+
+  const payload = { data: [event] };
+  if (test_event_code) payload.test_event_code = test_event_code;
+
+  const res = await fetch(
+    `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(pixel_id)}/events?access_token=${encodeURIComponent(access_token)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000),
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`Meta Conversions API returned ${res.status}: ${await res.text().catch(() => '')}`);
+  }
+}
+
+// Validates the Pixel ID and access token without sending an event — used by
+// the integration "Test" button when no test_event_code is configured, since
+// a synthetic test submission has no real lead and would otherwise post a
+// fake (but real, uncounted-as-test) Lead event to the advertiser's account.
+async function testMetaConversionApiCredentials(config) {
+  const { pixel_id, access_token } = config;
+  if (!pixel_id || !access_token) {
+    throw new Error('Meta Pixel ID and access token are required');
+  }
+  const res = await fetch(
+    `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(pixel_id)}?fields=id&access_token=${encodeURIComponent(access_token)}`,
+    { signal: AbortSignal.timeout(15000) }
+  );
+  if (!res.ok) {
+    throw new Error(`Meta Graph API returned ${res.status}: ${await res.text().catch(() => '')}`);
+  }
+}
+
+module.exports = { runIntegrations, runIntegration, testGoogleAdsCredentials, testMetaConversionApiCredentials };

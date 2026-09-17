@@ -2,6 +2,17 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.33.0] - 2026-09-17
+
+### Added
+- **Meta Conversions API integration**: send a server-side `Lead` event to
+  Facebook/Instagram Ads on every submission — no Meta Pixel needs to be
+  installed on the form. Configure a Pixel ID and access token; `Email` /
+  `Phone` fields are automatically SHA-256-hashed and sent for matching along
+  with the visitor's IP and user agent. An optional Test Event Code routes
+  events to Events Manager's Test Events tool instead of counting them as
+  real leads.
+
 ## [0.32.2] - 2026-08-24
 
 ### Fixed
