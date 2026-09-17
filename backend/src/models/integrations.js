@@ -125,8 +125,8 @@ async function runEmail(config, formId, formTitle, data, steps) {
     const rawVal = data[field.id];
     let val = rawVal;
     if (val === undefined || val === null) val = '-';
-    if (typeof val === 'object') val = JSON.stringify(val);
     if (Array.isArray(val)) val = val.join(', ');
+    else if (typeof val === 'object') val = JSON.stringify(val);
 
     let valueHtml = escapeHtmlAttr(val);
     if (contact_links_enabled && typeof rawVal === 'string' && rawVal.trim()) {
@@ -248,8 +248,9 @@ async function runGoogleSheets(config, formId, data, steps) {
   const row = [
     new Date().toISOString(),
     ...flattenFields(steps).map(s => {
-      let val = data[s.id];
+      const val = data[s.id];
       if (val === undefined || val === null) return '';
+      if (Array.isArray(val)) return val.join(', ');
       if (typeof val === 'object') return JSON.stringify(val);
       return String(val);
     }),
