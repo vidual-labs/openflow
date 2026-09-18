@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.33.0
+# 🌊 OpenFlow v0.33.1
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -43,6 +43,7 @@
 - **📝 Google Sheets (Simple)** — Via Google Apps Script — no service account needed, just paste a URL
 - **📝 Google Sheets (Service Account)** — Auto-append rows via service account for advanced setups
 - **🎯 Google Ads (Server-Side Conversion)** — Upload leads with a captured `gclid`/`gbraid`/`wbraid` as offline conversions via Google's Data Manager API
+- **📣 Meta Conversions API** — Send a server-side `Lead` event to Facebook/Instagram Ads on every submission, no Meta Pixel required
 - **CSV Export** — Download all submissions as CSV
 - **Test Button** — Verify each integration with sample data before going live
 
@@ -266,6 +267,24 @@ browser-side conversion pixel required.
 - The **Test** button only validates the OAuth credentials — it does not
   upload a real conversion, since a test submission has no genuine click ID
 - See [`docs/integrations/google-ads.md`](docs/integrations/google-ads.md) for the full one-time setup walkthrough
+
+### 📣 Meta Conversions API
+Send a server-side `Lead` event to Facebook/Instagram Ads on every
+submission, via [Meta's Conversions API](https://developers.facebook.com/docs/marketing-api/conversions-api) —
+no Meta Pixel needs to be installed on the form.
+- Matching relies on the submission's captured IP address and user agent,
+  plus SHA-256-hashed `Email`/`Phone` field values when the form collects
+  them (matched by field **type**, not id) — no click ID or cookie consent
+  gating is involved, since it doesn't depend on a client-side Pixel
+- Requires a Pixel ID and an access token, both generated in Events Manager
+  → Data Sources → your Pixel → Settings → Conversions API
+- Optionally map one of the form's fields as the event value, or set a
+  fixed default value
+- An optional **Test Event Code** routes events into Events Manager's Test
+  Events tool instead of counting them as real leads; the **Test** button
+  only sends a real event while one is set — otherwise it just validates
+  the Pixel ID/access token, since a test submission has no genuine lead
+- See [`docs/integrations/meta-conversion-api.md`](docs/integrations/meta-conversion-api.md) for the full setup walkthrough
 
 > 💡 Each integration has an **Enable/Disable** toggle and a **Test** button to verify your setup with sample data.
 
