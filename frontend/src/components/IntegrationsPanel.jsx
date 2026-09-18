@@ -8,6 +8,7 @@ const INTEGRATION_TYPES = [
   { value: 'google_sheets', label: 'Google Sheets (Simple)', icon: '📊', description: 'Via Google Apps Script — no JSON key needed' },
   { value: 'google_sheets_sa', label: 'Google Sheets (Service Account)', icon: '📊', description: 'Via service account JSON key' },
   { value: 'google_ads_conversion', label: 'Google Ads (Server-Side Conversion)', icon: '🎯', description: 'Upload leads as offline conversions via the Data Manager API' },
+  { value: 'meta_conversion_api', label: 'Meta Conversions API', icon: '📣', description: 'Send leads to Facebook/Instagram Ads server-side' },
 ];
 
 export default function IntegrationsPanel({ formId, steps = [] }) {
@@ -65,6 +66,10 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
       google_ads_conversion: {
         client_id: '', client_secret: '', refresh_token: '',
         customer_id: '', login_customer_id: '', conversion_action_id: '',
+        currency_code: 'USD', default_value: '', value_field_id: '',
+      },
+      meta_conversion_api: {
+        pixel_id: '', access_token: '', test_event_code: '',
         currency_code: 'USD', default_value: '', value_field_id: '',
       },
     };
@@ -239,6 +244,9 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
           )}
           {integration.type === 'google_ads_conversion' && (
             <GoogleAdsConfig config={integration.config} steps={steps} onChange={(k, v) => updateConfig(integration.id, k, v)} />
+          )}
+          {integration.type === 'meta_conversion_api' && (
+            <MetaConversionApiConfig config={integration.config} steps={steps} onChange={(k, v) => updateConfig(integration.id, k, v)} />
           )}
         </div>
       ))}
@@ -447,6 +455,57 @@ function GoogleAdsConfig({ config, steps, onChange }) {
       <div className="input-group" style={{ gridColumn: '1 / -1' }}>
         <label>Conversion Action ID</label>
         <input className="input" value={config.conversion_action_id || ''} onChange={e => onChange('conversion_action_id', e.target.value)} />
+      </div>
+      <div className="input-group">
+        <label>Currency</label>
+        <input className="input" value={config.currency_code || 'USD'} onChange={e => onChange('currency_code', e.target.value)} placeholder="USD" />
+      </div>
+      <div className="input-group">
+        <label>Default Value (optional)</label>
+        <input className="input" type="number" value={config.default_value ?? ''} onChange={e => onChange('default_value', e.target.value)} placeholder="e.g. 100" />
+      </div>
+      <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+        <label>Value Field (optional — overrides default value when answered)</label>
+        <select className="input" value={config.value_field_id || ''} onChange={e => onChange('value_field_id', e.target.value)}>
+          <option value="">None — use default value</option>
+          {fields.map(f => (
+            <option key={f.id} value={f.id}>{f.label || f.question || f.id}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function MetaConversionApiConfig({ config, steps, onChange }) {
+  const fields = flattenFields(steps);
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ gridColumn: '1 / -1', background: 'rgba(108, 92, 231, 0.10)', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
+        Sends a server-side <code>Lead</code> event to Meta's Conversions API on
+        every submission — no Meta Pixel needs to be installed on the form.
+        Any <strong>Email</strong> / <strong>Phone</strong> field is hashed (SHA-256) and sent for
+        matching, along with the visitor's IP and user agent. Find the Pixel
+        ID and generate an access token in Events Manager &rarr; Data Sources
+        &rarr; your Pixel &rarr; Settings &rarr; Conversions API.
+      </div>
+      <div className="input-group">
+        <label>Pixel ID</label>
+        <input className="input" value={config.pixel_id || ''} onChange={e => onChange('pixel_id', e.target.value)} placeholder="123456789012345" />
+      </div>
+      <div className="input-group">
+        <label>Access Token</label>
+        <input className="input" type="password" value={config.access_token || ''} onChange={e => onChange('access_token', e.target.value)} />
+      </div>
+      <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+        <label>Test Event Code (optional)</label>
+        <input className="input" value={config.test_event_code || ''} onChange={e => onChange('test_event_code', e.target.value)} placeholder="From Events Manager → Test Events" />
+        <p style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 4 }}>
+          Set this while testing so events show up under Test Events instead
+          of being counted as real leads. The "Test" button above sends a
+          real event only while this is set. Remove it before going live.
+        </p>
       </div>
       <div className="input-group">
         <label>Currency</label>
