@@ -2,6 +2,15 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.33.1] - 2026-09-18
+
+### Fixed
+- **Docs**: the Meta Conversions API integration added in 0.33.0 shipped
+  without README/docs coverage. Added a README feature bullet + dedicated
+  section and a full setup walkthrough at
+  `docs/integrations/meta-conversion-api.md`, mirroring the existing
+  Google Ads integration docs.
+
 ## [0.33.0] - 2026-09-17
 
 ### Added
