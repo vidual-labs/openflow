@@ -103,7 +103,7 @@ router.post('/users', authMiddleware, requireAdmin, (req, res) => {
     return res.status(409).json({ error: 'User with this email already exists' });
   }
 
-  const { v4: uuid } = require('uuid');
+  const { randomUUID: uuid } = require('crypto');
   const hash = bcrypt.hashSync(password, 10);
   const id = uuid();
   db.prepare('INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)').run(

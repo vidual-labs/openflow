@@ -2,6 +2,25 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.35.1] - 2026-09-23
+
+### Security
+- `npm audit` for the backend is clean again. Before this it reported 18
+  advisories (9 high).
+  - **googleapis** upgraded from 144 to 178. It had pulled in a vulnerable
+    `uuid`. 178 is the newest release that still supports Node 20, which the
+    Docker image and CI use.
+  - **nodemailer** upgraded from 6 to 10. Its only breaking change is
+    requiring Node 20+.
+  - `npm audit fix` for the remaining transitive packages (`body-parser`,
+    `qs`, `path-to-regexp`, `nanoid`, `form-data`, ...).
+- Dropped the `uuid` dependency. IDs now come from Node's built-in
+  `crypto.randomUUID()` and are still UUID v4.
+- The frontend audit now passes at CI's level (no high advisories):
+  **vite** upgraded from 5 to 6.4.3, plus `npm audit fix`. Two moderate
+  `react-router` advisories remain. They need the major upgrade to
+  react-router 7, which is left for its own change.
+
 ## [0.35.0] - 2026-09-23
 
 ### Added

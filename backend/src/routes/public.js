@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { checkRateLimit } = require('../models/rateLimit');
-const { v4: uuid } = require('uuid');
+const { randomUUID: uuid } = require('crypto');
 const { flattenFields } = require('../utils/steps');
 const logger = require('../utils/logger');
 
