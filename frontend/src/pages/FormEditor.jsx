@@ -157,37 +157,6 @@ export default function FormEditor() {
     setExpandedStep(steps.length - 1);
   }
 
-  // Name, email and phone on one screen: browsers only autofill the fields that
-  // are visible together, so this lets a visitor fill all three with one tap.
-  function addContactStep() {
-    const now = Date.now();
-    const de = form.theme?.language === 'de';
-    const field = (suffix, type, autocomplete, question, label, placeholder) => ({
-      id: `field_${now}_${suffix}`,
-      type,
-      question,
-      label,
-      placeholder,
-      required: true,
-      ...(autocomplete ? { autocomplete } : {}),
-    });
-    const steps = [...form.steps, {
-      id: `group_${now}`,
-      type: 'group',
-      fields: de ? [
-        field('name', 'text', 'name', 'Wie heißen Sie?', 'Name', 'Vor- und Nachname'),
-        field('email', 'email', null, 'Ihre E-Mail-Adresse', 'E-Mail', 'name@beispiel.de'),
-        field('phone', 'phone', null, 'Ihre Telefonnummer', 'Telefon', '+49 170 1234567'),
-      ] : [
-        field('name', 'text', 'name', 'What is your name?', 'Name', 'First and last name'),
-        field('email', 'email', null, 'What is your email address?', 'Email', 'name@example.com'),
-        field('phone', 'phone', null, 'What is your phone number?', 'Phone', '+1 234 567890'),
-      ],
-    }];
-    setForm({ ...form, steps });
-    setExpandedStep(steps.length - 1);
-  }
-
   function removeStep(index) {
     const steps = form.steps.filter((_, i) => i !== index);
     setForm({ ...form, steps });
@@ -317,19 +286,9 @@ export default function FormEditor() {
             />
           ))}
 
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary" onClick={addStep} style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
-              + Add Question
-            </button>
-            <button
-              className="btn btn-secondary"
-              onClick={addContactStep}
-              style={{ flex: 1, justifyContent: 'center', padding: 16 }}
-              title="Name, email and phone on one step, so browsers can prefill all three at once"
-            >
-              + Add Contact Details
-            </button>
-          </div>
+          <button className="btn btn-secondary" onClick={addStep} style={{ width: '100%', justifyContent: 'center', padding: 16 }}>
+            + Add Question
+          </button>
         </div>
       )}
 
@@ -1289,6 +1248,16 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
     onChange({ fields: fields.map((f, idx) => (idx === i ? { ...f, ...changes } : f)) });
   }
 
+  // Reorder questions inside the step. The first one gets the cursor on the
+  // public form, so this is how an operator picks which field starts focused.
+  function moveField(i, dir) {
+    const target = i + dir;
+    if (target < 0 || target >= fields.length) return;
+    const next = [...fields];
+    [next[i], next[target]] = [next[target], next[i]];
+    onChange({ fields: next });
+  }
+
   function changeFieldType(i, newType) {
     const def = FIELD_TYPE_MAP[newType];
     const d = def?.defaults || {};
@@ -1312,8 +1281,14 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
       </p>
       {fields.map((f, i) => (
         <div key={f.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
-            Question {i + 1}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Question {i + 1}{i === 0 && <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0, color: 'var(--text-light)' }}> · gets the cursor first</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className="btn btn-sm btn-secondary" onClick={() => moveField(i, -1)} disabled={i === 0} title="Move this question up">&uarr;</button>
+              <button className="btn btn-sm btn-secondary" onClick={() => moveField(i, 1)} disabled={i === fields.length - 1} title="Move this question down">&darr;</button>
+            </div>
           </div>
           <SubFieldEditor
             field={f}
