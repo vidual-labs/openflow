@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.35.1 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.35.2 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -112,7 +112,9 @@ Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Addre
 has validation, placeholder, help text, and conditional visibility.
 
 **Date & Timeslot** is a two-stage picker (day, then a time on that day) meant for
-booking-style forms. With nothing configured it generates times itself from the field's
+booking-style forms. The day's times are shown in a column beside the month that scrolls
+on its own (stacked under it in narrow frames), and the step auto-advances once both a day
+and a time are picked. With nothing configured it generates times itself from the field's
 own `windowStart`/`windowEnd`/`durationMin`/`rangeDays`, with no conflict checking — good
 enough for a simple lead form. It can optionally be pointed at a self-hosted
 [calon](https://github.com/vidual-labs/calon) instance (`step.calon.baseUrl` +

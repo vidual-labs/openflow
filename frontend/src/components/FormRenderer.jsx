@@ -514,7 +514,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // Leaving a step drops its confirmation: coming back has to ask again.
   useEffect(() => { setAnswerConfirmed(false); }, [currentStep]);
 
-  const AUTO_ADVANCE_FIELDS = ['select', 'multi-select', 'yes-no', 'rating', 'image-select'];
+  const AUTO_ADVANCE_FIELDS = ['select', 'multi-select', 'yes-no', 'rating', 'image-select', 'date-timeslot'];
 
   // A multiple-choice step with a free-text "Other" box never auto-advances:
   // every keystroke changes the answer, so it would jump away mid-sentence.
@@ -532,19 +532,33 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // be scolding them for reading on. The step waits for the agreement instead.
   const autoAdvanceHeldByConsent = showInlineConsent && !consentGiven;
 
+  // A date & timeslot answer takes two clicks; picking the day alone stores a
+  // half answer ("2026-09-24 ") that must not carry the form away yet.
+  const answerComplete = !!step && answers[step.id] !== undefined
+    && (step.type !== 'date-timeslot' || !!parseDateTimeslotValue(answers[step.id]).time);
+
   // Auto-advance for choice-based field types when answer is provided.
   // Capture the step index at schedule time and compare against the ref at
   // fire time so we don't advance if the user has already navigated away.
+  // Only an answer that changed *on this step* counts: stepping back onto an
+  // answered step also changes answers[step.id] as far as this effect can see,
+  // and must leave the visitor there to change their answer.
+  const lastAnswerRef = useRef(null);
   useEffect(() => {
-    if (step && answers[step.id] !== undefined && advancesOnClick && !autoAdvanceHeldByConsent) {
+    const value = step ? answers[step.id] : undefined;
+    const last = lastAnswerRef.current;
+    lastAnswerRef.current = { step: currentStep, value };
+    if (!last || last.step !== currentStep) return undefined;
+    if (answerComplete && advancesOnClick && !autoAdvanceHeldByConsent) {
       const stepAtSchedule = currentStep;
       const timer = setTimeout(() => {
         if (currentStepRef.current === stepAtSchedule) next();
       }, 400);
       return () => clearTimeout(timer);
     }
+    return undefined;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answers[step?.id]]);
+  }, [currentStep, answers[step?.id]]);
 
   // On a step answered by clicking, the click leaves focus on the option, where
   // Enter would only re-pick it. Handing focus to the consent box once the answer
@@ -1188,30 +1202,54 @@ function DateTimeslotInput({ step, value, onChange, formSlug }) {
   return (
     <div className="form-calendar" role="group" aria-label={locale.dateTimeslotPickDate}>
       {!step.description && <div className="form-calendar-hint">{locale.dateTimeslotPickDate}</div>}
-      <div className="form-calendar-body">
-        <div className="form-calendar-header">
-          <button type="button" className="form-calendar-nav" onClick={() => setView(addMonths(view.y, view.m, -1))} disabled={prevDisabled} aria-label={locale.datePrevMonth}>‹</button>
-          <button type="button" className="form-calendar-nav" onClick={() => setView(addMonths(view.y, view.m, 1))} disabled={nextDisabled} aria-label={locale.dateNextMonth}>›</button>
+      {/* Calendly-style: the day's times sit in a column beside the month and scroll
+          inside it, so a day with dozens of slots never makes the step taller than the
+          calendar itself. Narrow frames stack the column under the month instead. */}
+      <div className="form-dateslot">
+        <div className="form-calendar-body">
+          <div className="form-calendar-header">
+            <button type="button" className="form-calendar-nav" onClick={() => setView(addMonths(view.y, view.m, -1))} disabled={prevDisabled} aria-label={locale.datePrevMonth}>‹</button>
+            <button type="button" className="form-calendar-nav" onClick={() => setView(addMonths(view.y, view.m, 1))} disabled={nextDisabled} aria-label={locale.dateNextMonth}>›</button>
+          </div>
+          <div className="form-calendar-months">
+            <CalendarMonth y={view.y} m={view.m} locale={locale} isDisabled={isDisabled} dayState={dayState} onPick={pickDate} />
+          </div>
         </div>
-        <div className="form-calendar-months">
-          <CalendarMonth y={view.y} m={view.m} locale={locale} isDisabled={isDisabled} dayState={dayState} onPick={pickDate} />
-        </div>
-      </div>
 
-      {selDate && (
-        <div className="form-dateslot-times">
-          <div className="form-calendar-hint">{locale.dateTimeslotPickTime}</div>
-          {times.length === 0 ? (
-            <p className="form-dateslot-empty">{locale.dateTimeslotNoSlots}</p>
-          ) : (
-            <div className="form-options">
-              {times.map(t => (
-                <button key={t} type="button" className={`form-option ${selTime === t ? 'selected' : ''}`} onClick={() => pickTime(t)} aria-pressed={selTime === t}>
-                  {t}
-                </button>
-              ))}
-            </div>
-          )}
+        {selDate && <TimeslotColumn date={selDate} times={times} selTime={selTime} onPick={pickTime} locale={locale} />}
+      </div>
+    </div>
+  );
+}
+
+function TimeslotColumn({ date, times, selTime, onPick, locale }) {
+  const listRef = useRef(null);
+  const [y, m, d] = date.split('-').map(Number);
+  const weekday = locale.weekdayShort[new Date(y, m - 1, d).getDay()];
+
+  // A new day starts the list at its top; coming back to an answered step scrolls the
+  // picked time into view. Only the list's own scrollTop moves — scrollIntoView would
+  // also scroll the page (or the embedding site) around the visitor.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const picked = list.querySelector('[aria-pressed="true"]');
+    list.scrollTop = picked ? picked.offsetTop - (list.clientHeight - picked.offsetHeight) / 2 : 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
+
+  return (
+    <div className="form-dateslot-times">
+      <div className="form-dateslot-heading">{locale.dateTimeslotDayHeading(weekday, d, locale.monthNames[m - 1])}</div>
+      {times.length === 0 ? (
+        <p className="form-dateslot-empty">{locale.dateTimeslotNoSlots}</p>
+      ) : (
+        <div className="form-dateslot-list" ref={listRef} role="group" aria-label={locale.dateTimeslotPickTime}>
+          {times.map(t => (
+            <button key={t} type="button" className={`form-dateslot-time ${selTime === t ? 'selected' : ''}`} onClick={() => onPick(t)} aria-pressed={selTime === t}>
+              {t}
+            </button>
+          ))}
         </div>
       )}
     </div>
