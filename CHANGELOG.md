@@ -2,6 +2,22 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.37.0] - 2026-09-23
+
+### Added
+- **Meta Conversions API: ad click ID.** When a visitor arrives from a Meta ad
+  (`?fbclid=` in the form's URL), the click ID is now sent to Meta as `fbc`,
+  along with the `_fbp`/`_fbc` cookies of a Meta Pixel on the page if there is
+  one. This helps Meta tie the lead to the ad that brought it in. Like Google
+  Ads click IDs, it is only captured once cookie consent allows it.
+- **Meta Conversions API: deduplication.** Every `Lead` event now carries the
+  submission's id as `event_id`, so a retried delivery is counted once. The
+  same id is added as `eventId` to the `openflow_submit` dataLayer event and
+  posted to the page embedding the form (`{ type: 'openflow-submit', eventId }`),
+  so a Meta Pixel `Lead` fired with that `eventID` is merged with the
+  server-side event instead of counted twice. See
+  `docs/integrations/meta-conversion-api.md`.
+
 ## [0.36.3] - 2026-09-23
 
 ### Fixed

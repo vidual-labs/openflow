@@ -371,6 +371,10 @@ async function runMetaConversionApi(config, data, steps, metadata) {
   const userData = {};
   if (metadata?.ip) userData.client_ip_address = metadata.ip;
   if (metadata?.userAgent) userData.client_user_agent = metadata.userAgent;
+  // Click ID (from ?fbclid=) and browser ID, captured client-side after
+  // cookie consent. Meta wants these unhashed.
+  if (metadata?.fbc) userData.fbc = metadata.fbc;
+  if (metadata?.fbp) userData.fbp = metadata.fbp;
   flattenFields(steps).forEach(field => {
     const raw = data[field.id];
     if (raw === undefined || raw === null || String(raw).trim() === '') return;
@@ -388,9 +392,14 @@ async function runMetaConversionApi(config, data, steps, metadata) {
     if (raw !== undefined && !Number.isNaN(parsed)) value = parsed;
   }
 
+  // event_id is the submission id: stable across the delivery queue's
+  // retries, and handed to the browser (dataLayer / postMessage) so a Meta
+  // Pixel firing the same Lead with eventID = it is deduplicated against this
+  // one. Only the integration test path has no submission.
   const event = {
     event_name: 'Lead',
     event_time: Math.floor(new Date(metadata?.submittedAt || Date.now()).getTime() / 1000),
+    event_id: metadata?.submissionId || `test-${crypto.randomUUID()}`,
     action_source: 'website',
     user_data: userData,
   };

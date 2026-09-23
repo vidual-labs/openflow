@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.36.3
+# 🌊 OpenFlow v0.37.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -274,8 +274,13 @@ submission, via [Meta's Conversions API](https://developers.facebook.com/docs/ma
 no Meta Pixel needs to be installed on the form.
 - Matching relies on the submission's captured IP address and user agent,
   plus SHA-256-hashed `Email`/`Phone` field values when the form collects
-  them (matched by field **type**, not id) — no click ID or cookie consent
-  gating is involved, since it doesn't depend on a client-side Pixel
+  them (matched by field **type**, not id), and — once cookie consent allows
+  it — the ad click ID (`?fbclid=` → `fbc`) and any Meta Pixel `_fbp`/`_fbc`
+  cookies
+- Every event carries the submission id as `event_id`; the same id is
+  pushed to the dataLayer (`openflow_submit` → `eventId`) and posted to the
+  embedding page, so a Meta Pixel `Lead` using it as `eventID` is
+  deduplicated against the server-side event
 - Requires a Pixel ID and an access token, both generated in Events Manager
   → Data Sources → your Pixel → Settings → Conversions API
 - Optionally map one of the form's fields as the event value, or set a

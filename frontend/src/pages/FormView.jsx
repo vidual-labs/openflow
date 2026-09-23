@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer';
 import { api } from '../api';
+import { captureClickIds, withMetaCookies } from '../clickIds';
 
 function CookieBanner({ form, onAccept, onDecline }) {
   const es = form.end_screen || {};
@@ -96,7 +97,7 @@ export default function FormView({ slugProp, hostMode = false }) {
   }, [slug, navigate, hostMode]);
 
   // Determine cookie consent state once form is loaded. This gates both GTM
-  // injection and ad click-ID capture (gclid/gbraid/wbraid), so it no longer
+  // injection and ad click-ID capture (gclid/gbraid/wbraid/fbclid), so it no longer
   // short-circuits on gtm_id alone.
   useEffect(() => {
     if (!form) return;
@@ -107,17 +108,12 @@ export default function FormView({ slugProp, hostMode = false }) {
     else { setCookieConsent('pending'); }
   }, [form]);
 
-  // Capture Google Ads click IDs from the landing URL, once consent allows
-  // it, so they can ride along with the submission for server-side
-  // conversion upload.
+  // Capture ad click IDs (Google Ads gclid/gbraid/wbraid, Meta fbclid) from
+  // the landing URL, once consent allows it, so they can ride along with the
+  // submission for server-side conversion upload.
   useEffect(() => {
     if (cookieConsent !== true) return;
-    const params = new URLSearchParams(window.location.search);
-    const ids = {};
-    ['gclid', 'gbraid', 'wbraid'].forEach(key => {
-      const value = params.get(key);
-      if (value) ids[key] = value;
-    });
+    const ids = captureClickIds();
     if (Object.keys(ids).length) setClickIds(ids);
   }, [cookieConsent]);
 
@@ -151,7 +147,7 @@ export default function FormView({ slugProp, hostMode = false }) {
 
   return (
     <>
-      <FormRenderer form={form} onSubmit={(data) => api.submitForm(slug, data, clickIds)} />
+      <FormRenderer form={form} onSubmit={(data) => api.submitForm(slug, data, cookieConsent === true ? withMetaCookies(clickIds) : clickIds)} />
       {cookieConsent === 'pending' && (
         <CookieBanner form={form} onAccept={handleAccept} onDecline={handleDecline} />
       )}

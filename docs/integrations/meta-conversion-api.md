@@ -4,8 +4,9 @@ This integration sends a server-side `Lead` event to Meta's
 [Conversions API](https://developers.facebook.com/docs/marketing-api/conversions-api)
 (Graph API `/{pixel_id}/events`) on every form submission. No Meta Pixel
 needs to be installed on the form — matching relies on the submission's
-captured IP address and user agent, plus SHA-256-hashed `Email`/`Phone`
-field values when the form collects them.
+captured IP address and user agent, SHA-256-hashed `Email`/`Phone`
+field values when the form collects them, and the ad click ID (`fbclid`)
+when the visitor came from a Meta ad.
 
 This is a one-time setup you do outside OpenFlow, in Meta's Events Manager.
 OpenFlow itself only stores the resulting Pixel ID and access token (pasted
@@ -55,10 +56,49 @@ counts.
   (already captured for every submission) plus any `Email`/`Phone` field's
   value, hashed with SHA-256 as Meta requires — matched by the field's
   **type**, not its id, so it works without any extra configuration.
-- No client-side Meta Pixel, `fbclid`, or `_fbc`/`_fbp` cookie is involved —
-  this is a purely server-side integration, independent of the cookie
-  consent setting used for GTM.
+- When the visitor arrived from a Meta ad (`?fbclid=` in the form's URL),
+  the click ID is sent as `fbc`, in the format of the Pixel's `_fbc` cookie.
+  If a Meta Pixel on the form page (e.g. loaded through GTM) has set the
+  `_fbp` / `_fbc` cookies, those are sent too. Like Google Ads click IDs,
+  this is captured only once cookie consent allows it; without consent the
+  event is still sent, matched on IP, user agent and hashed email/phone.
+- Every event carries `event_id` = the submission's id, so a delivery the
+  retry queue sends again is counted once — see *Deduplication* below.
 - Deliveries happen asynchronously after the submission is stored, with the
   same retry/dead-letter handling as OpenFlow's other integrations; a
   failed delivery can be inspected and manually retried from the
   Integrations tab.
+
+## Click IDs in embedded forms
+
+An embedded form runs in an iframe, which can't see the embedding page's
+URL — so an `fbclid` on the page hosting the iframe does not reach
+OpenFlow (the same holds for Google Ads' `gclid`). Click IDs are captured
+when visitors land on the form's direct link (`/f/<slug>` or its
+subdomain), or when the `fbclid` is part of the iframe's own `src`.
+
+## Deduplication with a Meta Pixel
+
+You don't need a Meta Pixel, but if you also run one and fire a `Lead`
+from it, pass the submission id as the Pixel's `eventID` — Meta then merges
+the browser and server events into one lead instead of counting two. The
+id is available in two places after a successful submission:
+
+- **GTM on the form page:** the `openflow_submit` dataLayer event carries
+  `eventId`. In GTM, read it with a Data Layer Variable (`eventId`) and use
+  it as the Event ID of your Meta Pixel `Lead` tag.
+- **The page embedding the form:** the iframe posts
+  `{ type: 'openflow-submit', formId, eventId }` to its parent window:
+
+  ```html
+  <script>
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'openflow-submit' && window.fbq) {
+      fbq('track', 'Lead', {}, { eventID: e.data.eventId });
+    }
+  });
+  </script>
+  ```
+
+  Check `e.origin` against your OpenFlow host if other iframes on the page
+  post messages.
