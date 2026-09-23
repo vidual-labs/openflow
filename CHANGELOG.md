@@ -2,6 +2,21 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.36.3] - 2026-09-23
+
+### Fixed
+- **The end screen was blank after submitting.** On forms with an animated
+  background, submitting crashed the page and left only the background colour,
+  because the thank-you screen still used the background code removed in 0.36.0.
+  It now uses the same animated background as the question screens and shows
+  the configured title, message and button again. Line breaks in the message
+  are kept.
+
+### Changed
+- The end screen now has a light entrance animation. The check circle pops in
+  and draws its tick, then the title, message and button fade up one after
+  another. It is turned off for visitors who have reduced motion enabled.
+
 ## [0.36.2] - 2026-09-23
 
 ### Changed

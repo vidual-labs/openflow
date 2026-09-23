@@ -591,21 +591,27 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
         <div className={`form-renderer ${embedded ? 'embedded' : ''}`} style={themeVars} ref={containerRef}>
           {theme.customCss && <style>{theme.customCss}</style>}
 
-          {bgAnimation !== 'none' && BG_SHAPES[bgAnimation] && (
-            <div className={`form-bg-animation bg-${bgAnimation}`}>
-              {Array.from({ length: BG_SHAPES[bgAnimation] }, (_, i) => <span key={i} />)}
-            </div>
-          )}
+          <AnimatedBackground
+            animation={bgAnimation}
+            primaryColor={primaryColor}
+            accentColor={themeVars['--form-bg-accent']}
+            backgroundColor={formBg}
+          />
 
-          <div className="form-end-screen slide-in-forward">
-            <div className="end-icon">&#10003;</div>
-            <h2>{endScreen.title || locale.thankYou}</h2>
-            <p>{endScreen.message || locale.submittedMessage}</p>
+          {/* Children fade up one after another (`--i` sets the delay, see .form-end-screen in the CSS). */}
+          <div className="form-end-screen" role="status">
+            <div className="end-icon" style={{ '--i': 0 }} aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="40" height="40">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            </div>
+            <h2 style={{ '--i': 1 }}>{endScreen.title || locale.thankYou}</h2>
+            <p style={{ '--i': 2 }}>{endScreen.message || locale.submittedMessage}</p>
             {endScreen.redirectUrl && endScreen.autoRedirect && (
-              <p style={{ fontSize: 14, opacity: 0.6 }}>{locale.redirecting}</p>
+              <p className="end-redirecting" style={{ '--i': 3 }}>{locale.redirecting}</p>
             )}
             {endScreen.redirectUrl && (
-              <a href={endScreen.redirectUrl} target="_top" className="form-btn" style={{ marginTop: 24 }}>
+              <a href={endScreen.redirectUrl} target="_top" className="form-btn" style={{ '--i': 3, marginTop: 24 }}>
                 {locale.continueBtn}
               </a>
             )}

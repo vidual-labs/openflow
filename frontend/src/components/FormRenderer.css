@@ -831,6 +831,14 @@
   margin-bottom: 24px;
 }
 
+.end-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .form-end-screen h2 {
   font-size: 32px;
   margin-bottom: 12px;
@@ -840,6 +848,53 @@
   font-size: 18px;
   color: rgba(var(--form-text-rgb, 45, 52, 54), 0.5);
   max-width: 400px;
+  /* The editor's message is a textarea — keep the operator's line breaks. */
+  white-space: pre-line;
+}
+
+.form-end-screen .end-redirecting {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+/* End-screen entrance: the icon pops in and draws its check, then the text
+   fades up item by item. `backwards` keeps each item hidden until its delay
+   ends, then hands transform back (so the button's hover lift still works). */
+.form-end-screen > * {
+  animation: endFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 90ms + 150ms);
+}
+
+.form-end-screen > .end-icon {
+  animation: endPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.end-icon svg path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: endDraw 0.4s ease-out 0.35s forwards;
+}
+
+@keyframes endFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes endPop {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes endDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-end-screen > *,
+  .end-icon svg path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* Address fields */
