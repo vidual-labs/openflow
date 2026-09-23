@@ -2,6 +2,26 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.36.0] - 2026-09-23
+
+### Changed
+- **New animated backgrounds.** Three of the Design tab's animated backgrounds
+  were rebuilt. Waves and Aurora are unchanged.
+  - **Gradient Wave** replaces **Bubbles**: a slowly flowing, noise-driven
+    colour wave rising from the bottom of the form, in the form's primary and
+    accent colours (WebGL, with a static gradient where WebGL is unavailable).
+  - **Gateway Flow** replaces **Particles**: dotted streams from both edges
+    that converge on the centre, each carrying a particle. The centre fades out
+    so the streams never run through the question.
+  - **Flow** is now floating paths: two mirrored layers of 36 curved lines
+    that slowly draw along themselves.
+- All three are drawn on a canvas with no new dependencies, follow the form's
+  colours (also in the editor's live preview), and show a still frame for
+  visitors who have "reduce motion" turned on.
+- Forms that still use Bubbles or Particles show Gradient Wave or Gateway Flow
+  instead. No migration is needed; the new value is stored the next time a
+  background is picked and the form is saved.
+
 ## [0.35.2] - 2026-09-23
 
 ### Changed

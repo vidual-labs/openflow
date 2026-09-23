@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import './FormRenderer.css';
+import AnimatedBackground from './AnimatedBackground';
 import { LOCALES } from '../locales';
 import { flattenFields } from '../utils/steps';
 import { autofillToken } from '../autofill';
@@ -204,8 +205,6 @@ export function toRgbTriplet(hex, fallback = '45, 52, 54') {
   const num = parseInt(h, 16);
   return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
 }
-
-const BG_SHAPES = { waves: 3, bubbles: 4, aurora: 3, particles: 6, flow: 4 };
 
 // Id and type of the synthetic consent step appended after the last question when
 // the form requires GDPR consent. It is not a configurable field, so it can never
@@ -714,11 +713,12 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       {theme.customCss && <style>{theme.customCss}</style>}
 
       {/* Animated Background */}
-      {bgAnimation !== 'none' && BG_SHAPES[bgAnimation] && (
-        <div className={`form-bg-animation bg-${bgAnimation}`}>
-          {Array.from({ length: BG_SHAPES[bgAnimation] }, (_, i) => <span key={i} />)}
-        </div>
-      )}
+      <AnimatedBackground
+        animation={bgAnimation}
+        primaryColor={primaryColor}
+        accentColor={themeVars['--form-bg-accent']}
+        backgroundColor={formBg}
+      />
 
       {/* Header / Landing Page */}
       {(theme.logoUrl || theme.headline) && (

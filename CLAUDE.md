@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.35.2 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.36.0 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -46,6 +46,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `components/FormRenderer.jsx` — Renders forms with animations, validation, conditional logic and consent
   - `components/IntegrationsPanel.jsx` — Configure integrations per form
   - `components/AdminUI.jsx` — Shared page header, alert, empty/loading components
+  - `components/AnimatedBackground.jsx` — The form's animated backgrounds (CSS Waves/Aurora; canvas Gradient Wave, Gateway Flow, Flow). Legacy `bubbles`/`particles` values map to `gradientWave`/`gatewayFlow` via `normalizeBgAnimation`
   - `locales.js` — Built-in respondent-facing UI strings (EN / DE)
   - `autofill.js` — Browser-autofill (`autocomplete`) tokens per field + the editor's "Autofill tip" heuristic for Short Text fields
 - **API Client**: `api.js` — Wrapper for backend API calls
