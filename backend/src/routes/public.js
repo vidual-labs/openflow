@@ -7,6 +7,11 @@ const logger = require('../utils/logger');
 
 const router = Router();
 
+// Meta's _fbc / _fbp cookie formats: fb.<subdomain index>.<creation time ms>.<fbclid | random id>
+// (the last part may carry a dot-separated suffix in newer Pixel versions).
+const META_FBC_RE = /^fb\.[0-2]\.\d{10,13}\.[A-Za-z0-9_.-]{1,500}$/;
+const META_FBP_RE = /^fb\.[0-2]\.\d{10,13}\.[A-Za-z0-9_.-]{1,100}$/;
+
 // Only trust X-Forwarded-For when Express's own 'trust proxy' setting is on
 // (index.js only enables it when fronted by a real reverse proxy). Otherwise
 // any client could set this header themselves and pick a fresh rate-limit
@@ -159,6 +164,11 @@ router.post('/form/:slug/submit', async (req, res) => {
     ['gclid', 'gbraid', 'wbraid'].forEach(key => {
       if (typeof tracking[key] === 'string' && tracking[key]) metadata[key] = tracking[key];
     });
+    // Meta's click ID (built from ?fbclid=) and browser ID, in the exact
+    // formats of the _fbc/_fbp cookies — passed through to the Conversions
+    // API as-is, so anything else is dropped rather than stored.
+    if (typeof tracking.fbc === 'string' && META_FBC_RE.test(tracking.fbc)) metadata.fbc = tracking.fbc;
+    if (typeof tracking.fbp === 'string' && META_FBP_RE.test(tracking.fbp)) metadata.fbp = tracking.fbp;
   }
 
   db.prepare('INSERT INTO submissions (id, form_id, data, metadata) VALUES (?, ?, ?, ?)').run(

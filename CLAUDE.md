@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.36.3 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.37.0 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -49,6 +49,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `components/AnimatedBackground.jsx` — The form's animated backgrounds (CSS Waves/Aurora; canvas Gradient Wave, Gateway Flow, Flow). Legacy `bubbles`/`particles` values map to `gradientWave`/`gatewayFlow` via `normalizeBgAnimation`
   - `locales.js` — Built-in respondent-facing UI strings (EN / DE)
   - `autofill.js` — Browser-autofill (`autocomplete`) tokens per field + the editor's "Autofill tip" heuristic for Short Text fields
+  - `clickIds.js` — Ad click-ID capture for FormView/EmbedView (gclid/gbraid/wbraid, `fbclid` → `fbc`, Meta Pixel `_fbp`/`_fbc` cookies), used only after cookie consent
 - **API Client**: `api.js` — Wrapper for backend API calls
 - **Dev Server**: Vite with proxy to backend (port 3000)
 
@@ -146,7 +147,7 @@ Handles all outbound data flows via `runIntegration()`'s switch on
 - **`email`**: SMTP with HTML-formatted submission table (values HTML-escaped)
 - **`google_sheets`**: Both Sheets variants share this type and branch on `config.mode` — `apps_script` (URL only) or `service_account` (JSON key, auto-creates headers). The UI's `google_sheets_sa` option is mapped to `google_sheets` before saving.
 - **`google_ads_conversion`**: Offline conversion upload via the Data Manager API; only runs for submissions carrying a `gclid`/`gbraid`/`wbraid`
-- **`meta_conversion_api`**: Server-side `Lead` event to Meta's Conversions API (Graph API `/​{pixel_id}/events`), keyed by `pixel_id` + `access_token`. No Meta Pixel is required — `user_data` is built from the submission's captured IP/user agent plus SHA-256-hashed `email`/`phone` field values (matched by field **type**, not id). An optional `test_event_code` routes events to Events Manager's Test Events tool instead of counting them as real leads; the integration's "Test" button only sends a real event when one is set (otherwise it just validates `pixel_id`/`access_token` via a GET, like Google Ads validates OAuth)
+- **`meta_conversion_api`**: Server-side `Lead` event to Meta's Conversions API (Graph API `/​{pixel_id}/events`), keyed by `pixel_id` + `access_token`. No Meta Pixel is required — `user_data` is built from the submission's captured IP/user agent, SHA-256-hashed `email`/`phone` field values (matched by field **type**, not id), and — when captured after cookie consent — `fbc` (built client-side from `?fbclid=`, `clickIds.js`) / `fbp` (Meta Pixel cookies), whitelisted by format in `POST /form/:slug/submit`. `event_id` is the submission id (the delivery queue passes it in as `metadata.submissionId`, not stored); the browser gets the same id as `eventId` on the `openflow_submit` dataLayer push and in the embed's `openflow-submit` postMessage, for Pixel deduplication. An optional `test_event_code` routes events to Events Manager's Test Events tool instead of counting them as real leads; the integration's "Test" button only sends a real event when one is set (otherwise it just validates `pixel_id`/`access_token` via a GET, like Google Ads validates OAuth)
 
 Each integration has an enabled flag and a test endpoint
 (`POST /api/integrations/:formId/:id/test`). Google Ads is special-cased there:

@@ -418,14 +418,18 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       submitData._consent = consentOverride === undefined ? consentGiven : consentOverride;
     }
     try {
-      await onSubmit(submitData);
+      const result = await onSubmit(submitData);
       setSubmitted(true);
       trackEvent(form.id, 'complete');
       if (window.dataLayer) {
+        // eventId is the submission id, which the Meta Conversions API
+        // integration also sends as event_id: a Pixel tag using it as its
+        // eventID gets deduplicated against the server-side Lead.
         window.dataLayer.push({
           event: 'openflow_submit',
           formId: form.id,
           formTitle: form.title,
+          ...(result?.id ? { eventId: result.id } : {}),
         });
       }
     } catch (err) {

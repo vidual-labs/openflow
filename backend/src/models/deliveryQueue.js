@@ -29,13 +29,16 @@ async function enqueueAndAttempt(db, formId, formTitle, submissionId, data, step
        VALUES (?, ?, ?, ?, ?, 'pending')`
     ).run(deliveryId, formId, integration.id, submissionId, integration.type);
 
-    await attemptDelivery(db, { id: deliveryId, integration, formId, formTitle, data, steps, metadata });
+    await attemptDelivery(db, { id: deliveryId, integration, formId, formTitle, submissionId, data, steps, metadata });
   }
 }
 
-async function attemptDelivery(db, { id, integration, formId, formTitle, data, steps, metadata = {} }) {
+// The submission id rides along in metadata (it isn't stored there) so
+// integrations can key on it — e.g. Meta's event_id, which must stay the same
+// across retries so Meta counts a re-sent lead once.
+async function attemptDelivery(db, { id, integration, formId, formTitle, submissionId, data, steps, metadata = {} }) {
   try {
-    await runIntegration(integration, formId, formTitle, data, steps, metadata);
+    await runIntegration(integration, formId, formTitle, data, steps, { ...metadata, submissionId });
     db.prepare(
       `UPDATE integration_deliveries SET status = 'success', updated_at = datetime('now') WHERE id = ?`
     ).run(id);
@@ -85,6 +88,7 @@ async function processDueDeliveries(db) {
       integration,
       formId: row.form_id,
       formTitle: row.form_title,
+      submissionId: row.submission_id,
       data: JSON.parse(row.submission_data),
       steps: JSON.parse(row.form_steps),
       metadata: JSON.parse(row.submission_metadata || '{}'),
@@ -112,6 +116,7 @@ async function retryDelivery(db, deliveryId) {
     integration,
     formId: row.form_id,
     formTitle: row.form_title,
+    submissionId: row.submission_id,
     data: JSON.parse(row.submission_data),
     steps: JSON.parse(row.form_steps),
     metadata: JSON.parse(row.submission_metadata || '{}'),

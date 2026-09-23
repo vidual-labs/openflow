@@ -486,7 +486,9 @@ function MetaConversionApiConfig({ config, steps, onChange }) {
         Sends a server-side <code>Lead</code> event to Meta's Conversions API on
         every submission — no Meta Pixel needs to be installed on the form.
         Any <strong>Email</strong> / <strong>Phone</strong> field is hashed (SHA-256) and sent for
-        matching, along with the visitor's IP and user agent. Find the Pixel
+        matching, along with the visitor's IP and user agent, plus the ad click ID
+        (<code>fbclid</code>) and any Meta Pixel cookies once cookie consent allows it. The
+        submission id is sent as <code>event_id</code> for deduplication. Find the Pixel
         ID and generate an access token in Events Manager &rarr; Data Sources
         &rarr; your Pixel &rarr; Settings &rarr; Conversions API.
       </div>
