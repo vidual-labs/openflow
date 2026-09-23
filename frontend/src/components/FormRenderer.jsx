@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, createContext, useCont
 import './FormRenderer.css';
 import { LOCALES } from '../locales';
 import { flattenFields } from '../utils/steps';
+import { autofillToken } from '../autofill';
 
 const LocaleContext = createContext(LOCALES.en);
 function useLocale() { return useContext(LocaleContext); }
@@ -129,8 +130,14 @@ function validateField(field, value, locale) {
 // Renders the sub-fields of a combined ("group") step stacked vertically.
 // Each sub-field keeps its own id, so answers stay keyed per field.
 function GroupInput({ step, answers, setFieldAnswer, formSlug }) {
+  // Every sub-field's input autofocuses, so the last one would win; start the
+  // visitor (and the browser's autofill prompt) on the first field instead.
+  const ref = useRef(null);
+  useEffect(() => {
+    ref.current?.querySelector('input, textarea, select')?.focus();
+  }, [step.id]);
   return (
-    <div className="form-group-fields">
+    <div className="form-group-fields" ref={ref}>
       {(step.fields || []).map((field, idx) => {
         const Field = FIELD_TYPES[field.type] || TextInput;
         const display = applyPricingFilter(field, answers);
@@ -809,24 +816,32 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
    Field Components
    ======================== */
 
+// `autocomplete` + a matching `name` let browsers offer the visitor's saved
+// contact details (see ../autofill.js). Fields without a known meaning get
+// neither, leaving the browser's default behaviour alone.
+function autofillProps(field) {
+  const token = autofillToken(field);
+  return token ? { autoComplete: token, name: token } : {};
+}
+
 function TextInput({ step, value, onChange }) {
   const locale = useLocale();
   return (
-    <input className="form-input" type="text" placeholder={step.placeholder || locale.placeholderText} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
+    <input className="form-input" type="text" placeholder={step.placeholder || locale.placeholderText} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus {...autofillProps(step)} />
   );
 }
 
 function EmailInput({ step, value, onChange }) {
   const locale = useLocale();
   return (
-    <input className="form-input" type="email" placeholder={step.placeholder || locale.placeholderEmail} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
+    <input className="form-input" type="email" placeholder={step.placeholder || locale.placeholderEmail} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus {...autofillProps(step)} />
   );
 }
 
 function PhoneInput({ step, value, onChange }) {
   const locale = useLocale();
   return (
-    <input className="form-input" type="tel" placeholder={step.placeholder || locale.placeholderPhone} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
+    <input className="form-input" type="tel" placeholder={step.placeholder || locale.placeholderPhone} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus {...autofillProps(step)} />
   );
 }
 
@@ -1340,7 +1355,7 @@ function RatingInput({ step, value, onChange }) {
 function WebsiteInput({ step, value, onChange }) {
   const locale = useLocale();
   return (
-    <input className="form-input" type="url" placeholder={step.placeholder || locale.placeholderUrl} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus />
+    <input className="form-input" type="url" placeholder={step.placeholder || locale.placeholderUrl} value={value || ''} onChange={e => onChange(e.target.value)} autoFocus {...autofillProps(step)} />
   );
 }
 
@@ -1354,13 +1369,13 @@ function AddressInput({ step, value, onChange }) {
   const al = step.addressLabels || {};
   return (
     <div className="form-address">
-      <input className="form-input" type="text" placeholder={al.street || locale.addressStreet} value={data.street || ''} onChange={e => update('street', e.target.value)} autoFocus />
+      <input className="form-input" type="text" placeholder={al.street || locale.addressStreet} value={data.street || ''} onChange={e => update('street', e.target.value)} autoFocus autoComplete="address-line1" name="address-line1" />
       <div className="form-address-row">
-        <input className="form-input" type="text" placeholder={al.postalCode || locale.addressPostal} value={data.postalCode || ''} onChange={e => update('postalCode', e.target.value)} />
-        <input className="form-input" type="text" placeholder={al.city || locale.addressCity} value={data.city || ''} onChange={e => update('city', e.target.value)} />
+        <input className="form-input" type="text" placeholder={al.postalCode || locale.addressPostal} value={data.postalCode || ''} onChange={e => update('postalCode', e.target.value)} autoComplete="postal-code" name="postal-code" />
+        <input className="form-input" type="text" placeholder={al.city || locale.addressCity} value={data.city || ''} onChange={e => update('city', e.target.value)} autoComplete="address-level2" name="address-level2" />
       </div>
       {step.showCountry !== false && (
-        <input className="form-input" type="text" placeholder={al.country || locale.addressCountry} value={data.country || ''} onChange={e => update('country', e.target.value)} />
+        <input className="form-input" type="text" placeholder={al.country || locale.addressCountry} value={data.country || ''} onChange={e => update('country', e.target.value)} autoComplete="country-name" name="country-name" />
       )}
       {customFields.map((field, idx) => {
         const fieldLabelId = `addr-label-${field.id || idx}`;
