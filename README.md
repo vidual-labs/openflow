@@ -14,16 +14,17 @@
 - **Number Stepper** — Large +/− buttons with a configurable step size and an optional prefilled start value, for quantity questions where 0 or 1 is an unlikely answer
 - **Inline Date Picker** — An always-visible calendar per date step, set to either a single day or a date range (from – to), with selectable-window limits and localized month/weekday names
 - **Conditional Logic** — Show/hide steps based on previous answers (equals, contains, is set, etc.)
-- **Combined Steps** — Merge two adjacent questions onto one screen (e.g. email + phone), optionally requiring just one of them to be answered
+- **Combined Steps** — Merge two adjacent questions onto one screen (e.g. email + phone), optionally requiring just one of them to be answered; reorder the questions inside with ↑ / ↓
 - **Flat-Rate Pricing Filter** — On a choice step, hide budget options that can't cover a rate × quantity answered earlier, so nobody picks an impossible budget
 - **Smart Defaults** — Selecting a field type auto-fills question, label, and placeholder
+- **Browser Autofill** — Email, Phone, Website and Address fields tell the browser what they hold, so saved details fill in with one tap; Short Text fields can be set to Full name, Company, City and more, and the editor suggests the right setting (or a better field type) when a question looks like one of these
 - **Visual Editor** — Collapsible question cards, reorder, visual field type picker with icons
 - **Emoji/Icon Picker** — Built-in category-based emoji selector for Image/Icon Select fields
 - **Landing Page Mode** — Add logo, headline, and subline on top of the form
 - **Footer Links** — Add up to 3 links (Privacy Policy, Imprint, Terms) below the form
-- **End Screen** — Custom thank-you title and message, plus an optional redirect URL that can open automatically on submit (breaking out of the iframe when embedded)
-- **Theme Customization** — Colors, custom CSS, animated backgrounds, and branding per form, with a live preview in the Design tab
-- **Animated Backgrounds** — 5 stylish CSS motion presets (Waves, Bubbles, Aurora, Particles, Flow) with 2-color support
+- **End Screen** — Custom thank-you title and message with a light entrance animation, plus an optional redirect URL that can open automatically on submit (breaking out of the iframe when embedded)
+- **Theme Customization** — Colors, custom CSS, animated backgrounds, and branding per form, with a live preview in the Design tab; buttons and the progress bar blend the primary into the accent color
+- **Animated Backgrounds** — 5 presets in the form's primary and accent colors: Waves and Aurora (CSS), plus Gradient Wave, Gateway Flow and Flow (canvas, no extra dependencies). Visitors with "reduce motion" turned on see a still frame
 - **Configurable Button Position** — Place the "Next" button in the footer bar or inline below the input field
 - **Editable Button Labels** — Override the built-in "Next" / "Submit" wording per form
 - **Form Language (EN / DE)** — Sets the language of every built-in string shown to respondents, including error messages and calendar month/weekday names
@@ -43,7 +44,7 @@
 - **📝 Google Sheets (Simple)** — Via Google Apps Script — no service account needed, just paste a URL
 - **📝 Google Sheets (Service Account)** — Auto-append rows via service account for advanced setups
 - **🎯 Google Ads (Server-Side Conversion)** — Upload leads with a captured `gclid`/`gbraid`/`wbraid` as offline conversions via Google's Data Manager API
-- **📣 Meta Conversions API** — Send a server-side `Lead` event to Facebook/Instagram Ads on every submission, no Meta Pixel required
+- **📣 Meta Conversions API** — Send a server-side `Lead` event to Facebook/Instagram Ads on every submission, no Meta Pixel required; matches leads to ad clicks via `fbclid`, and deduplicates against a Meta Pixel via a shared event ID
 - **CSV Export** — Download all submissions as CSV
 - **Test Button** — Verify each integration with sample data before going live
 
@@ -175,6 +176,8 @@ openflow/
 │       ├── components/             # FormRenderer, IntegrationsPanel, shared admin UI
 │       ├── pages/                  # Admin pages + public form/embed views
 │       ├── locales.js              # Respondent-facing strings (EN / DE)
+│       ├── autofill.js             # Browser-autofill tokens + the editor's autofill tip
+│       ├── clickIds.js             # Ad click-ID capture (gclid/gbraid/wbraid, fbclid)
 │       └── styles/                 # CSS
 ├── wordpress-plugin/               # 🔌 WordPress integration
 │   └── openflow/
@@ -199,11 +202,11 @@ openflow/
 | 📄 Long Text | Multi-line text | |
 | 🔢 Number | Numeric input with min/max | |
 | 📅 Date | Date picker | |
-| 📆 Date & Timeslot | Pick a day, then a time on that day. Generates its own times, or shows real availability from and books directly into a connected [calon](https://github.com/vidual-labs/calon) instance — including straight into a Google or Microsoft 365 calendar the calon resource is linked to | |
+| 📆 Date & Timeslot | Pick a day, then a time on that day; the day's times sit in a scrolling column beside the month (below it on phones). Generates its own times, or shows real availability from and books directly into a connected [calon](https://github.com/vidual-labs/calon) instance — including straight into a Google or Microsoft 365 calendar the calon resource is linked to | ✓ (once day and time are picked) |
 | ☑️ Single Choice | Choose one option | ✓ |
-| ✅ Multiple Choice | Choose multiple options, optionally with an "Other" free-text field | |
+| ✅ Multiple Choice | Choose multiple options, optionally with an "Other" free-text field | ✓ (not with "Other") |
 | 👍 Yes / No | Binary choice | ✓ |
-| ⭐ Rating | Star rating (configurable 3-10) | |
+| ⭐ Rating | Star rating (configurable 3-10) | ✓ |
 | 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | ✓ |
 | 📎 File Upload | Drag & drop with configurable types and size limit | |
 
@@ -218,7 +221,9 @@ openflow/
 
 > 🔒 **Consent / GDPR is not a field type** — it's a per-form setting in the **GTM / GDPR** tab. Switch it on and the consent checkbox with your legal text is added either under the last question or as its own final step; it arrives in the submission as `_consent`.
 
-Any two adjacent questions can be **combined** into a single step (e.g. email + phone side by side) via the **Combine** buttons in the editor, and split apart again at any time.
+Any two adjacent questions can be **combined** into a single step (e.g. email + phone side by side) via the **Combine** buttons in the editor, reordered inside the step with ↑ / ↓, and split apart again at any time.
+
+Auto-advance can be switched off per form in the **Design** tab. Going back to an answered step never jumps forward again on its own, so the answer can be changed.
 
 ---
 
@@ -281,6 +286,9 @@ no Meta Pixel needs to be installed on the form.
   pushed to the dataLayer (`openflow_submit` → `eventId`) and posted to the
   embedding page, so a Meta Pixel `Lead` using it as `eventID` is
   deduplicated against the server-side event
+- Click IDs are captured on the form's direct link (`/f/<slug>` or its
+  subdomain). An embedded form can't read the host page's URL, so an
+  `fbclid` there doesn't reach OpenFlow (the same applies to `gclid`)
 - Requires a Pixel ID and an access token, both generated in Events Manager
   → Data Sources → your Pixel → Settings → Conversions API
 - Optionally map one of the form's fields as the event value, or set a
@@ -430,7 +438,7 @@ OpenFlow automatically pushes events to the Google Tag Manager dataLayer:
 | Event | Trigger | Data |
 |-------|---------|------|
 | `openflow_step` | Each step change | `formId`, `stepIndex`, `stepId` |
-| `openflow_submit` | Form submitted | `formId`, `formTitle` |
+| `openflow_submit` | Form submitted | `formId`, `formTitle`, `eventId` (the submission id, for Meta Pixel deduplication) |
 
 Set the container ID per form under **GTM / GDPR → GTM Container ID** (it must look like `GTM-XXXXXXX`).
 
@@ -438,7 +446,7 @@ Set the container ID per form under **GTM / GDPR → GTM Container ID** (it must
 
 Optionally, a consent banner can be shown **before** the GTM container is loaded — GTM only fires once the visitor accepts, and the choice is remembered in their browser so the banner doesn't reappear. Enable it under **GTM / GDPR → Cookie / Tracking Consent Banner**; the message and both button labels are editable. A GTM container ID must be set first.
 
-The same consent gates the ad click IDs (`gclid`/`gbraid`/`wbraid`) that the [Google Ads integration](#-google-ads-server-side-conversion) relies on.
+The same consent gates the ad click IDs that the [Google Ads](#-google-ads-server-side-conversion) (`gclid`/`gbraid`/`wbraid`) and [Meta Conversions API](#-meta-conversions-api) (`fbclid`, `_fbp`/`_fbc` cookies) integrations rely on.
 
 ---
 
@@ -473,6 +481,11 @@ window.addEventListener('message', function(e) {
 });
 </script>
 ```
+
+After a successful submission the iframe also posts
+`{ type: 'openflow-submit', formId, eventId }` to the page, e.g. to fire a
+Meta Pixel `Lead` with `eventID: e.data.eventId` (see
+[`docs/integrations/meta-conversion-api.md`](docs/integrations/meta-conversion-api.md)).
 
 ### WordPress
 
@@ -646,6 +659,8 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 
 ## 🧑‍💻 Development
 
+Requires **Node.js 20+** (the Docker image and CI use Node 20).
+
 ```bash
 # Start backend
 cd backend && npm install && npm run dev
@@ -723,7 +738,7 @@ The following are known gaps, deliberately not addressed yet:
 - ✅ **Phase 2**: Webhook, email notifications, Google Sheets integration
 - ✅ **Phase 3**: Conditional logic, file uploads, custom CSS per form, multi-user support, landing page header/footer
 - ✅ **Phase 4**: Analytics dashboard, simplified Google Sheets, dark mode, delete protection for live forms
-- ✅ **Phase 5**: Editable slugs and per-form subdomains, backup & restore, read-only API tokens, retrying integration deliveries, server-side Google Ads conversions
+- ✅ **Phase 5**: Editable slugs and per-form subdomains, backup & restore, read-only API tokens, retrying integration deliveries, server-side Google Ads conversions, Meta Conversions API, Date & Timeslot with calon booking, browser autofill, published Docker image
 - 🔜 **Phase 6**: A/B testing, form templates, more languages
 
 --

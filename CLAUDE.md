@@ -49,6 +49,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `components/AnimatedBackground.jsx` — The form's animated backgrounds (CSS Waves/Aurora; canvas Gradient Wave, Gateway Flow, Flow). Legacy `bubbles`/`particles` values map to `gradientWave`/`gatewayFlow` via `normalizeBgAnimation`
   - `locales.js` — Built-in respondent-facing UI strings (EN / DE)
   - `autofill.js` — Browser-autofill (`autocomplete`) tokens per field + the editor's "Autofill tip" heuristic for Short Text fields
+  - `clickIds.js` — Ad click-ID capture for FormView/EmbedView (gclid/gbraid/wbraid, `fbclid` → `fbc`, Meta Pixel `_fbp`/`_fbc` cookies), used only after cookie consent
 - **API Client**: `api.js` — Wrapper for backend API calls
 - **Dev Server**: Vite with proxy to backend (port 3000)
 
