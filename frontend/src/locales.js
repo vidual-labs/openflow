@@ -58,6 +58,8 @@ export const LOCALES = {
     // Date & timeslot
     dateTimeslotPickDate: 'Choose a date',
     dateTimeslotPickTime: 'Choose a time',
+    // Heading over the time column, e.g. "Thu, September 24".
+    dateTimeslotDayHeading: (weekday, day, monthName) => `${weekday}, ${monthName} ${day}`,
     dateTimeslotNoSlots: 'No times available on this day.',
     dateTimeslotLoading: 'Loading availability…',
     errorDateTimeslotTime: 'Please also pick a time.',
@@ -121,6 +123,7 @@ export const LOCALES = {
     dateNextMonth: 'Nächster Monat',
     dateTimeslotPickDate: 'Datum wählen',
     dateTimeslotPickTime: 'Uhrzeit wählen',
+    dateTimeslotDayHeading: (weekday, day, monthName) => `${weekday}, ${day}. ${monthName}`,
     dateTimeslotNoSlots: 'An diesem Tag sind keine Zeiten verfügbar.',
     dateTimeslotLoading: 'Verfügbarkeit wird geladen…',
     errorDateTimeslotTime: 'Bitte wähle auch eine Uhrzeit.',

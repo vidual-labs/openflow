@@ -469,15 +469,125 @@
   color: var(--form-text, #2D3436);
 }
 
+/* Date & timeslot: month on the left, the picked day's times in a column beside it.
+   The column is laid out absolutely inside its stretched cell, so it adds no height
+   of its own — the row is as tall as the month, and a long day scrolls in the list
+   instead of pushing the step (and the Next button) off screen. */
+.form-dateslot {
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+}
+
 .form-dateslot-times {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.12);
+  position: relative;
+  width: 170px;
+  flex: 0 0 auto;
+  padding-left: 20px;
+  border-left: 1px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.12);
+}
+
+.form-dateslot-times > * {
+  position: absolute;
+  left: 20px;
+  right: 0;
+}
+
+.form-dateslot-heading {
+  top: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--form-text, #2D3436);
+}
+
+.form-dateslot-list,
+.form-dateslot-empty {
+  top: 40px;
+  bottom: 0;
+}
+
+.form-dateslot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Room for the focus ring and the scrollbar, and a fade at the bottom edge that
+     tells the visitor there is more below. */
+  padding: 2px 6px 12px 2px;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+}
+
+.form-dateslot-time {
+  flex: 0 0 auto;
+  padding: 7px 8px;
+  border: 2px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.12);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--form-text, #2D3436);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.form-dateslot-time:hover {
+  border-color: var(--form-primary, #6C5CE7);
+}
+
+.form-dateslot-time.selected {
+  border-color: var(--form-primary, #6C5CE7);
+  background: var(--form-primary, #6C5CE7);
+  color: #fff;
+  font-weight: 600;
 }
 
 .form-dateslot-empty {
+  margin: 0;
   font-size: 13px;
   color: rgba(var(--form-text-rgb, 45, 52, 54), 0.6);
+}
+
+/* Too narrow for month + column side by side: the times drop under the month as a
+   compact grid, capped in height so a long day still scrolls inside the grid. */
+@media (max-width: 520px) {
+  .form-dateslot {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-dateslot-times {
+    width: auto;
+    padding: 14px 0 0;
+    border-left: none;
+    border-top: 1px solid rgba(var(--form-text-rgb, 45, 52, 54), 0.12);
+  }
+
+  .form-dateslot-times > * {
+    position: static;
+  }
+
+  .form-dateslot-heading {
+    height: auto;
+    margin-bottom: 8px;
+  }
+
+  /* Still the offsetParent of its buttons, which the scroll-to-picked-time math relies on */
+  .form-dateslot-list {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    max-height: calc(var(--calendar-cell) * 4.6);
+  }
 }
 
 .form-calendar-clear {

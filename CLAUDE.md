@@ -113,7 +113,9 @@ Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Addre
 has validation, placeholder, help text, and conditional visibility.
 
 **Date & Timeslot** is a two-stage picker (day, then a time on that day) meant for
-booking-style forms. With nothing configured it generates times itself from the field's
+booking-style forms. The day's times are shown in a column beside the month that scrolls
+on its own (stacked under it in narrow frames), and the step auto-advances once both a day
+and a time are picked. With nothing configured it generates times itself from the field's
 own `windowStart`/`windowEnd`/`durationMin`/`rangeDays`, with no conflict checking — good
 enough for a simple lead form. It can optionally be pointed at a self-hosted
 [calon](https://github.com/vidual-labs/calon) instance (`step.calon.baseUrl` +

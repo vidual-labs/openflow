@@ -22,6 +22,28 @@ All notable changes to OpenFlow are documented in this file.
   instead. No migration is needed; the new value is stored the next time a
   background is picked and the form is saved.
 
+## [0.35.2] - 2026-09-23
+
+### Changed
+- **Date & Timeslot: times now sit next to the calendar.** Before, a day with
+  many free times (for example 15-minute slots across a working day) listed
+  every time as its own full-width button below the calendar, which made the
+  step several screens tall. Now the chosen day's times sit in a column beside
+  the month, under a heading such as "Thu, September 24", and scroll inside
+  that column. The step is never taller than the calendar itself. In narrow
+  frames (phones, small embeds) the times go under the month as a compact
+  grid with a height limit.
+- **Date & Timeslot now auto-advances** once both a day and a time are picked,
+  like the other click-to-answer fields. Picking only the day doesn't move on.
+  It follows the form's existing "Automatically advance when answer is
+  selected" setting.
+
+### Fixed
+- Going back to a step that auto-advances (Single/Multiple Choice, Yes/No,
+  Rating, Image Select, and now Date & Timeslot) no longer jumps forward again
+  right away. Before, the returning answer set off the auto-advance, so you
+  couldn't go back to change it.
+
 ## [0.35.1] - 2026-09-23
 
 ### Security
