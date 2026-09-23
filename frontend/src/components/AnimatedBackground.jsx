@@ -63,7 +63,7 @@ export default function AnimatedBackground({ animation, primaryColor, accentColo
 
 const FLOW_VIEWBOX = { width: 696, height: 316 };
 const FLOW_OPACITY = 0.75;
-const FLOW_SLOWDOWN = 1.5;
+const FLOW_SLOWDOWN = 2.25;
 
 function cubicLength(p0, p1, p2, p3) {
   let length = 0;
@@ -83,7 +83,7 @@ function floatingPathLayer(position) {
     const pt = (x, y) => ({ x, y });
     const a = [pt(-(380 - o), -(189 + i * 6)), pt(-(380 - o), -(189 + i * 6)), pt(-(312 - o), 216 - i * 6), pt(152 - o, 343 - i * 6)];
     const b = [a[3], pt(616 - o, 470 - i * 6), pt(684 - o, 875 - i * 6), pt(684 - o, 875 - i * 6)];
-    // Deterministic spread of 30–45s durations (the original's 20–30s, slowed down),
+    // Deterministic spread of 45–68s durations (the original's 20–30s, slowed down),
     // each path starting at a different point of its cycle so the layer looks like
     // it has been running all along.
     const duration = (20 + ((i * 37 + (position > 0 ? 3 : 7)) % 11)) * FLOW_SLOWDOWN;

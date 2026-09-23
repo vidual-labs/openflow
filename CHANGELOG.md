@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.36.2] - 2026-09-23
+
+### Changed
+- The **Flow** animated background is slower again, by half. Each line now
+  takes about 45–68 seconds per cycle instead of 30–45.
+
 ## [0.36.1] - 2026-09-23
 
 ### Changed
