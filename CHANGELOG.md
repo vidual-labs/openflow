@@ -2,6 +2,19 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.35.0] - 2026-09-23
+
+### Added
+- **Reorder questions inside a combined step**: each question in a combined
+  step now has ↑ / ↓ buttons, so you no longer have to split and recombine
+  the step. Its settings ("require at least one answer", conditions) and its
+  analytics history stay intact. The first question gets the cursor on the
+  public form, and the editor marks it.
+
+### Removed
+- The **+ Add Contact Details** button added in 0.34.0. Combined steps
+  created with it keep working.
+
 ## [0.34.0] - 2026-09-23
 
 ### Added

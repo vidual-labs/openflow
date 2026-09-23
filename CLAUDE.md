@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.34.0 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.35.0 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -97,7 +97,7 @@ password and prints it to the server log on first boot instead.
 ### Form Structure (Backend)
 A form row in `forms` holds everything as JSON columns — there is no separate
 fields table:
-- **`steps`**: Array of steps, each with field type, label, placeholder, validation, etc. A step is normally one field; two adjacent questions can be merged into a `{ type: 'group', fields: [a, b] }` step (the **+ Add Contact Details** preset creates a three-field one). Use `utils/steps.js#flattenFields` before touching leaf fields.
+- **`steps`**: Array of steps, each with field type, label, placeholder, validation, etc. A step is normally one field; two adjacent questions can be merged into a `{ type: 'group', fields: [a, b] }` step. Use `utils/steps.js#flattenFields` before touching leaf fields.
 - **`theme`**: Colors, fonts, animated backgrounds, button position, custom CSS, language
 - **`end_screen`**: Thank-you content, auto-redirect, GDPR consent settings, cookie-banner settings
 - **`gtm_id`**: GTM container id (validated as `GTM-XXXXXXX`, since it is interpolated into a raw `<script>` tag)
@@ -128,10 +128,7 @@ webhooks, the e-mail table, the lodgely connector) just works on plain text.
 **Browser autofill**: the renderer puts an `autocomplete` + `name` on inputs whose
 meaning is known (`autofill.js#autofillToken`): email, phone, website and the address
 sub-inputs always, Short Text only when the operator set `step.autocomplete` (allowlisted
-tokens; `''` = explicitly none, which also silences the editor's tip). Browsers only fill
-fields that are on screen together, which is why **+ Add Contact Details** creates one
-combined step with name, email and phone (the only way to get a 3-field group; **Combine**
-still merges pairs).
+tokens; `''` = explicitly none, which also silences the editor's tip).
 
 **Consent/GDPR is not a field type** — it's a form-level setting (**GTM / GDPR**
 tab) that either appends a checkbox under the last question or adds a synthetic
