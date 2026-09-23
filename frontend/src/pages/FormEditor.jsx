@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';
 import { toRgbTriplet } from '../components/FormRenderer';
+import AnimatedBackground, { normalizeBgAnimation } from '../components/AnimatedBackground';
 import { TEXT_AUTOFILL_OPTIONS, textAutofillLabel, suggestAutofill } from '../autofill';
 import '../components/FormRenderer.css';
 
@@ -39,8 +40,6 @@ function adjustColor(hex, amount) {
   const b = Math.min(255, (num & 0x0000ff) + amount);
   return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
 }
-
-const BG_SHAPE_COUNTS = { waves: 3, bubbles: 4, aurora: 3, particles: 6, flow: 4 };
 
 // Common emoji categories for the icon picker
 const EMOJI_CATEGORIES = {
@@ -393,29 +392,32 @@ export default function FormEditor() {
               {[
                 { value: 'none', label: 'None', preview: '⊘' },
                 { value: 'waves', label: 'Waves', preview: '🌊' },
-                { value: 'bubbles', label: 'Bubbles', preview: '🫧' },
+                { value: 'gradientWave', label: 'Gradient Wave', preview: '🌈' },
                 { value: 'aurora', label: 'Aurora', preview: '🌌' },
-                { value: 'particles', label: 'Particles', preview: '✦' },
+                { value: 'gatewayFlow', label: 'Gateway Flow', preview: '✦' },
                 { value: 'flow', label: 'Flow', preview: '≋' },
-              ].map(bg => (
+              ].map(bg => {
+                const selected = normalizeBgAnimation(form.theme?.backgroundAnimation) === bg.value;
+                return (
                 <button
                   key={bg.value}
                   onClick={() => setForm({ ...form, theme: { ...form.theme, backgroundAnimation: bg.value } })}
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
                     padding: '16px 12px',
-                    border: (form.theme?.backgroundAnimation || 'none') === bg.value ? '2px solid var(--primary, #6C5CE7)' : '2px solid var(--border, #e0e0e0)',
+                    border: selected ? '2px solid var(--primary, #6C5CE7)' : '2px solid var(--border, #e0e0e0)',
                     borderRadius: 12,
-                    background: (form.theme?.backgroundAnimation || 'none') === bg.value ? 'rgba(108,92,231,0.08)' : 'var(--card, #fafafa)',
-                    cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                    color: (form.theme?.backgroundAnimation || 'none') === bg.value ? 'var(--primary, #6C5CE7)' : 'var(--text, #333)',
+                    background: selected ? 'rgba(108,92,231,0.08)' : 'var(--card, #fafafa)',
+                    cursor: 'pointer', fontSize: 13, fontWeight: 600, textAlign: 'center',
+                    color: selected ? 'var(--primary, #6C5CE7)' : 'var(--text, #333)',
                     transition: 'all 0.15s',
                   }}
                 >
                   <span style={{ fontSize: 28 }}>{bg.preview}</span>
                   {bg.label}
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -2138,7 +2140,7 @@ function EmojiPicker({ activeCategory, onCategoryChange, onSelect, onClose }) {
    ThemePreview - Animated background live preview
    =========================== */
 function ThemePreview({ theme }) {
-  const bgAnimation = theme.backgroundAnimation || 'none';
+  const bgAnimation = normalizeBgAnimation(theme.backgroundAnimation);
   const primaryColor = theme.primaryColor || '#6C5CE7';
   const accentColor = theme.accentColor || adjustColor(primaryColor, 40);
   const bgColor = theme.backgroundColor || '#FFFFFF';
@@ -2163,11 +2165,7 @@ function ThemePreview({ theme }) {
       ...cssVars,
     }}>
       {/* Animated background shapes */}
-      {bgAnimation !== 'none' && BG_SHAPE_COUNTS[bgAnimation] && (
-        <div className={`form-bg-animation bg-${bgAnimation}`}>
-          {Array.from({ length: BG_SHAPE_COUNTS[bgAnimation] }, (_, i) => <span key={i} />)}
-        </div>
-      )}
+      <AnimatedBackground animation={bgAnimation} primaryColor={primaryColor} accentColor={accentColor} backgroundColor={bgColor} />
       {/* Placeholder form content */}
       <div style={{ position: 'relative', zIndex: 1, padding: '28px 32px', color: textColor, fontFamily: theme.fontFamily || 'inherit' }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: primaryColor, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10, opacity: 0.8 }}>

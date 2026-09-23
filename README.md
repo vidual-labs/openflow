@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.35.1
+# 🌊 OpenFlow v0.36.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
