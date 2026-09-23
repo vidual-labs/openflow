@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';
 import { toRgbTriplet } from '../components/FormRenderer';
+import { TEXT_AUTOFILL_OPTIONS, textAutofillLabel, suggestAutofill } from '../autofill';
 import '../components/FormRenderer.css';
 
 // Field types sorted logically: question types first, then contact/data fields
@@ -156,6 +157,37 @@ export default function FormEditor() {
     setExpandedStep(steps.length - 1);
   }
 
+  // Name, email and phone on one screen: browsers only autofill the fields that
+  // are visible together, so this lets a visitor fill all three with one tap.
+  function addContactStep() {
+    const now = Date.now();
+    const de = form.theme?.language === 'de';
+    const field = (suffix, type, autocomplete, question, label, placeholder) => ({
+      id: `field_${now}_${suffix}`,
+      type,
+      question,
+      label,
+      placeholder,
+      required: true,
+      ...(autocomplete ? { autocomplete } : {}),
+    });
+    const steps = [...form.steps, {
+      id: `group_${now}`,
+      type: 'group',
+      fields: de ? [
+        field('name', 'text', 'name', 'Wie heißen Sie?', 'Name', 'Vor- und Nachname'),
+        field('email', 'email', null, 'Ihre E-Mail-Adresse', 'E-Mail', 'name@beispiel.de'),
+        field('phone', 'phone', null, 'Ihre Telefonnummer', 'Telefon', '+49 170 1234567'),
+      ] : [
+        field('name', 'text', 'name', 'What is your name?', 'Name', 'First and last name'),
+        field('email', 'email', null, 'What is your email address?', 'Email', 'name@example.com'),
+        field('phone', 'phone', null, 'What is your phone number?', 'Phone', '+1 234 567890'),
+      ],
+    }];
+    setForm({ ...form, steps });
+    setExpandedStep(steps.length - 1);
+  }
+
   function removeStep(index) {
     const steps = form.steps.filter((_, i) => i !== index);
     setForm({ ...form, steps });
@@ -285,9 +317,19 @@ export default function FormEditor() {
             />
           ))}
 
-          <button className="btn btn-secondary" onClick={addStep} style={{ width: '100%', justifyContent: 'center', padding: 16 }}>
-            + Add Question
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-secondary" onClick={addStep} style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
+              + Add Question
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={addContactStep}
+              style={{ flex: 1, justifyContent: 'center', padding: 16 }}
+              title="Name, email and phone on one step, so browsers can prefill all three at once"
+            >
+              + Add Contact Details
+            </button>
+          </div>
         </div>
       )}
 
@@ -874,6 +916,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
   const groupSummary = isGroup
     ? (step.fields || []).map(f => f.label || f.question || f.type).join('  +  ')
     : '';
+  const hasAutofillTip = (isGroup ? (step.fields || []) : [step]).some(f => suggestAutofill(f));
 
   return (
     <div className="card" style={{ position: 'relative', marginBottom: 12 }}>
@@ -891,6 +934,11 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             {index + 1}. {isGroup ? 'Combined Step' : (fieldDef?.label || step.type)}
           </span>
+          {hasAutofillTip && (
+            <span className="badge" style={{ marginLeft: 8, fontSize: 11, background: 'rgba(253,203,110,0.25)', color: 'var(--text)' }} title="Open this question to see how browsers could prefill it">
+              💡 Autofill tip
+            </span>
+          )}
           <div style={{ fontSize: 14, color: 'var(--text-light)', marginTop: 2 }}>
             {isGroup ? groupSummary : (step.question || <em style={{ opacity: 0.5 }}>No question set</em>)}
           </div>
@@ -964,6 +1012,8 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
               <input className="input" value={step.placeholder || ''} onChange={e => onChange({ placeholder: e.target.value })} placeholder="Placeholder text..." />
             </div>
           )}
+
+          {step.type === 'text' && <AutofillEditor field={step} onChange={onChange} />}
 
           {/* Options for select types */}
           {(step.type === 'select' || step.type === 'multi-select') && (
@@ -1258,7 +1308,7 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
   return (
     <>
       <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 16 }}>
-        This step shows two questions on one screen. Use <strong>Split</strong> on the step header to separate them again.
+        This step shows {fields.length === 2 ? 'two' : fields.length} questions on one screen. Use <strong>Split</strong> on the step header to separate them again.
       </p>
       {fields.map((f, i) => (
         <div key={f.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 12 }}>
@@ -1273,13 +1323,13 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
         </div>
       ))}
 
-      {/* Either/or requirement across the two fields */}
+      {/* Either/or requirement across the fields */}
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: 4 }}>
         <input type="checkbox" checked={!!step.requireOne} onChange={e => onChange({ requireOne: e.target.checked })} />
-        Require at least one answer (either field)
+        Require at least one answer (any field)
       </label>
       <p style={{ fontSize: 12, color: 'var(--text-light)', marginBottom: 8 }}>
-        The visitor must fill in at least one of the two. Use each field's own <strong>Required</strong> toggle to force that specific field instead.
+        The visitor must fill in at least one of them. Use each field's own <strong>Required</strong> toggle to force that specific field instead.
       </p>
 
       {/* The combined step is shown/hidden as a unit via a group-level condition. */}
@@ -1296,6 +1346,58 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
 /* ===========================
    SubFieldEditor - compact editor for a single field inside a combined step
    =========================== */
+/* ===========================
+   AutofillEditor - lets browsers prefill a Short Text field
+   =========================== */
+// `autocomplete` undefined = never decided (a detected meaning shows a hint);
+// '' = operator chose "none"/dismissed the hint; otherwise a token from
+// TEXT_AUTOFILL_OPTIONS.
+function AutofillEditor({ field, onChange }) {
+  const suggestion = suggestAutofill(field);
+
+  function switchType(type) {
+    const defaults = FIELD_TYPE_MAP[type]?.defaults || {};
+    const textDefault = FIELD_TYPE_MAP.text.defaults.placeholder;
+    // Keep the operator's wording; only swap a generic placeholder for the new type's.
+    const placeholder = !field.placeholder || field.placeholder === textDefault ? defaults.placeholder : field.placeholder;
+    onChange({ type, placeholder, autocomplete: undefined });
+  }
+
+  return (
+    <>
+      {suggestion && (
+        <div style={{ marginTop: 12, padding: 12, borderRadius: 10, border: '1px solid rgba(253,203,110,0.8)', background: 'rgba(253,203,110,0.12)', fontSize: 13 }}>
+          <div style={{ marginBottom: 8 }}>
+            💡 {suggestion.kind === 'type' ? (
+              <>This looks like a <strong>{suggestion.label.toLowerCase()}</strong> question. Use the <strong>{suggestion.label}</strong> field type so browsers can prefill it from the visitor's saved details, mobile devices show the right keyboard, and the answer is validated.</>
+            ) : (
+              <>This looks like a <strong>{textAutofillLabel(suggestion.token).toLowerCase()}</strong> field. Let browsers prefill it from the visitor's saved details. Contact fields that need typing are where most visitors drop off.</>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {suggestion.kind === 'type' ? (
+              <button className="btn btn-sm btn-primary" onClick={() => switchType(suggestion.type)}>Switch to {suggestion.label}</button>
+            ) : (
+              <button className="btn btn-sm btn-primary" onClick={() => onChange({ autocomplete: suggestion.token })}>Enable autofill as {textAutofillLabel(suggestion.token)}</button>
+            )}
+            <button className="btn btn-sm btn-secondary" onClick={() => onChange({ autocomplete: '' })}>Dismiss</button>
+          </div>
+        </div>
+      )}
+      <div className="input-group" style={{ marginTop: 12 }}>
+        <label>Browser Autofill</label>
+        <select className="input" value={field.autocomplete || ''} onChange={e => onChange({ autocomplete: e.target.value })}>
+          <option value="">None</option>
+          {TEXT_AUTOFILL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>
+          Tells browsers what this field holds, so they can offer the visitor's saved name, company, etc. Email, phone, website and address fields do this automatically.
+        </span>
+      </div>
+    </>
+  );
+}
+
 function SubFieldEditor({ field, onChange, onChangeType }) {
   return (
     <>
@@ -1340,6 +1442,8 @@ function SubFieldEditor({ field, onChange, onChangeType }) {
           <input className="input" value={field.placeholder || ''} onChange={e => onChange({ placeholder: e.target.value })} placeholder="Placeholder text..." />
         </div>
       )}
+
+      {field.type === 'text' && <AutofillEditor field={field} onChange={onChange} />}
 
       {(field.type === 'select' || field.type === 'multi-select') && (
         <div className="input-group" style={{ marginTop: 12 }}>

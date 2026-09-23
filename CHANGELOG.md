@@ -2,6 +2,27 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.34.0] - 2026-09-23
+
+### Added
+- **Browser autofill for contact fields**: public forms now tell browsers what
+  each field holds (`autocomplete`), so Chrome, Safari and password managers
+  offer the visitor's saved details instead of making them type. Email, Phone,
+  Website and Address fields get this automatically (address: street, postal
+  code, city and country separately).
+- **Browser Autofill setting for Short Text**: choose Full name, First/Last
+  name, Company, Job title, City, Postal code or Country. When a Short Text
+  field's question or label looks like one of these (English or German), the
+  editor shows an **Autofill tip** with a one-click fix. It also flags Short
+  Text fields that ask for an email, phone number or website and offers to
+  switch them to the matching field type.
+- **+ Add Contact Details**: adds one step with name, email and phone
+  together. Browsers only autofill fields that are on screen at the same
+  time, so a visitor can fill all three with one tap.
+
+### Fixed
+- Combined steps now focus their first field instead of their last.
+
 ## [0.33.1] - 2026-09-18
 
 ### Fixed
