@@ -1,7 +1,7 @@
 const request = require('supertest');
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { v4: uuid } = require('uuid');
+const { randomUUID: uuid } = require('crypto');
 const { createTestApp } = require('./setup');
 const { validateSubdomain } = require('../src/utils/subdomain');
 const { extractSubdomain, createSubdomainMiddleware } = require('../src/middleware/subdomain');

@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { v4: uuid } = require('uuid');
+const { randomUUID: uuid } = require('crypto');
 const { getDb } = require('./db');
 
 // ──────────────────────────────────────────

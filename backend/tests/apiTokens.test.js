@@ -1,7 +1,7 @@
 const request = require('supertest');
 const { createTestApp } = require('./setup');
 const bcrypt = require('bcryptjs');
-const { v4: uuid } = require('uuid');
+const { randomUUID: uuid } = require('crypto');
 
 describe('API tokens', () => {
   let app;

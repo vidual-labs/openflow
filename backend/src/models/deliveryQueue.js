@@ -1,4 +1,4 @@
-const { v4: uuid } = require('uuid');
+const { randomUUID: uuid } = require('crypto');
 const { runIntegration } = require('./integrations');
 const logger = require('../utils/logger');
 

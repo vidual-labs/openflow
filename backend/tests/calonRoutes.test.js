@@ -2,7 +2,7 @@ jest.mock('../src/models/calon');
 
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
-const { v4: uuid } = require('uuid');
+const { randomUUID: uuid } = require('crypto');
 const { createTestApp } = require('./setup');
 const { fetchCalonAvailability } = require('../src/models/calon');
 

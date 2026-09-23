@@ -1,6 +1,6 @@
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
-const { v4: uuid } = require('uuid');
+const { randomUUID: uuid } = require('crypto');
 const { createTestApp } = require('./setup');
 
 function getDb() {

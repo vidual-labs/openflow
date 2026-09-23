@@ -1,6 +1,6 @@
 {
   "name": "openflow-frontend",
-  "version": "0.35.0",
+  "version": "0.35.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,6 +15,6 @@
   "devDependencies": {
     "@types/react": "^18.3.12",
     "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^5.4.11"
+    "vite": "^6.4.3"
   }
 }

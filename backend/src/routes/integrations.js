@@ -2,7 +2,7 @@ const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
 const { encrypt, decrypt } = require('../models/encryption');
-const { v4: uuid } = require('uuid');
+const { randomUUID: uuid } = require('crypto');
 
 const router = Router();
 router.use(authMiddleware);

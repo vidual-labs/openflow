@@ -184,7 +184,7 @@ function initDb() {
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@openflow.local';
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(adminEmail);
   if (!existing) {
-    const { v4: uuid } = require('uuid');
+    const { randomUUID: uuid } = require('crypto');
     // Never fall back to a hardcoded, publicly-documented password
     // (e.g. 'admin123'). If ADMIN_PASSWORD isn't set, generate a random
     // one-time password and print it once so the operator can log in and
