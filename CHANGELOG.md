@@ -2,6 +2,14 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.37.1] - 2026-09-23
+
+### Fixed
+- `PUT /api/forms/:id` no longer crashes with a 500 when `published` is sent
+  as a JSON boolean (`true`/`false`). SQLite can't store a boolean, so it is
+  now converted to `1`/`0`. The admin UI always sent `0`/`1`, so this only
+  affected API clients.
+
 ## [0.37.0] - 2026-09-23
 
 ### Added

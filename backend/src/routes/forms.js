@@ -226,7 +226,8 @@ router.put('/:id', (req, res) => {
     end_screen ? JSON.stringify(end_screen) : null,
     theme ? JSON.stringify(sanitizeTheme(theme)) : null,
     gtm_id ?? null,
-    published ?? null,
+    // SQLite can't bind a JSON boolean, and the column is 0/1 either way.
+    published == null ? null : (published ? 1 : 0),
     req.params.id
   );
 

@@ -159,3 +159,39 @@ describe('Combined "group" steps', () => {
     expect(res.status).toBe(201);
   });
 });
+
+describe('Form update: published flag', () => {
+  let app;
+  beforeAll(() => { app = createTestApp(); });
+
+  function seedDraft(userId) {
+    const formId = uuid();
+    getDb().prepare('INSERT INTO forms (id, user_id, title, slug, steps, published) VALUES (?, ?, ?, ?, ?, 0)')
+      .run(formId, userId, 'Draft', 'draft-form', '[]');
+    return formId;
+  }
+
+  // The admin UI sends 0/1, but API clients naturally send JSON booleans, which
+  // SQLite can't bind — they used to crash the route with a 500.
+  it.each([
+    [true, 1], [false, 0], [1, 1], [0, 0],
+  ])('stores published=%p as %p', async (sent, stored) => {
+    const userId = seedUser();
+    const cookie = await login(app);
+    const formId = seedDraft(userId);
+    if (!sent) getDb().prepare('UPDATE forms SET published = 1 WHERE id = ?').run(formId);
+
+    const res = await request(app).put(`/api/forms/${formId}`).set('Cookie', cookie).send({ published: sent });
+    expect(res.status).toBe(200);
+    expect(res.body.form.published).toBe(stored);
+  });
+
+  it('leaves published unchanged when it is omitted', async () => {
+    const userId = seedUser();
+    const cookie = await login(app);
+    const formId = seedDraft(userId);
+    const res = await request(app).put(`/api/forms/${formId}`).set('Cookie', cookie).send({ title: 'Renamed' });
+    expect(res.status).toBe(200);
+    expect(res.body.form.published).toBe(0);
+  });
+});
