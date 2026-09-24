@@ -55,12 +55,58 @@ describe('integration config at rest', () => {
       .send({ type: 'webhook', config: { url: 'https://example.com/hook', secret: 'top-secret-value' } });
 
     expect(res.status).toBe(201);
-    // The API response decrypts for the caller.
-    expect(res.body.integration.config.secret).toBe('top-secret-value');
+    // Secrets are write-only: the response only says the secret is set.
+    expect(res.body.integration.config).not.toHaveProperty('secret');
+    expect(res.body.integration.secrets.secret).toEqual({ set: true });
 
     // The raw DB row must not contain the plaintext secret.
     const row = db.prepare('SELECT config FROM integrations WHERE id = ?').get(res.body.integration.id);
     expect(isEncrypted(row.config)).toBe(true);
     expect(row.config).not.toContain('top-secret-value');
+  });
+});
+
+describe('encryption key rotation from the auto-generated key file', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const crypto = require('crypto');
+
+  function loadWith(env) {
+    let mod;
+    const saved = { DB_PATH: process.env.DB_PATH, ENCRYPTION_KEY: process.env.ENCRYPTION_KEY };
+    Object.assign(process.env, env);
+    if (!env.ENCRYPTION_KEY) delete process.env.ENCRYPTION_KEY;
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      jest.isolateModules(() => { mod = require('../src/models/encryption'); });
+    } finally {
+      process.env.DB_PATH = saved.DB_PATH;
+      if (saved.ENCRYPTION_KEY === undefined) delete process.env.ENCRYPTION_KEY;
+      else process.env.ENCRYPTION_KEY = saved.ENCRYPTION_KEY;
+      console.warn.mockRestore();
+    }
+    return mod;
+  }
+
+  it('still decrypts values written with the old key file after ENCRYPTION_KEY is set', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ofw-key-'));
+    const DB_PATH = path.join(dir, 'openflow.db');
+
+    const before = loadWith({ DB_PATH });
+    const stored = before.encrypt('hunter2');
+    expect(fs.existsSync(path.join(dir, '.encryption_key'))).toBe(true);
+
+    const after = loadWith({ DB_PATH, ENCRYPTION_KEY: crypto.randomBytes(32).toString('hex') });
+    expect(after.decrypt(stored)).toBe('hunter2');
+    // New writes use ENCRYPTION_KEY, which the old key file can't read.
+    expect(() => before.decrypt(after.encrypt('x'))).toThrow();
+  });
+
+  it('refuses to start on a corrupt key file instead of replacing it', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ofw-key-'));
+    fs.writeFileSync(path.join(dir, '.encryption_key'), 'not-hex');
+    expect(() => loadWith({ DB_PATH: path.join(dir, 'openflow.db') })).toThrow(/not a valid/);
+    expect(fs.readFileSync(path.join(dir, '.encryption_key'), 'utf8')).toBe('not-hex');
   });
 });

@@ -167,6 +167,23 @@ app.get('*', (req, res) => {
   res.type('html').send(html);
 });
 
+// A changed/lost ENCRYPTION_KEY doesn't stop the app, it silently breaks
+// every integration. Say so loudly at boot instead of per failed delivery.
+function warnOnUnreadableIntegrationConfigs(db) {
+  const { decrypt, isEncrypted } = require('./models/encryption');
+  const rows = db.prepare('SELECT config FROM integrations').all().filter(r => isEncrypted(r.config));
+  const unreadable = rows.filter(r => {
+    try { decrypt(r.config); return false; } catch { return true; }
+  }).length;
+  if (unreadable > 0) {
+    logger.error('integration_configs_undecryptable', {
+      count: unreadable,
+      total: rows.length,
+      hint: 'ENCRYPTION_KEY (or data/.encryption_key) does not match the key these integrations were saved with; restore the original key',
+    });
+  }
+}
+
 async function start() {
   try {
     initDb();
@@ -176,6 +193,7 @@ async function start() {
     process.exit(1);
   }
 
+  warnOnUnreadableIntegrationConfigs(getDb());
   startBackupScheduler(getDb());
   startDeliveryWorker(getDb());
 

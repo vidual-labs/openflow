@@ -13,41 +13,73 @@ const path = require('path');
 // Unlike JWT_SECRET, losing this key makes existing encrypted config
 // unrecoverable (there's no "everyone just logs in again" fallback) — back
 // it up separately from the DB in production.
-function loadOrCreateKey() {
+function keyFilePath() {
+  const dataDir = path.dirname(process.env.DB_PATH || path.join(__dirname, '../../data/openflow.db'));
+  return path.join(dataDir, '.encryption_key');
+}
+
+// null when there is no (non-empty) key file. Throws on a corrupt one rather
+// than letting the caller overwrite it with a fresh key.
+function readKeyFile(keyPath) {
+  if (!fs.existsSync(keyPath)) return null;
+  const hex = fs.readFileSync(keyPath, 'utf8').trim();
+  if (!hex) return null;
+  const key = Buffer.from(hex, 'hex');
+  if (key.length !== 32) {
+    throw new Error(keyPath + ' is not a valid 64-hex-character key');
+  }
+  return key;
+}
+
+// Returns [primaryKey, ...fallbackKeys]. New values are always encrypted with
+// the primary key; decryption also tries the fallbacks.
+function loadOrCreateKeys() {
+  const keyPath = keyFilePath();
+
   if (process.env.ENCRYPTION_KEY) {
     const key = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
     if (key.length !== 32) {
       throw new Error('ENCRYPTION_KEY must be 64 hex characters (32 bytes)');
     }
-    return key;
+    // An install that ran on an auto-generated key and later sets
+    // ENCRYPTION_KEY to a *new* value would otherwise lose every stored
+    // integration secret. Keep reading those with the old key file; each
+    // integration is re-encrypted with ENCRYPTION_KEY when it's next saved.
+    let legacy = null;
+    try { legacy = readKeyFile(keyPath); } catch { /* corrupt legacy file: ENCRYPTION_KEY wins */ }
+    if (legacy && !legacy.equals(key)) {
+      console.warn(
+        'WARNING: ENCRYPTION_KEY differs from the auto-generated key at ' + keyPath +
+        '. Existing integration secrets are still read with that key file — keep it until every integration has been re-saved.'
+      );
+      return [key, legacy];
+    }
+    return [key];
   }
 
-  const dataDir = path.dirname(process.env.DB_PATH || path.join(__dirname, '../../data/openflow.db'));
-  const keyPath = path.join(dataDir, '.encryption_key');
+  const existing = readKeyFile(keyPath);
+  if (existing) return [existing];
 
   try {
-    if (fs.existsSync(keyPath)) {
-      const existing = fs.readFileSync(keyPath, 'utf8').trim();
-      if (existing) return Buffer.from(existing, 'hex');
-    }
-    fs.mkdirSync(dataDir, { recursive: true });
+    fs.mkdirSync(path.dirname(keyPath), { recursive: true });
     const generated = crypto.randomBytes(32);
     fs.writeFileSync(keyPath, generated.toString('hex'), { mode: 0o600 });
     console.warn(
       'WARNING: ENCRYPTION_KEY is not set. Generated and persisted a random key at ' + keyPath +
       '. Set ENCRYPTION_KEY explicitly in production and back it up separately from the database.'
     );
-    return generated;
+    return [generated];
   } catch (err) {
     console.warn(
       'WARNING: ENCRYPTION_KEY is not set and could not be persisted (' + err.message +
       '). Using an ephemeral key; encrypted integration secrets will become unreadable after this process exits.'
     );
-    return crypto.randomBytes(32);
+    return [crypto.randomBytes(32)];
   }
 }
 
-const KEY = loadOrCreateKey();
+const KEYS = loadOrCreateKeys();
+const KEY = KEYS[0];
 const PREFIX = 'enc:v1:';
 
 function encrypt(plaintext) {
@@ -73,9 +105,17 @@ function decrypt(stored) {
   const tag = raw.subarray(12, 28);
   const ciphertext = raw.subarray(28);
 
-  const decipher = crypto.createDecipheriv('aes-256-gcm', KEY, iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+  let lastErr;
+  for (const key of KEYS) {
+    try {
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAuthTag(tag);
+      return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
 }
 
 module.exports = { encrypt, decrypt, isEncrypted };

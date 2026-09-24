@@ -2,6 +2,50 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.38.0] - 2026-09-24
+
+### Security
+- **Integration secrets are write-only.** The integrations API used to return
+  every integration's decrypted config, including SMTP passwords, Google
+  service-account private keys, OAuth client secrets and refresh tokens, Meta
+  access tokens and webhook HMAC secrets. That included read-only API tokens
+  (`ofw_…`). Now secrets never leave the server once saved: responses omit
+  them and add a `secrets` map (`{ smtp_pass: { set: true } }`, with the
+  service account's `client_email` as `hint`). On update, an omitted secret
+  keeps its stored value, `null`/`""` clears it, and anything else replaces it.
+  In the editor, secret fields show "Saved — type to replace" plus a
+  **Remove** button.
+  **API change:** clients that read secrets back from `GET
+  /api/integrations/:formId` no longer get them.
+- **Meta access token moved out of the URL.** Conversions API calls now send
+  it as an `Authorization: Bearer` header instead of `?access_token=`, which
+  proxies and request logs tend to record.
+- **SMTP host SSRF guard.** An SMTP host that resolves to a link-local
+  address, including the cloud metadata service `169.254.169.254`, is now
+  refused. Private networks and localhost stay allowed, so internal mail
+  relays keep working. `SMTP_BLOCK_PRIVATE_HOSTS=true` refuses those too, and
+  then connects to the exact address that was checked.
+
+### Added
+- `docker-compose.yml` passes `ENCRYPTION_KEY` (and `SMTP_BLOCK_PRIVATE_HOSTS`)
+  through from `.env`. Without a key, the auto-generated one sits in the
+  `db-data` volume next to the data it protects.
+- Setting `ENCRYPTION_KEY` on an install that has been running on an
+  auto-generated key no longer strands existing secrets: the old
+  `.encryption_key` file keeps being used to read them, and each integration
+  is re-encrypted with the new key when it is next saved.
+- A warning at boot (`integration_configs_undecryptable`) when stored
+  integration configs can't be decrypted with the configured key.
+
+### Fixed
+- An integration whose config can't be decrypted (wrong or lost key) is no
+  longer silently overwritten on save, which would have dropped its secrets.
+  The API answers `409` instead, and the editor shows why.
+- A corrupt `.encryption_key` file now stops startup instead of being used as
+  an invalid key.
+- The Backup page notes that restoring integration secrets on another
+  instance needs the same `ENCRYPTION_KEY`.
+
 ## [0.37.1] - 2026-09-23
 
 ### Fixed

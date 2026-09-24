@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.37.1
+# 🌊 OpenFlow v0.38.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -74,7 +74,7 @@
 - **🔁 Retrying Integration Deliveries** — Failed webhook/email/Sheets deliveries retry with backoff instead of silently dropping the lead; exhausted retries surface as a dead letter you can manually retry from the Integrations tab
 - **📋 Audit Log** — Logins (success/failure), user/role changes, settings changes, and backup/restore are recorded with actor, IP and timestamp for post-incident review (`GET /api/admin/audit-log`, admin only)
 - **🔒 Session Revocation** — Changing a user's password or role, or clicking **Log out everywhere** on the Users page, immediately invalidates that user's existing login sessions instead of letting a stale JWT keep working for up to 7 more days
-- **🔐 Encrypted Integration Secrets** — SMTP passwords, Google service-account keys, OAuth refresh tokens and webhook HMAC secrets are encrypted (AES-256-GCM) before being stored, so a leaked database file or backup JSON doesn't hand over live credentials
+- **🔐 Encrypted, Write-Only Integration Secrets** — SMTP passwords, Google service-account keys, OAuth client secrets/refresh tokens, Meta access tokens and webhook HMAC secrets are encrypted (AES-256-GCM) before being stored, so a leaked database file or backup JSON doesn't hand over live credentials. The API never returns them once saved — the editor only shows that one is set, and lets you replace or remove it
 - **❤️ Health Check** — `GET /api/health` reports database connectivity and uptime for uptime monitors and container orchestrators
 - **📊 Structured Logging** — Request, integration-delivery, and backup events are logged as single-line JSON so they can be piped into any log aggregator
 - **🌙 Dark Mode** — Auto/light/dark theme toggle for the admin interface
@@ -138,7 +138,8 @@ Environment variables (in `.env` or docker-compose):
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `JWT_SECRET` | *(none — auto-generated)* | 🔐 JWT signing key. If unset, a random secret is generated and persisted next to the database — set this explicitly in production so sessions survive a volume reset |
-| `ENCRYPTION_KEY` | *(none — auto-generated)* | 🔐 64 hex chars (32 bytes). Encrypts integration secrets (SMTP passwords, Google credentials, webhook HMAC secrets) at rest. If unset, a random key is generated and persisted next to the database — set this explicitly in production **and back it up separately from the database**, since losing it makes existing encrypted integration config unrecoverable |
+| `ENCRYPTION_KEY` | *(none — auto-generated)* | 🔐 64 hex chars (32 bytes). Encrypts integration secrets (SMTP passwords, Google credentials, webhook HMAC secrets) at rest. If unset, a random key is generated and persisted next to the database — set this explicitly in production **and back it up separately from the database**, since losing it makes existing encrypted integration config unrecoverable. Setting it on an install that ran on an auto-generated key is safe: the old key file is still used to read existing secrets. Backups contain secrets encrypted with this key, so restoring on another instance needs the same key |
+| `SMTP_BLOCK_PRIVATE_HOSTS` | *(unset)* | 📧 SMTP hosts resolving to link-local/cloud-metadata addresses are always refused. Set to `true` to also refuse private networks and localhost (as webhooks do) when you don't relay mail through an internal server |
 | `ADMIN_EMAIL` | `admin@openflow.local` | 👤 Admin email |
 | `ADMIN_PASSWORD` | *(none — auto-generated)* | 🔑 Admin password (only on first start). If unset, a random one is generated and printed to the log once |
 | `DB_PATH` | `/app/data/openflow.db` | 💾 SQLite database path |
@@ -619,9 +620,9 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `PUT /api/settings/:key` — Update a global setting (admin only)
 
 ### Integrations (auth required)
-- `GET /api/integrations/:formId` — List integrations
+- `GET /api/integrations/:formId` — List integrations (secret fields are never returned; `secrets` says which are set)
 - `POST /api/integrations/:formId` — Create integration
-- `PUT /api/integrations/:formId/:id` — Update integration
+- `PUT /api/integrations/:formId/:id` — Update integration (an omitted secret field keeps its stored value, `null`/`""` clears it)
 - `DELETE /api/integrations/:formId/:id` — Delete integration
 - `POST /api/integrations/:formId/:id/test` — Test integration
 - `GET /api/integrations/:formId/deliveries` — List delivery attempts (retrying/failed/dead)
