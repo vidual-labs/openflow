@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.38.0 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.39.0 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -124,7 +124,15 @@ enough for a simple lead form. It can optionally be pointed at a self-hosted
 `resourceSlug`), in which case the times shown are calon's own real availability instead.
 The backend proxies that read (`GET /api/public/form/:slug/availability`,
 `backend/src/models/calon.js`) — the browser never talks to calon directly — through the
-same `utils/ssrf.js#assertSafeUrl` guard as any other operator-supplied URL. The answer is
+same `utils/ssrf.js#assertSafeUrl` guard as any other operator-supplied URL. On submit, the
+picked slot is **booked** in calon before the submission is stored
+(`models/calonBooking.js`, via calon's public `POST /api/v1/bookings` — no secret, no
+calon-side config): a rejection returns `409 { code: 'slot_unavailable', fieldId }`
+and the renderer sends the respondent back to that step; calon being unreachable
+stores the submission with `metadata.calonBookings[fieldId].status = 'pending'` (plus
+`metadata.calonPending`) and the delivery worker's sweep retries it. The requester's
+name/email/phone come from `step.calon.nameFieldId`/`emailFieldId`/`phoneFieldId`, or
+automatically from the first Email/Phone field and a name-autofill Short Text. The answer is
 stored as one plain string, `"2026-09-02 09:30"` (or with a trailing IANA timezone when it
 came from calon), for the same reason a date range is ("Add a New Field Type" below /
 `FormRenderer.jsx`'s `DATE_RANGE_SEPARATOR` comment): every downstream consumer (CSV,

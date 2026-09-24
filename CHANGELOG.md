@@ -2,6 +2,25 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.39.0] - 2026-09-24
+
+### Added
+- **calon-connected Date & Timeslot fields now actually book.** Until now the
+  connection only showed calon's free times; the picked slot never reached
+  calon, so nothing landed in calon or its connected calendar (the README
+  already described the booking, the code didn't do it). On submit, OpenFlow
+  now books the slot through calon's public booking API — no webhook, secret
+  or calon-side config needed.
+- **Book under** in the field's calon panel: pick which fields hold the
+  respondent's name, email and phone (automatic by default). A warning shows
+  when the form has no Email field, which calon requires.
+- A slot taken between picking and submitting sends the respondent back to
+  the Date & Timeslot step with fresh times ("Sorry, that time was just
+  taken"); the submission is only stored once the booking succeeds.
+- If calon can't be reached at submit, the submission is stored anyway and the
+  booking retried in the background; its outcome is kept in the submission's
+  metadata (`calonBookings`).
+
 ## [0.38.0] - 2026-09-24
 
 ### Security

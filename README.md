@@ -1,4 +1,4 @@
-# 🌊 OpenFlow v0.38.0
+# 🌊 OpenFlow v0.39.0
 > Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
 
 ## 📚 Table of Contents
@@ -324,97 +324,59 @@ beyond an admin account:
 
 [calon](https://github.com/vidual-labs/calon) — a self-hosted, single-container
 booking engine — is wired into OpenFlow **directly**: a Date & Timeslot field is
-pointed at a calon instance and talks to it through OpenFlow's own backend, with
-no separate webhook or plugin required.
+pointed at a calon instance and talks to it through OpenFlow's own backend. No
+webhook, no shared secret and no config on the calon side are needed — just the
+calon URL in the field.
 
 > **Requirements — read this first.**
 >
-> - **Two separate deployments.** This is not a feature inside OpenFlow —
->   **calon is its own application that must be deployed separately** at a URL
->   that **OpenFlow can reach**. Without a running, reachable calon instance
->   (and the matching `[sources.openflow]` block on the calon side), none of the
->   booking or calendar functionality works.
+> - **Two separate deployments.** calon is its own application and must be
+>   deployed separately, at a URL **OpenFlow's server can reach**.
 > - **The calendar write is done by calon, never by OpenFlow.** OpenFlow only
->   sends the chosen slot to calon. It is calon — a service you run alongside
->   OpenFlow — that reads the calendar's free/busy and **writes accepted
->   bookings into Google Calendar or Microsoft 365**. OpenFlow holds no calendar
->   credentials and makes no calls to Google or Microsoft at all.
-> - **Calendar sync is opt-in and extra.** The core of the link — availability +
->   booking into calon — works with just the two deployments. The extra step of
->   landing events in a real calendar requires additionally enabling the
->   `[calendars.*]` provider block on the calon side.
+>   sends the chosen slot to calon. calon reads the connected calendar's
+>   free/busy and **writes accepted bookings into Google Calendar or Microsoft
+>   365**. OpenFlow holds no calendar credentials and never calls Google or
+>   Microsoft.
 
-Once connected, OpenFlow:
+Once connected (field editor → **Connect to calon**), OpenFlow:
 
-- **Shows real availability** — the field stops generating its own list of times
-  and instead renders the slots calon reports for that calendar as genuinely
-  free (calon's scheduling rules and any connected calendar's busy time decide
-  which ones are). A **Test connection** button in the field editor verifies the
-  link before you publish.
-- **Books the picked slot into a real calendar** — when the respondent picks a
-  slot and submits, OpenFlow pushes that choice to calon over its built-in
-  intake endpoint. calon judges it (conflicts, buffers, blackouts) and, on
-  acceptance, the booking exists in calon and — for any Google or Microsoft 365
-  calendar that the calon resource is linked to — **is written back as an event
-  on that calendar**, so the host never copy-pastes bookings in by hand. The
-  respondent still gets the usual `.ics` file / Google- and Outlook-deeplink
-  handoff to add the event to their own calendar.
+- **Shows real availability** — the field renders the slots calon reports as free
+  for that calendar (calon's scheduling rules and any connected calendar's busy
+  time decide which). **Test connection** checks the link before you publish.
+- **Books the picked slot on submit** — before the submission is stored, OpenFlow
+  books the slot in calon under the respondent's name, email and phone. Which
+  fields those are is picked under **Book under** in the same panel (automatic by
+  default: the first Email and Phone fields, and a Short Text field with the
+  *Full name* autofill). calon needs an email, so the form needs an Email field.
+- **Sends the respondent back if the slot is gone** — when calon turns the slot
+  down (taken in the meantime, or against its rules), the respondent lands back on
+  the Date & Timeslot step with fresh times and a note to pick another; nothing is
+  stored until the booking succeeds.
+- **Never loses a lead to a calon outage** — if calon can't be reached at submit,
+  the submission is stored anyway and the booking is retried in the background
+  (1, 5, 30, 120, 360 minutes). The outcome is kept in the submission's metadata
+  (`calonBookings`: `booked` with calon's booking id, `pending`, `rejected` or
+  `failed`).
 
 #### How the two sides talk
 
 | Direction | Mechanism | What it does |
 |-----------|-----------|--------------|
 | OpenFlow → calon (availability) | `GET /api/v1/availability`, fetched **server-side** by OpenFlow | Returns which slots are free for the field's resource in the window; OpenFlow hands the list to its own frontend. Public and unauthenticated by design. |
-| OpenFlow → calon (booking) | `POST /api/v1/openflow`, HMAC-SHA256 signed (`X-OpenFlow-Signature` — the same HMAC scheme the generic Webhook integration uses) | Submits the respondent's date/time (plus the mapped fields) as a booking intent. Idempotent on the submission, so a retry never double-books. |
+| OpenFlow → calon (booking) | `POST /api/v1/bookings`, sent **server-side** by OpenFlow on submit | calon's public booking endpoint — the same one its own booking form uses. calon judges the request (conflicts, buffers, blackouts, connected calendar) and answers `201` (booked) or `200` with the reason it was rejected. |
 
-> **No CORS needed on the read path.** calon's availability endpoint returns no
-> CORS headers, so a browser cannot call it cross-origin. That's by design:
-> OpenFlow's backend is the caller, and it keeps calon reachable only from the
-> operator's application rather than the open internet.
+Both calls go through the same SSRF guard as every other operator-supplied URL, and
+neither needs CORS: OpenFlow's backend is the caller, never the browser.
 
 #### Calendar sync (Google & Microsoft 365)
 
-As noted above, the write is **calon's job** — OpenFlow only tells calon which slot was
-chosen. To actually land events on a real calendar, connect that calon resource's own
-calendar in `config/calon.toml` (see the ["Resource calendar sync" section of calon's
-self-hosting guide](https://github.com/vidual-labs/calon/blob/main/docs/self-hosting.md))
-before the first booking:
-
-```toml
-[calendars.default]
-provider    = "google"   # or "microsoft"
-calendar_id = "you@example.com"
-enabled     = true
-refresh_token = "…"       # the out-of-band OAuth refresh token
-```
-
-- On **Google Calendar** or **Microsoft 365**, calon now reads that calendar's free/busy
-  when OpenFlow polls availability, so a slot that's busy on the real calendar never
-  shows up in the form, and each accepted booking is **written back** to it as an event.
-- It's **optional and degrades gracefully**: a resource with no `[calendars.*]` block
-  behaves exactly as before (calon's own bookings only, plus the `.ics`/deeplink handoff),
-  and an unreachable provider makes availability less accurate rather than breaking the
-  booking.
-- calon performs no OAuth — you complete the provider's authorization flow once out-of-band
-  and paste the refresh token into the config; calon then only refreshes tokens and calls
-  the API.
-
-#### Where it fits in your overall flow
-
-![Openflow → Calon flow: capture leads, optionally write a calendar entry via Calon](https://github.com/user-attachments/assets/PLACEHOLDER)
-*OpenFlow captures leads from form sources (B2B leads, job applications, appointment
-requests). The final step — writing an accepted slot into a calendar — is the **optional,
-built-in Calon link**; the dashed arrow is that direct OpenFlow → Calon path. Lodgely is a
-sibling intake/triage example, not a required hop for the Calon calendar step.*
-
-#### On the calon side
-
-Enable the OpenFlow source (a `[sources.openflow]` block in `config/calon.toml`) mapping the
-form's field ids to the canonical booking fields, set a shared `secret`, and restart.
-calon is **standalone-first**: with no `[sources.openflow]` and no `[calendars.*]` blocks,
-it runs with no external dependencies at all.
-
----
+The calendar write is **calon's job**. To land bookings in a real calendar, connect the
+calon resource's calendar in **calon's dashboard** (Calendars → Connect) — see the
+["Resource calendar sync" section of calon's self-hosting
+guide](https://github.com/vidual-labs/calon/blob/main/docs/self-hosting.md). calon then
+hides slots that are busy on that calendar and writes each accepted booking into it.
+Without a connected calendar, bookings still land in calon (its dashboard, `.ics` and
+calendar links).
 
 ## 📈 Analytics
 

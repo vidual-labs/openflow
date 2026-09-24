@@ -21,7 +21,15 @@ async function request(path, options = {}) {
   } catch {
     throw new Error('Invalid JSON response');
   }
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  if (!res.ok) {
+    // Keep the server's machine-readable details (e.g. a calon slot that was
+    // taken meanwhile: code + fieldId) for callers that react to them.
+    const err = new Error(data.error || 'Request failed');
+    err.status = res.status;
+    err.code = data.code;
+    err.fieldId = data.fieldId;
+    throw err;
+  }
   return data;
 }
 
