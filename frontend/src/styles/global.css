@@ -147,6 +147,10 @@ input, select, textarea {
 
 .admin-main {
   flex: 1;
+  /* A flex item defaults to min-width:auto, so one wide child (a long row of
+     buttons, a fixed-column grid) would stretch the whole page past the
+     viewport instead of wrapping. */
+  min-width: 0;
   padding: 32px;
   max-width: 1200px;
   min-height: 100vh;
@@ -394,6 +398,40 @@ input, select, textarea {
   letter-spacing: 0.5px;
 }
 
+/* Settings → API tokens list */
+.token-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.token-table th,
+.token-table td {
+  padding: 8px;
+  text-align: left;
+}
+
+.token-table th {
+  color: var(--text-light);
+  font-size: 12px;
+}
+
+.token-table tbody tr {
+  border-top: 1px solid var(--border);
+}
+
+/* Answer columns keep a readable width and let the card scroll sideways,
+   instead of squeezing a long answer into a one-word-per-line column. */
+.submissions-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.submissions-table td:not(:first-child) {
+  min-width: 140px;
+  max-width: 320px;
+}
+
 /* Status badge */
 .badge {
   display: inline-block;
@@ -430,6 +468,187 @@ input, select, textarea {
 .login-box h1 {
   text-align: center;
   margin-bottom: 32px;
+}
+
+/* Responsive grids — the admin's multi-column form rows. They collapse on
+   narrow screens (see the max-width:768px block below). Gap and margins stay
+   on the element's inline style. */
+.cols-2 { grid-template-columns: 1fr 1fr; }
+.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.cols-2-1 { grid-template-columns: 2fr 1fr; }
+
+/* Let grid cells shrink below their content's intrinsic width (date/time
+   inputs, long selects) instead of widening the track past the screen. */
+:is(.cols-2, .cols-3, .cols-4, .cols-6, .cols-2-1) > * { min-width: 0; }
+
+/* Form editor header: title + badge on the left, Save/Publish/Preview on the right */
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.editor-header-titles {
+  min-width: 0;
+}
+
+.editor-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.editor-title-input {
+  font-size: 24px;
+  font-weight: 700;
+  border: none;
+  background: none;
+  padding: 0;
+  outline: none;
+  flex: 1;
+  min-width: 0;
+  max-width: 480px;
+  color: var(--text);
+}
+
+.editor-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.editor-save-status {
+  font-size: 13px;
+}
+
+/* Form editor tabs — a single row that swipes sideways when it doesn't fit
+   (phones, and tablets where the sidebar is still showing). */
+.editor-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.editor-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.editor-tab {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  border-radius: 8px 8px 0 0;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.editor-tab.active {
+  background: var(--primary);
+  color: white;
+}
+
+/* Question card header in the form editor */
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.step-header.expanded {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.step-header-icon {
+  font-size: 20px;
+}
+
+.step-header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.step-chevron {
+  font-size: 18px;
+  color: var(--text-light);
+  margin-left: 4px;
+}
+
+/* Image / Icon Select option row in the form editor */
+.image-option-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+}
+
+.image-option-value {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.image-option-url {
+  width: 200px;
+}
+
+/* An input with a fixed text prefix/suffix (form URL, subdomain) + its buttons */
+.affix-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.affix-group {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.affix {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: rgba(0,0,0,0.04);
+  border: 1px solid var(--border);
+  color: var(--text-light);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.affix-before {
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+}
+
+.affix-after {
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Users page: the "add user" form row */
+.user-create-grid {
+  grid-template-columns: 1fr 1fr auto auto;
 }
 
 /* Responsive */
@@ -511,5 +730,217 @@ input, select, textarea {
 
   .admin-main {
     padding: 16px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .page-header-titles h2 {
+    font-size: 22px;
+  }
+
+  .cols-2,
+  .cols-3,
+  .cols-2-1 {
+    grid-template-columns: 1fr;
+  }
+
+  .cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .user-create-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Input + prefix on their own line, buttons below. A long host in the
+     prefix is cut with an ellipsis so the input keeps room to type in. */
+  .affix-row {
+    flex-wrap: wrap;
+  }
+
+  .affix-group {
+    flex-basis: 100%;
+  }
+
+  .affix {
+    display: block;
+    align-content: center;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+
+  .cols-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Form editor: the title gets the full width; Save / Publish / Preview
+     move into a bar pinned to the bottom of the screen, within thumb reach
+     on every tab. */
+  .editor-header {
+    margin-bottom: 16px;
+  }
+
+  .editor-header-titles {
+    flex: 1;
+  }
+
+  .editor-title-input {
+    font-size: 20px;
+  }
+
+  .editor-actions {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 25;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
+  }
+
+  .editor-actions .btn {
+    padding: 10px 14px;
+  }
+
+  .editor-save-status {
+    margin-right: auto;
+  }
+
+  /* Keep the last card clear of the fixed action bar */
+  .editor-page {
+    padding-bottom: 80px;
+  }
+
+  /* Tabs run edge to edge so it's obvious the row scrolls */
+  .editor-tabs {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 0 16px;
+    margin-bottom: 16px;
+  }
+
+  .editor-tab {
+    padding: 10px 14px;
+  }
+
+  /* Question card header: icon + question + chevron on top, the move /
+     combine / remove buttons on their own row below. */
+  .step-header {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .step-actions {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Icon + label/value on the first line, image URL + controls on the second */
+  .image-option-row {
+    flex-wrap: wrap;
+  }
+
+  .image-option-fields {
+    flex: 1 1 calc(100% - 58px);
+  }
+
+  .image-option-value {
+    width: 90px;
+  }
+
+  .image-option-url {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  .step-actions .btn-sm {
+    padding: 6px 10px;
+  }
+
+  /* Remove sits apart from the move/combine buttons, at the row's far end */
+  .step-actions .btn-danger {
+    margin-left: auto;
+  }
+
+  /* Tables marked .table-cards become one card per row: the header row is
+     hidden and each cell shows its column name from data-label. */
+  .table-cards thead {
+    display: none;
+  }
+
+  .table-cards,
+  .table-cards tbody,
+  .table-cards tr,
+  .table-cards td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-cards tr {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-cards tr:last-child {
+    border-bottom: none;
+  }
+
+  /* The token list sits inside a padded card, so its rows need no side padding */
+  .token-table.table-cards tr {
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  .table-cards td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+    border-bottom: none;
+    overflow-wrap: anywhere;
+  }
+
+  .table-cards td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-light);
+  }
+
+  /* The row's title cell reads as the card heading */
+  .table-cards td.cell-primary {
+    font-size: 16px;
+    font-weight: 600;
+    padding-bottom: 8px;
+  }
+
+  /* Action buttons span the card's full width */
+  .table-cards td.cell-actions {
+    padding-top: 10px;
+  }
+
+  .table-cards td.cell-actions > div {
+    flex-wrap: wrap;
+    justify-content: flex-start !important;
+    width: 100%;
+  }
+
+  .login-box {
+    padding: 32px 20px;
   }
 }

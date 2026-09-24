@@ -77,7 +77,7 @@ export default function Users() {
       {showForm && (
         <div className="card" style={{ marginBottom: 16 }}>
           <form onSubmit={handleCreate}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: 12, alignItems: 'end' }}>
+            <div className="user-create-grid" style={{ display: 'grid', gap: 12, alignItems: 'end' }}>
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label>Email</label>
                 <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="user@example.com" required />
@@ -100,9 +100,9 @@ export default function Users() {
         </div>
       )}
 
-      <div className="card">
+      <div className="card" style={{ padding: 0 }}>
         <div className="table-wrap">
-        <table className="table">
+        <table className="table table-cards">
           <thead>
             <tr>
               <th>Email</th>
@@ -114,14 +114,14 @@ export default function Users() {
           <tbody>
             {users.map(user => (
               <tr key={user.id}>
-                <td>{user.email}</td>
-                <td>
+                <td className="cell-primary">{user.email}</td>
+                <td data-label="Role">
                   <span className={`badge ${user.role === 'admin' ? 'badge-published' : 'badge-draft'}`}>
                     {user.role || 'user'}
                   </span>
                 </td>
-                <td style={{ fontSize: 13, color: 'var(--text-light)' }}>{new Date(user.created_at).toLocaleDateString()}</td>
-                <td>
+                <td data-label="Created" style={{ fontSize: 13, color: 'var(--text-light)' }}>{new Date(user.created_at).toLocaleDateString()}</td>
+                <td className="cell-actions">
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button className="btn btn-sm btn-secondary" onClick={() => toggleRole(user)} title="Toggle role">
                       {user.role === 'admin' ? 'Demote' : 'Promote'}

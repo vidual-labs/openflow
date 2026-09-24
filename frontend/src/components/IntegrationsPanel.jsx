@@ -195,7 +195,7 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
 
       {integrations.map(integration => (
         <div key={integration.id} className="card" style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ fontSize: 20 }}>{INTEGRATION_TYPES.find(t => t.value === integration.type)?.icon}</span>
               <div>
@@ -301,7 +301,7 @@ function SecretInput({ secret, onSave, placeholder, multiline = false }) {
 
 function WebhookConfig({ config, secrets, onChange }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <div className="cols-2" style={{ display: 'grid', gap: 12 }}>
       <div className="input-group" style={{ gridColumn: '1 / -1' }}>
         <label>Webhook URL</label>
         <input className="input" value={config.url || ''} onChange={e => onChange('url', e.target.value)} placeholder="https://example.com/webhook" />
@@ -323,7 +323,7 @@ function WebhookConfig({ config, secrets, onChange }) {
 
 function EmailConfig({ config, secrets, onChange }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <div className="cols-2" style={{ display: 'grid', gap: 12 }}>
       <div className="input-group">
         <label>SMTP Host</label>
         <input className="input" value={config.smtp_host || ''} onChange={e => onChange('smtp_host', e.target.value)} placeholder="smtp.gmail.com" />
@@ -366,7 +366,7 @@ function EmailConfig({ config, secrets, onChange }) {
           Include a link to lodgely in this email
         </label>
         {config.lodgely_link_enabled && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="cols-2" style={{ display: 'grid', gap: 12 }}>
             <div className="input-group">
               <label>lodgely URL</label>
               <input className="input" value={config.lodgely_url || ''} onChange={e => onChange('lodgely_url', e.target.value)} placeholder="https://lodgely.yourcompany.com" />
@@ -432,7 +432,7 @@ function GoogleSheetsConfig({ config, secrets, onChange }) {
 
   // Service account mode
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <div className="cols-2" style={{ display: 'grid', gap: 12 }}>
       <div className="input-group" style={{ gridColumn: '1 / -1' }}>
         <label>Spreadsheet ID</label>
         <input className="input" value={config.spreadsheet_id || ''} onChange={e => onChange('spreadsheet_id', e.target.value)} placeholder="From the Google Sheets URL" />
@@ -469,7 +469,7 @@ function GoogleAdsConfig({ config, secrets, steps, onChange }) {
   const fields = flattenFields(steps);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <div className="cols-2" style={{ display: 'grid', gap: 12 }}>
       <div style={{ gridColumn: '1 / -1', background: 'rgba(108, 92, 231, 0.10)', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
         Requires a one-time setup outside OpenFlow: create an OAuth client in
         Google Cloud Console, enable the Data Manager API, and generate a
@@ -527,7 +527,7 @@ function MetaConversionApiConfig({ config, secrets, steps, onChange }) {
   const fields = flattenFields(steps);
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <div className="cols-2" style={{ display: 'grid', gap: 12 }}>
       <div style={{ gridColumn: '1 / -1', background: 'rgba(108, 92, 231, 0.10)', borderRadius: 8, padding: 16, fontSize: 13, lineHeight: 1.7 }}>
         Sends a server-side <code>Lead</code> event to Meta's Conversions API on
         every submission — no Meta Pixel needs to be installed on the form.

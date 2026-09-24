@@ -204,24 +204,25 @@ export default function FormEditor() {
   const baseUrl = window.location.origin;
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
+    <div className="editor-page">
+      <div className="editor-header">
+        <div className="editor-header-titles">
           <Link to="/" className="back-link">&larr; Back</Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+          <div className="editor-title-row">
             <input
+              className="editor-title-input"
               value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
-              style={{ fontSize: 24, fontWeight: 700, border: 'none', background: 'none', padding: 0, outline: 'none', flex: 1, minWidth: 0, maxWidth: 480, color: 'var(--text)' }}
+              aria-label="Form title"
             />
             <span className={`badge ${form.published ? 'badge-published' : 'badge-draft'}`}>
               {form.published ? 'Live' : 'Draft'}
             </span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {saved && <span style={{ color: 'var(--success)', fontSize: 13 }}>Saved!</span>}
-          {saveError && <span style={{ color: 'var(--danger)', fontSize: 13 }}>{saveError}</span>}
+        <div className="editor-actions">
+          {saved && <span className="editor-save-status" style={{ color: 'var(--success)' }}>Saved!</span>}
+          {saveError && <span className="editor-save-status" style={{ color: 'var(--danger)' }}>{saveError}</span>}
           {form.published ? (
             <a
               href={`${baseUrl}/embed/${form.slug}`}
@@ -243,19 +244,15 @@ export default function FormEditor() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '2px solid var(--border)', paddingBottom: 0 }}>
+      <div className="editor-tabs">
         {[{ key: 'steps', label: 'Questions' }, { key: 'endscreen', label: 'End Screen' }, { key: 'theme', label: 'Design' }, { key: 'tracking', label: 'GTM / GDPR' }, { key: 'integrations', label: 'Integrations' }, { key: 'embed', label: 'Embed' }].map(tab => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              padding: '10px 20px',
-              border: 'none',
-              background: activeTab === tab.key ? 'var(--primary)' : 'transparent',
-              color: activeTab === tab.key ? 'white' : 'var(--text-light)',
-              borderRadius: '8px 8px 0 0',
-              fontWeight: 600,
-              fontSize: 14,
+            className={`editor-tab${activeTab === tab.key ? ' active' : ''}`}
+            onClick={e => {
+              setActiveTab(tab.key);
+              // On a narrow screen the tab row scrolls sideways — bring the picked tab fully into view.
+              e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
             }}
           >
             {tab.label}
@@ -346,7 +343,7 @@ export default function FormEditor() {
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Define the look and feel of your form.</p>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+            <div className="cols-4" style={{ display: 'grid', gap: 16 }}>
               <div className="input-group">
                 <label>Primary Color</label>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -388,7 +385,7 @@ export default function FormEditor() {
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Add subtle motion to make your form feel alive. Uses primary + accent colors.</p>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
+            <div className="cols-6" style={{ display: 'grid', gap: 12 }}>
               {[
                 { value: 'none', label: 'None', preview: '⊘' },
                 { value: 'waves', label: 'Waves', preview: '🌊' },
@@ -456,7 +453,7 @@ export default function FormEditor() {
                 ))}
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="cols-2" style={{ display: 'grid', gap: 16 }}>
               <div className="input-group">
                 <label>Enter Key Hint</label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, cursor: 'pointer', marginTop: 8 }}>
@@ -520,7 +517,7 @@ export default function FormEditor() {
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Set the respondent-facing language and font for your form.</p>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="cols-2" style={{ display: 'grid', gap: 16 }}>
               <div className="input-group">
                 <label>Form Language</label>
                 <select
@@ -557,7 +554,7 @@ export default function FormEditor() {
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Add a logo and tagline to make your form a standalone landing page.</p>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="cols-2" style={{ display: 'grid', gap: 16 }}>
               <div className="input-group">
                 <label>Logo URL</label>
                 <input className="input" value={form.theme?.logoUrl || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, logoUrl: e.target.value } })} placeholder="https://example.com/logo.png" />
@@ -734,7 +731,7 @@ export default function FormEditor() {
               <p style={{ fontSize: 13, color: 'var(--danger)', marginBottom: 8 }}>A GTM Container ID must be set above to use this feature.</p>
             )}
             {form.end_screen?.cookieConsentEnabled && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="cols-2" style={{ display: 'grid', gap: 12 }}>
                 <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Banner Message</label>
                   <textarea
@@ -898,7 +895,7 @@ function CalonRequesterFields({ step, allSteps, onChange }) {
   return (
     <div style={{ marginTop: 16 }}>
       <label style={{ fontSize: 13, fontWeight: 600 }}>Book under</label>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 8 }}>
+      <div className="cols-3" style={{ display: 'grid', gap: 16, marginTop: 8 }}>
         {pickers.map(({ key, title, options }) => (
           <div className="input-group" key={key}>
             <label>{title}</label>
@@ -936,16 +933,9 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
   return (
     <div className="card" style={{ position: 'relative', marginBottom: 12 }}>
       {/* Collapsed header - always visible */}
-      <div
-        onClick={onToggle}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
-          padding: expanded ? '0 0 16px 0' : 0,
-          borderBottom: expanded ? '1px solid var(--border, #eee)' : 'none',
-        }}
-      >
-        <span style={{ fontSize: 20 }}>{isGroup ? '🔗' : (fieldDef?.icon || '📝')}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      <div className={`step-header${expanded ? ' expanded' : ''}`} onClick={onToggle}>
+        <span className="step-header-icon">{isGroup ? '🔗' : (fieldDef?.icon || '📝')}</span>
+        <div className="step-header-main">
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             {index + 1}. {isGroup ? 'Combined Step' : (fieldDef?.label || step.type)}
           </span>
@@ -958,7 +948,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
             {isGroup ? groupSummary : (step.question || <em style={{ opacity: 0.5 }}>No question set</em>)}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
+        <div className="step-actions" onClick={e => e.stopPropagation()}>
           <button className="btn btn-sm btn-secondary" onClick={() => onMove(-1)} disabled={index === 0} title="Move up">&uarr;</button>
           <button className="btn btn-sm btn-secondary" onClick={() => onMove(1)} disabled={index === total - 1} title="Move down">&darr;</button>
           {canCombineAbove && (
@@ -972,7 +962,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
           )}
           <button className="btn btn-sm btn-danger" onClick={onRemove}>Remove</button>
         </div>
-        <span style={{ fontSize: 18, color: 'var(--text-light)', marginLeft: 4 }}>{expanded ? '▲' : '▼'}</span>
+        <span className="step-chevron">{expanded ? '▲' : '▼'}</span>
       </div>
 
       {/* Expanded content */}
@@ -1009,7 +999,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+          <div className="cols-2" style={{ display: 'grid', gap: 16, marginTop: 16 }}>
             <div className="input-group">
               <label>Question</label>
               <input className="input" value={step.question || ''} onChange={e => onChange({ question: e.target.value })} placeholder="Your question..." />
@@ -1067,7 +1057,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
 
           {/* File upload config */}
           {step.type === 'file-upload' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+            <div className="cols-2" style={{ display: 'grid', gap: 16, marginTop: 12 }}>
               <div className="input-group">
                 <label>Accepted File Types</label>
                 <input className="input" value={step.accept || '.pdf,.jpg,.png,.doc,.docx'} onChange={e => onChange({ accept: e.target.value })} placeholder=".pdf,.jpg,.png" />
@@ -1090,7 +1080,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
               {/* Custom placeholder labels for core sub-fields */}
               <div style={{ marginBottom: 12 }}>
                 <p style={{ fontSize: 13, color: 'var(--text-light)', marginBottom: 8 }}>Field labels (leave blank to use defaults):</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div className="cols-2" style={{ display: 'grid', gap: 8 }}>
                   <input className="input" value={(step.addressLabels || {}).street || ''} onChange={e => onChange({ addressLabels: { ...(step.addressLabels || {}), street: e.target.value } })} placeholder="Street and house number *" />
                   <input className="input" value={(step.addressLabels || {}).postalCode || ''} onChange={e => onChange({ addressLabels: { ...(step.addressLabels || {}), postalCode: e.target.value } })} placeholder="Postal code *" />
                   <input className="input" value={(step.addressLabels || {}).city || ''} onChange={e => onChange({ addressLabels: { ...(step.addressLabels || {}), city: e.target.value } })} placeholder="City *" />
@@ -1156,7 +1146,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
           {/* Number range, stepper size and prefilled start value */}
           {step.type === 'number' && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+              <div className="cols-2" style={{ display: 'grid', gap: 16, marginTop: 12 }}>
                 <div className="input-group">
                   <label>Min</label>
                   <input className="input" type="number" value={step.min ?? ''} onChange={e => onChange({ min: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="No minimum" />
@@ -1166,7 +1156,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
                   <input className="input" type="number" value={step.max ?? ''} onChange={e => onChange({ max: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="No maximum" />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+              <div className="cols-2" style={{ display: 'grid', gap: 16, marginTop: 12 }}>
                 <div className="input-group">
                   <label>Step size</label>
                   <input className="input" type="number" min={1} value={step.stepSize ?? ''} onChange={e => onChange({ stepSize: e.target.value ? parseInt(e.target.value) : undefined })} placeholder="1" />
@@ -1198,7 +1188,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
                   A calendar is always visible on the step. In range mode the visitor picks a start and an end day, and the answer is stored as "2026-08-10 &ndash; 2026-08-14".
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 12 }}>
+              <div className="cols-2" style={{ display: 'grid', gap: 16, marginTop: 12 }}>
                 <div className="input-group">
                   <label>Earliest date</label>
                   <input className="input" type="date" value={step.minDate || ''} onChange={e => onChange({ minDate: e.target.value || undefined })} />
@@ -1218,7 +1208,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
           {/* Date & Timeslot: standalone slot generation, plus an optional calon connection */}
           {step.type === 'date-timeslot' && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 12 }}>
+              <div className="cols-3" style={{ display: 'grid', gap: 16, marginTop: 12 }}>
                 <div className="input-group">
                   <label>Slot length (minutes)</label>
                   <input className="input" type="number" min={5} value={step.durationMin ?? 30} onChange={e => onChange({ durationMin: parseInt(e.target.value) || 30 })} />
@@ -1226,9 +1216,9 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
                 <div className="input-group">
                   <label>Daily window</label>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input className="input" type="time" value={step.windowStart || '09:00'} onChange={e => onChange({ windowStart: e.target.value })} />
+                    <input className="input" type="time" value={step.windowStart || '09:00'} onChange={e => onChange({ windowStart: e.target.value })} style={{ minWidth: 0 }} />
                     <span>&ndash;</span>
-                    <input className="input" type="time" value={step.windowEnd || '17:00'} onChange={e => onChange({ windowEnd: e.target.value })} />
+                    <input className="input" type="time" value={step.windowEnd || '17:00'} onChange={e => onChange({ windowEnd: e.target.value })} style={{ minWidth: 0 }} />
                   </div>
                 </div>
                 <div className="input-group">
@@ -1257,7 +1247,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
 
                 {step.calon?.enabled && (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginTop: 12 }}>
+                    <div className="cols-2-1" style={{ display: 'grid', gap: 16, marginTop: 12 }}>
                       <div className="input-group">
                         <label>calon URL</label>
                         <input className="input" value={step.calon?.baseUrl || ''} onChange={e => onChange({ calon: { ...(step.calon || {}), baseUrl: e.target.value } })} placeholder="https://calon.example.com" />
@@ -1460,7 +1450,7 @@ function SubFieldEditor({ field, onChange, onChangeType }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+      <div className="cols-2" style={{ display: 'grid', gap: 16, marginTop: 16 }}>
         <div className="input-group">
           <label>Question</label>
           <input className="input" value={field.question || ''} onChange={e => onChange({ question: e.target.value })} placeholder="Your question..." />
@@ -1556,28 +1546,26 @@ function SlugEditor({ form, onUpdated, baseUrl }) {
   return (
     <div className="input-group">
       <label>Form URL</label>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', padding: '0 12px',
-          background: 'rgba(0,0,0,0.04)', border: '1px solid var(--border, #e0e0e0)',
-          borderRight: 'none', borderRadius: '8px 0 0 8px',
-          color: 'var(--text-light)', fontSize: 14, whiteSpace: 'nowrap',
-        }}>
-          {baseUrl}/f/
+      <div className="affix-row">
+        <div className="affix-group">
+          <div className="affix affix-before" title={`${baseUrl}/f/`}>
+            {baseUrl}/f/
+          </div>
+          <input
+            className="input"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            spellCheck={false}
+            style={{
+              borderRadius: '0 8px 8px 0',
+              borderLeft: 'none',
+              flex: 1,
+              minWidth: 0,
+              fontFamily: 'monospace',
+            }}
+            onKeyDown={e => { if (e.key === 'Enter' && canSave) save(); }}
+          />
         </div>
-        <input
-          className="input"
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          spellCheck={false}
-          style={{
-            borderRadius: '0 8px 8px 0',
-            borderLeft: 'none',
-            flex: 1,
-            fontFamily: 'monospace',
-          }}
-          onKeyDown={e => { if (e.key === 'Enter' && canSave) save(); }}
-        />
         <button
           className="btn btn-primary"
           onClick={save}
@@ -1654,27 +1642,25 @@ function SubdomainEditor({ form, primaryHost, onUpdated }) {
   return (
     <div className="input-group">
       <label>Custom subdomain (optional)</label>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-        <input
-          className="input"
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          placeholder="acme"
-          spellCheck={false}
-          style={{
-            borderRadius: '8px 0 0 8px',
-            flex: 1,
-            fontFamily: 'monospace',
-          }}
-          onKeyDown={e => { if (e.key === 'Enter' && canSave) save(trimmed); }}
-        />
-        <div style={{
-          display: 'flex', alignItems: 'center', padding: '0 12px',
-          background: 'rgba(0,0,0,0.04)', border: '1px solid var(--border, #e0e0e0)',
-          borderLeft: 'none', borderRadius: '0 8px 8px 0',
-          color: 'var(--text-light)', fontSize: 14, whiteSpace: 'nowrap',
-        }}>
-          .{primaryHost}
+      <div className="affix-row">
+        <div className="affix-group">
+          <input
+            className="input"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            placeholder="acme"
+            spellCheck={false}
+            style={{
+              borderRadius: '8px 0 0 8px',
+              flex: 1,
+              minWidth: 0,
+              fontFamily: 'monospace',
+            }}
+            onKeyDown={e => { if (e.key === 'Enter' && canSave) save(trimmed); }}
+          />
+          <div className="affix affix-after" title={`.${primaryHost}`}>
+            .{primaryHost}
+          </div>
         </div>
         <button
           className="btn btn-primary"
@@ -1770,7 +1756,7 @@ function OtherOptionEditor({ step, onChange }) {
         saved alongside the other selections.
       </p>
       {step.allowOther && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+        <div className="cols-2" style={{ display: 'grid', gap: 8, marginTop: 12 }}>
           <div className="input-group">
             <label>Option label</label>
             <input
@@ -1836,7 +1822,7 @@ function ImageSelectEditor({ options, onChange }) {
         {options.map((opt, i) => {
           const optObj = typeof opt === 'string' ? { value: opt, label: opt, icon: '' } : opt;
           return (
-            <div key={i} style={{
+            <div key={i} className="image-option-row" style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
               background: 'var(--panel)', borderRadius: 10, border: '1px solid var(--border)',
             }}>
@@ -1857,7 +1843,7 @@ function ImageSelectEditor({ options, onChange }) {
               </button>
 
               {/* Label + value */}
-              <div style={{ flex: 1, display: 'flex', gap: 8 }}>
+              <div className="image-option-fields">
                 <input
                   className="input"
                   value={optObj.label || ''}
@@ -1866,22 +1852,22 @@ function ImageSelectEditor({ options, onChange }) {
                   style={{ fontSize: 14, padding: '8px 10px' }}
                 />
                 <input
-                  className="input"
+                  className="input image-option-value"
                   value={optObj.value || ''}
                   onChange={e => updateOption(i, { value: e.target.value })}
                   placeholder="Value"
-                  style={{ fontSize: 14, padding: '8px 10px', width: 120 }}
+                  style={{ fontSize: 14, padding: '8px 10px' }}
                 />
               </div>
 
               {/* Image URL input */}
               <input
-                className="input"
+                className="input image-option-url"
                 value={optObj.image || ''}
                 onChange={e => updateOption(i, { image: e.target.value, icon: e.target.value ? '' : optObj.icon })}
                 placeholder="Image URL (1:1, min 200x200)"
                 title="Recommended: square image (1:1 ratio), minimum 200x200px. PNG, JPG, SVG or WebP."
-                style={{ fontSize: 12, padding: '8px 10px', width: 200 }}
+                style={{ fontSize: 12, padding: '8px 10px' }}
               />
 
               {/* Controls */}
@@ -2172,7 +2158,7 @@ function EmojiPicker({ activeCategory, onCategoryChange, onSelect, onClose }) {
 
       {/* Emoji grid */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2, padding: 8, maxHeight: 180, overflowY: 'auto',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))', gap: 2, padding: 8, maxHeight: 180, overflowY: 'auto',
       }}>
         {(EMOJI_CATEGORIES[activeCategory] || []).map((emoji, i) => (
           <button

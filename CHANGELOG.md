@@ -2,7 +2,28 @@
 
 All notable changes to OpenFlow are documented in this file.
 
-## [0.39.0] - 2026-09-24
+## [0.39.1] - 2026-09-24
+
+### Fixed
+- **The admin works on phones.** The form editor was wider than the screen,
+  because the Save/Publish/Preview buttons and the tab row couldn't wrap, so
+  every page had to be scrolled sideways. At 768px and below:
+  - Save, Publish and Open Preview sit in a bar pinned to the bottom of the
+    screen, reachable from every tab.
+  - The editor tabs are one row you swipe sideways; the tab you pick scrolls
+    into view. This also fixes the tab row overflowing on tablets where the
+    sidebar is still visible.
+  - Multi-column form rows (colors, animated backgrounds, Button & Navigation,
+    question settings, calon, integration settings, Settings → Branding)
+    collapse to one or two columns.
+  - Question cards put their move/combine/remove buttons on their own row, and
+    Image / Icon Select options wrap instead of overflowing.
+  - The form URL and subdomain inputs keep room to type, and their buttons
+    move below them.
+  - The Forms, Users and API-token tables turn into one card per row, with
+    their action buttons underneath.
+  - Submissions keeps its sideways-scrolling table, but answer columns no
+    longer shrink to one word per line (this also applies on desktop).
 
 ### Added
 - **calon-connected Date & Timeslot fields now actually book.** Until now the

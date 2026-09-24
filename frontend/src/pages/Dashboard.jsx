@@ -84,7 +84,7 @@ export default function Dashboard() {
       ) : (
         <div className="card" style={{ padding: 0 }}>
           <div className="table-wrap">
-            <table className="table">
+            <table className="table table-cards">
               <thead>
                 <tr>
                   <th>Title</th>
@@ -97,19 +97,19 @@ export default function Dashboard() {
               <tbody>
                 {forms.map(form => (
                   <tr key={form.id}>
-                    <td>
+                    <td className="cell-primary">
                       <Link to={`/forms/${form.id}`} style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>
                         {form.title}
                       </Link>
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span className={`badge ${form.published ? 'badge-published' : 'badge-draft'}`}>
                         {form.published ? 'Live' : 'Draft'}
                       </span>
                     </td>
-                    <td>{form.submission_count}</td>
-                    <td style={{ fontSize: 13, color: 'var(--text-light)' }}>{new Date(form.created_at).toLocaleDateString('en')}</td>
-                    <td>
+                    <td data-label="Responses">{form.submission_count}</td>
+                    <td data-label="Created" style={{ fontSize: 13, color: 'var(--text-light)' }}>{new Date(form.created_at).toLocaleDateString('en')}</td>
+                    <td className="cell-actions">
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <Link to={`/forms/${form.id}/submissions`} className="btn btn-sm btn-secondary" style={{ textDecoration: 'none' }}>
                           Responses

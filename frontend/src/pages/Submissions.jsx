@@ -65,7 +65,7 @@ export default function Submissions() {
       ) : (
         <>
           <div className="card" style={{ padding: 0, overflow: 'auto' }}>
-            <table className="table">
+            <table className="table submissions-table">
               <thead>
                 <tr>
                   <th>#</th>
