@@ -136,6 +136,10 @@ export default function Backup() {
               Replaces <strong>all</strong> current data with the contents of the uploaded file. This cannot be undone.
               Your own admin account is always kept so you stay logged in.
             </p>
+            <p style={{ color: 'var(--text-light)', fontSize: 13, margin: '6px 0 0' }}>
+              Integration secrets in a backup are encrypted with this instance's <code>ENCRYPTION_KEY</code>.
+              To restore on another instance, give it the same key, or re-enter the secrets afterwards.
+            </p>
           </div>
         </div>
 

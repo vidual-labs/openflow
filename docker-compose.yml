@@ -18,6 +18,16 @@ services:
       # publicly-known secret and admin password. Set JWT_SECRET and
       # ADMIN_PASSWORD explicitly (e.g. in a .env file) to control them.
       - JWT_SECRET=${JWT_SECRET:-}
+      # Encrypts integration secrets (SMTP passwords, API keys) in the DB. Left
+      # empty, a key is generated into the db-data volume, i.e. next to the
+      # data it protects, so set it in .env for production and back it up
+      # separately. Switching an existing install over is safe: the old
+      # auto-generated key is still used to read what it encrypted.
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      # Set to true to block SMTP hosts on private networks/localhost too (the
+      # cloud metadata service is always blocked). Leave unset if you relay
+      # mail through a server on your own network.
+      - SMTP_BLOCK_PRIVATE_HOSTS=${SMTP_BLOCK_PRIVATE_HOSTS:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@openflow.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       # Scheduled backups: written every BACKUP_INTERVAL_HOURS, keeping the

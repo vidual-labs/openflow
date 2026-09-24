@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.37.1 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.38.0 (see version badge in README.md and CHANGELOG.md)
 
 ## Architecture
 
@@ -22,6 +22,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `models/deliveryQueue.js` — Persists each integration delivery and retries it with backoff
   - `models/backup.js` / `models/backupScheduler.js` — JSON backup/restore + the rotating scheduled backup job
   - `models/apiTokens.js` — Read-only `ofw_` API tokens (hashed at rest)
+  - `models/encryption.js` / `models/integrationSecrets.js` — AES-256-GCM for integration configs; which config fields are write-only secrets (redacted from every API response, merged on update)
   - `models/rateLimit.js` — In-memory rate limiter
   - `middleware/auth.js` — JWT + API-token authentication, `requireAdmin`, `requireSession`
   - `middleware/subdomain.js` — Resolves per-form subdomains and blocks admin paths on them
@@ -149,6 +150,14 @@ Handles all outbound data flows via `runIntegration()`'s switch on
 - **`google_ads_conversion`**: Offline conversion upload via the Data Manager API; only runs for submissions carrying a `gclid`/`gbraid`/`wbraid`
 - **`meta_conversion_api`**: Server-side `Lead` event to Meta's Conversions API (Graph API `/​{pixel_id}/events`), keyed by `pixel_id` + `access_token`. No Meta Pixel is required — `user_data` is built from the submission's captured IP/user agent, SHA-256-hashed `email`/`phone` field values (matched by field **type**, not id), and — when captured after cookie consent — `fbc` (built client-side from `?fbclid=`, `clickIds.js`) / `fbp` (Meta Pixel cookies), whitelisted by format in `POST /form/:slug/submit`. `event_id` is the submission id (the delivery queue passes it in as `metadata.submissionId`, not stored); the browser gets the same id as `eventId` on the `openflow_submit` dataLayer push and in the embed's `openflow-submit` postMessage, for Pixel deduplication. An optional `test_event_code` routes events to Events Manager's Test Events tool instead of counting them as real leads; the integration's "Test" button only sends a real event when one is set (otherwise it just validates `pixel_id`/`access_token` via a GET, like Google Ads validates OAuth)
 
+**Secrets are write-only.** Fields listed in `SECRET_FIELDS`
+(`models/integrationSecrets.js`) are never returned by the integrations API —
+responses carry a `secrets: { field: { set, hint? } }` map instead, and an
+update that omits a secret keeps the stored one (`null`/`''` clears it). A new
+integration type with a credential must add it there, and use `SecretInput` in
+`IntegrationsPanel.jsx`. SMTP hosts are checked for link-local/metadata
+addresses (`SMTP_BLOCK_PRIVATE_HOSTS=true` for the full private-range check).
+
 Each integration has an enabled flag and a test endpoint
 (`POST /api/integrations/:formId/:id/test`). Google Ads is special-cased there:
 its test only validates OAuth credentials via `testGoogleAdsCredentials()`
@@ -263,7 +272,7 @@ managed in the UI under **Settings → API Tokens**.
 ### Add a New Integration
 1. Add a `case` to `runIntegration()` in `backend/src/models/integrations.js` and a `run<Name>()` that **throws** on failure, so the delivery queue can retry it
 2. Add the type to `INTEGRATION_TYPES` and a config form in `frontend/src/components/IntegrationsPanel.jsx`
-3. If the integration fetches a user-supplied URL, run it through `utils/ssrf.js#assertSafeUrl`
+3. If the integration fetches a user-supplied URL, run it through `utils/ssrf.js#assertSafeUrl`; list any credential fields in `SECRET_FIELDS` (`models/integrationSecrets.js`)
 4. Special-case the test path in `backend/src/routes/integrations.js` if a synthetic submission can't safely be sent for real
 
 ### Deploy

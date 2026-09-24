@@ -1,8 +1,10 @@
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const net = require('net');
+const dns = require('dns').promises;
 const { google } = require('googleapis');
 const { flattenFields } = require('../utils/steps');
-const { assertSafeUrl } = require('../utils/ssrf');
+const { assertSafeUrl, resolveSafeHost, isLinkLocalOrUnspecified } = require('../utils/ssrf');
 const { decrypt } = require('./encryption');
 const logger = require('../utils/logger');
 
@@ -107,6 +109,36 @@ function escapeHtmlAttr(str) {
     .replace(/>/g, '&gt;');
 }
 
+// The SMTP host is operator-supplied, so it must never reach the cloud
+// metadata service or other link-local addresses (SSRF). Private ranges and
+// localhost stay allowed by default, because self-hosted installs commonly
+// relay through a mail server on their own network (a Postfix container, the
+// Docker host, an office relay). SMTP_BLOCK_PRIVATE_HOSTS=true applies the
+// same strict check as webhooks instead, and connects to exactly the address
+// that was checked (keeping the hostname as TLS servername) so DNS can't
+// change underneath it.
+async function smtpTarget(host) {
+  if (process.env.SMTP_BLOCK_PRIVATE_HOSTS === 'true') {
+    try {
+      const address = await resolveSafeHost(host);
+      return net.isIP(host) ? { host: address } : { host: address, servername: host };
+    } catch (err) {
+      throw new Error(`SMTP host rejected: ${err.message} (SMTP_BLOCK_PRIVATE_HOSTS is enabled)`);
+    }
+  }
+
+  let addresses = [];
+  try {
+    addresses = await dns.lookup(host, { all: true, verbatim: true });
+  } catch {
+    // Unresolvable: let nodemailer report its usual connection error.
+  }
+  if (addresses.some(a => isLinkLocalOrUnspecified(a.address))) {
+    throw new Error('SMTP host rejected: it resolves to a link-local/metadata address');
+  }
+  return { host };
+}
+
 async function runEmail(config, formId, formTitle, data, steps) {
   const {
     smtp_host, smtp_port = 587, smtp_user, smtp_pass, smtp_secure = false, to, from, subject,
@@ -117,7 +149,7 @@ async function runEmail(config, formId, formTitle, data, steps) {
   if (!smtp_host || !to) throw new Error('SMTP host and recipient are required');
 
   const transporter = nodemailer.createTransport({
-    host: smtp_host,
+    ...(await smtpTarget(String(smtp_host).trim())),
     port: Number(smtp_port),
     secure: smtp_secure,
     auth: smtp_user ? { user: smtp_user, pass: smtp_pass } : undefined,
@@ -359,6 +391,12 @@ async function testGoogleAdsCredentials(config) {
 
 const META_GRAPH_API_VERSION = 'v21.0';
 
+// The access token goes in a header rather than the ?access_token= query
+// string, which proxies and request logs tend to record.
+function metaAuthHeader(accessToken) {
+  return { Authorization: `Bearer ${accessToken}` };
+}
+
 async function runMetaConversionApi(config, data, steps, metadata) {
   const { pixel_id, access_token, currency_code = 'USD', default_value, value_field_id, test_event_code } = config;
   if (!pixel_id || !access_token) {
@@ -409,10 +447,10 @@ async function runMetaConversionApi(config, data, steps, metadata) {
   if (test_event_code) payload.test_event_code = test_event_code;
 
   const res = await fetch(
-    `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(pixel_id)}/events?access_token=${encodeURIComponent(access_token)}`,
+    `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(pixel_id)}/events`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...metaAuthHeader(access_token) },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(15000),
     }
@@ -432,8 +470,8 @@ async function testMetaConversionApiCredentials(config) {
     throw new Error('Meta Pixel ID and access token are required');
   }
   const res = await fetch(
-    `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(pixel_id)}?fields=id&access_token=${encodeURIComponent(access_token)}`,
-    { signal: AbortSignal.timeout(15000) }
+    `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${encodeURIComponent(pixel_id)}?fields=id`,
+    { headers: metaAuthHeader(access_token), signal: AbortSignal.timeout(15000) }
   );
   if (!res.ok) {
     throw new Error(`Meta Graph API returned ${res.status}: ${await res.text().catch(() => '')}`);

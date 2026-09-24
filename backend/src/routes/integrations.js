@@ -2,10 +2,31 @@ const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
 const { encrypt, decrypt } = require('../models/encryption');
+const { redactConfig, mergeConfig } = require('../models/integrationSecrets');
 const { randomUUID: uuid } = require('crypto');
 
 const router = Router();
 router.use(authMiddleware);
+
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// null when the stored config can't be decrypted (e.g. ENCRYPTION_KEY was
+// changed or lost) — distinct from an empty config, so it is never silently
+// overwritten.
+function readConfig(row) {
+  try { return JSON.parse(decrypt(row.config)); } catch { return null; }
+}
+
+const UNREADABLE_CONFIG = 'This integration\'s settings could not be decrypted. Check that ENCRYPTION_KEY (or data/.encryption_key) is the key they were saved with.';
+
+// Never send stored secrets back to the client — see models/integrationSecrets.js.
+function toResponse(row) {
+  const stored = readConfig(row);
+  const { config, secrets } = redactConfig(row.type, stored || {});
+  return stored ? { ...row, config, secrets } : { ...row, config, secrets, config_error: UNREADABLE_CONFIG };
+}
 
 // List integrations for a form
 router.get('/:formId', (req, res) => {
@@ -14,10 +35,7 @@ router.get('/:formId', (req, res) => {
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
   const integrations = db.prepare('SELECT * FROM integrations WHERE form_id = ? ORDER BY created_at DESC').all(req.params.formId);
-  integrations.forEach(i => {
-    try { i.config = JSON.parse(decrypt(i.config)); } catch { i.config = {}; }
-  });
-  res.json({ integrations });
+  res.json({ integrations: integrations.map(toResponse) });
 });
 
 // Create integration
@@ -27,6 +45,9 @@ router.post('/:formId', (req, res) => {
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
   const { type, config, enabled } = req.body;
+  if (config !== undefined && !isPlainObject(config)) {
+    return res.status(400).json({ error: 'config must be an object' });
+  }
   if (!type || !['webhook', 'email', 'google_sheets', 'google_ads_conversion', 'meta_conversion_api'].includes(type)) {
     return res.status(400).json({ error: 'Invalid integration type. Use: webhook, email, google_sheets, google_ads_conversion, meta_conversion_api' });
   }
@@ -37,8 +58,7 @@ router.post('/:formId', (req, res) => {
   );
 
   const integration = db.prepare('SELECT * FROM integrations WHERE id = ?').get(id);
-  integration.config = JSON.parse(decrypt(integration.config));
-  res.status(201).json({ integration });
+  res.status(201).json({ integration: toResponse(integration) });
 });
 
 // Update integration
@@ -51,16 +71,25 @@ router.put('/:formId/:integrationId', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Integration not found' });
 
   const { config, enabled } = req.body;
+  if (config !== undefined && config !== null && !isPlainObject(config)) {
+    return res.status(400).json({ error: 'config must be an object' });
+  }
+
+  const stored = config ? readConfig(existing) : null;
+  if (config && !stored) {
+    // Saving would replace the unreadable (but maybe recoverable with the
+    // right key) config and drop its secrets.
+    return res.status(409).json({ error: UNREADABLE_CONFIG });
+  }
 
   db.prepare('UPDATE integrations SET config = COALESCE(?, config), enabled = COALESCE(?, enabled) WHERE id = ?').run(
-    config ? encrypt(JSON.stringify(config)) : null,
+    config ? encrypt(JSON.stringify(mergeConfig(existing.type, stored, config))) : null,
     enabled !== undefined ? (enabled ? 1 : 0) : null,
     req.params.integrationId
   );
 
   const updated = db.prepare('SELECT * FROM integrations WHERE id = ?').get(req.params.integrationId);
-  updated.config = JSON.parse(decrypt(updated.config));
-  res.json({ integration: updated });
+  res.json({ integration: toResponse(updated) });
 });
 
 // Delete integration

@@ -233,20 +233,26 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
             </div>
           )}
 
+          {integration.config_error && (
+            <div style={{ padding: '8px 12px', marginBottom: 16, borderRadius: 8, fontSize: 13, background: 'rgba(225, 112, 85, 0.12)', color: 'var(--danger)' }}>
+              {integration.config_error}
+            </div>
+          )}
+
           {integration.type === 'webhook' && (
-            <WebhookConfig config={integration.config} onChange={(k, v) => updateConfig(integration.id, k, v)} />
+            <WebhookConfig config={integration.config} secrets={integration.secrets || {}} onChange={(k, v) => updateConfig(integration.id, k, v)} />
           )}
           {integration.type === 'email' && (
-            <EmailConfig config={integration.config} onChange={(k, v) => updateConfig(integration.id, k, v)} />
+            <EmailConfig config={integration.config} secrets={integration.secrets || {}} onChange={(k, v) => updateConfig(integration.id, k, v)} />
           )}
           {integration.type === 'google_sheets' && (
-            <GoogleSheetsConfig config={integration.config} onChange={(k, v) => updateConfig(integration.id, k, v)} />
+            <GoogleSheetsConfig config={integration.config} secrets={integration.secrets || {}} onChange={(k, v) => updateConfig(integration.id, k, v)} />
           )}
           {integration.type === 'google_ads_conversion' && (
-            <GoogleAdsConfig config={integration.config} steps={steps} onChange={(k, v) => updateConfig(integration.id, k, v)} />
+            <GoogleAdsConfig config={integration.config} secrets={integration.secrets || {}} steps={steps} onChange={(k, v) => updateConfig(integration.id, k, v)} />
           )}
           {integration.type === 'meta_conversion_api' && (
-            <MetaConversionApiConfig config={integration.config} steps={steps} onChange={(k, v) => updateConfig(integration.id, k, v)} />
+            <MetaConversionApiConfig config={integration.config} secrets={integration.secrets || {}} steps={steps} onChange={(k, v) => updateConfig(integration.id, k, v)} />
           )}
         </div>
       ))}
@@ -254,7 +260,46 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
   );
 }
 
-function WebhookConfig({ config, onChange }) {
+// Secrets are write-only (backend/src/models/integrationSecrets.js): the API
+// only says whether one is stored. Typing a value replaces it on blur/Enter,
+// leaving the field empty keeps the stored one, and "Remove" clears it.
+function SecretInput({ secret, onSave, placeholder, multiline = false }) {
+  const [draft, setDraft] = useState('');
+  const isSet = !!secret?.set;
+
+  function commit() {
+    if (!draft.trim()) return;
+    onSave(draft);
+    setDraft('');
+  }
+
+  const shared = {
+    className: 'input',
+    value: draft,
+    onChange: e => setDraft(e.target.value),
+    onBlur: commit,
+    placeholder: isSet ? 'Saved — type to replace' : (placeholder || ''),
+    autoComplete: 'off',
+  };
+
+  return (
+    <div>
+      {multiline ? (
+        <textarea {...shared} rows={6} spellCheck={false} style={{ fontFamily: 'monospace', fontSize: 12 }} />
+      ) : (
+        <input {...shared} type="password" onKeyDown={e => { if (e.key === 'Enter') commit(); }} />
+      )}
+      {isSet && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 12, color: 'var(--text-light)' }}>
+          <span>🔒 Stored encrypted — not shown again</span>
+          <button type="button" className="btn btn-sm btn-secondary" onClick={() => onSave(null)}>Remove</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WebhookConfig({ config, secrets, onChange }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
       <div className="input-group" style={{ gridColumn: '1 / -1' }}>
@@ -270,13 +315,13 @@ function WebhookConfig({ config, onChange }) {
       </div>
       <div className="input-group">
         <label>Secret (optional, for HMAC signature)</label>
-        <input className="input" type="password" value={config.secret || ''} onChange={e => onChange('secret', e.target.value)} placeholder="Optional signing secret" />
+        <SecretInput secret={secrets.secret} onSave={v => onChange('secret', v)} placeholder="Optional signing secret" />
       </div>
     </div>
   );
 }
 
-function EmailConfig({ config, onChange }) {
+function EmailConfig({ config, secrets, onChange }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
       <div className="input-group">
@@ -293,7 +338,7 @@ function EmailConfig({ config, onChange }) {
       </div>
       <div className="input-group">
         <label>SMTP Password</label>
-        <input className="input" type="password" value={config.smtp_pass || ''} onChange={e => onChange('smtp_pass', e.target.value)} />
+        <SecretInput secret={secrets.smtp_pass} onSave={v => onChange('smtp_pass', v)} />
       </div>
       <div className="input-group">
         <label>To (recipient)</label>
@@ -337,7 +382,7 @@ function EmailConfig({ config, onChange }) {
   );
 }
 
-function GoogleSheetsConfig({ config, onChange }) {
+function GoogleSheetsConfig({ config, secrets, onChange }) {
   const mode = config.mode || 'service_account';
 
   if (mode === 'apps_script') {
@@ -401,16 +446,17 @@ function GoogleSheetsConfig({ config, onChange }) {
       </div>
       <div className="input-group" style={{ gridColumn: '1 / -1' }}>
         <label>Service Account Credentials (JSON)</label>
-        <textarea
-          className="input"
-          rows={6}
-          value={typeof config.credentials_json === 'object' ? JSON.stringify(config.credentials_json, null, 2) : (config.credentials_json || '')}
-          onChange={e => {
-            try { onChange('credentials_json', JSON.parse(e.target.value)); } catch { onChange('credentials_json', e.target.value); }
-          }}
+        <SecretInput
+          multiline
+          secret={secrets.credentials_json}
+          onSave={v => { try { onChange('credentials_json', JSON.parse(v)); } catch { onChange('credentials_json', v); } }}
           placeholder='Paste your Google service account JSON key here...'
-          style={{ fontFamily: 'monospace', fontSize: 12 }}
         />
+        {secrets.credentials_json?.hint && (
+          <p style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 4 }}>
+            Service account: <code>{secrets.credentials_json.hint}</code>
+          </p>
+        )}
         <p style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 4 }}>
           Create a service account in Google Cloud Console, download the JSON key, and share the spreadsheet with the service account email.
         </p>
@@ -419,7 +465,7 @@ function GoogleSheetsConfig({ config, onChange }) {
   );
 }
 
-function GoogleAdsConfig({ config, steps, onChange }) {
+function GoogleAdsConfig({ config, secrets, steps, onChange }) {
   const fields = flattenFields(steps);
 
   return (
@@ -438,11 +484,11 @@ function GoogleAdsConfig({ config, steps, onChange }) {
       </div>
       <div className="input-group">
         <label>OAuth Client Secret</label>
-        <input className="input" type="password" value={config.client_secret || ''} onChange={e => onChange('client_secret', e.target.value)} />
+        <SecretInput secret={secrets.client_secret} onSave={v => onChange('client_secret', v)} />
       </div>
       <div className="input-group" style={{ gridColumn: '1 / -1' }}>
         <label>Refresh Token</label>
-        <input className="input" type="password" value={config.refresh_token || ''} onChange={e => onChange('refresh_token', e.target.value)} />
+        <SecretInput secret={secrets.refresh_token} onSave={v => onChange('refresh_token', v)} />
       </div>
       <div className="input-group">
         <label>Customer ID</label>
@@ -477,7 +523,7 @@ function GoogleAdsConfig({ config, steps, onChange }) {
   );
 }
 
-function MetaConversionApiConfig({ config, steps, onChange }) {
+function MetaConversionApiConfig({ config, secrets, steps, onChange }) {
   const fields = flattenFields(steps);
 
   return (
@@ -498,7 +544,7 @@ function MetaConversionApiConfig({ config, steps, onChange }) {
       </div>
       <div className="input-group">
         <label>Access Token</label>
-        <input className="input" type="password" value={config.access_token || ''} onChange={e => onChange('access_token', e.target.value)} />
+        <SecretInput secret={secrets.access_token} onSave={v => onChange('access_token', v)} />
       </div>
       <div className="input-group" style={{ gridColumn: '1 / -1' }}>
         <label>Test Event Code (optional)</label>
