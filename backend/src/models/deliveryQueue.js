@@ -125,8 +125,20 @@ async function retryDelivery(db, deliveryId) {
 }
 
 function startDeliveryWorker(db, intervalMs = 30000) {
-  const timer = setInterval(() => {
-    processDueDeliveries(db).catch(err => logger.error('delivery_worker_sweep_failed', { error: err.message }));
+  // Pending calon bookings (models/calonBooking.js) ride on the same sweep. A
+  // sweep still running (slow endpoints) skips the next tick rather than
+  // attempting the same rows twice.
+  const { processDueCalonBookings } = require('./calonBooking');
+  let running = false;
+  const timer = setInterval(async () => {
+    if (running) return;
+    running = true;
+    try {
+      await processDueDeliveries(db).catch(err => logger.error('delivery_worker_sweep_failed', { error: err.message }));
+      await processDueCalonBookings(db).catch(err => logger.error('calon_booking_sweep_failed', { error: err.message }));
+    } finally {
+      running = false;
+    }
   }, intervalMs);
   timer.unref();
   return timer;

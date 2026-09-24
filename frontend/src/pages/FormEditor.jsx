@@ -868,6 +868,60 @@ function CalonTestButton({ formId, baseUrl, resourceSlug }) {
 /* ===========================
    StepEditor - Collapsible question card
    =========================== */
+// Which of the form's fields calon books under: the respondent's name, email and
+// phone. "Automatic" (the default) mirrors the backend's fallback
+// (models/calonBooking.js#requesterFor): the first Email and Phone fields, and
+// the first Short Text field with a name autofill token — the email stands in
+// for a missing name. calon can't book without an email.
+function CalonRequesterFields({ step, allSteps, onChange }) {
+  const fields = [];
+  for (const s of allSteps) {
+    if (s.type === 'group' && Array.isArray(s.fields)) fields.push(...s.fields);
+    else fields.push(s);
+  }
+  const others = fields.filter(f => f.id !== step.id);
+  const label = f => f.label || f.question || f.id;
+  const byType = type => others.filter(f => f.type === type);
+  const auto = {
+    nameFieldId: others.find(f => f.type === 'text' && ['name', 'given-name'].includes(f.autocomplete)),
+    emailFieldId: byType('email')[0],
+    phoneFieldId: byType('phone')[0],
+  };
+  const pickers = [
+    { key: 'nameFieldId', title: 'Name', options: others.filter(f => ['text', 'email'].includes(f.type)) },
+    { key: 'emailFieldId', title: 'Email', options: byType('email') },
+    { key: 'phoneFieldId', title: 'Phone', options: byType('phone') },
+  ];
+  const cfg = step.calon || {};
+  const emailField = cfg.emailFieldId ? others.find(f => f.id === cfg.emailFieldId) : auto.emailFieldId;
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <label style={{ fontSize: 13, fontWeight: 600 }}>Book under</label>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 8 }}>
+        {pickers.map(({ key, title, options }) => (
+          <div className="input-group" key={key}>
+            <label>{title}</label>
+            <select className="input" value={cfg[key] || ''} onChange={e => onChange({ calon: { ...cfg, [key]: e.target.value } })}>
+              <option value="">{auto[key] ? `Automatic (${label(auto[key])})` : key === 'nameFieldId' ? 'Automatic (the email)' : 'Automatic (none)'}</option>
+              {options.map(f => <option key={f.id} value={f.id}>{label(f)}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+      {!emailField ? (
+        <p style={{ fontSize: 12, color: 'var(--danger, #e17055)', margin: '8px 0 0' }}>
+          Add an Email Address field to this form — calon needs an email to book, so submissions can't go through without one.
+        </p>
+      ) : !emailField.required && (
+        <p style={{ fontSize: 12, color: 'var(--text-light)', margin: '8px 0 0' }}>
+          Tip: make "{label(emailField)}" required — a visitor who leaves it empty can't book.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, onChange, onChangeType, onMove, onCombine, onSplit, onRemove }) {
   const isGroup = step.type === 'group';
   const fieldDef = isGroup ? null : FIELD_TYPE_MAP[step.type];
@@ -1189,13 +1243,16 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
               <div style={{ marginTop: 16, padding: 16, background: 'var(--panel)', borderRadius: 10 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
                   <input type="checkbox" checked={step.calon?.enabled || false} onChange={e => onChange({ calon: { ...(step.calon || {}), enabled: e.target.checked } })} />
-                  Connect to calon for real-time availability
+                  Connect to calon: real-time availability and booking
                 </label>
                 <p style={{ fontSize: 12, color: 'var(--text-light)', margin: '8px 0 0' }}>
                   Optional — calon is a separate, self-hosted booking tool
                   (<a href="https://github.com/vidual-labs/calon" target="_blank" rel="noopener noreferrer">vidual-labs/calon</a>).
-                  With no connection, visitors pick from the generated times above with no conflict
-                  checking, which still works fine for a simple lead form.
+                  Connected, visitors only see times calon reports as free, and on submit the picked
+                  time is booked in calon — which also writes it into the calendar connected there. A
+                  time taken in the meantime sends the visitor back to pick another. With no
+                  connection, visitors pick from the generated times above with no conflict checking
+                  and nothing is booked, which still works fine for a simple lead form.
                 </p>
 
                 {step.calon?.enabled && (
@@ -1213,6 +1270,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
                     {step.calon?.baseUrl && (
                       <CalonTestButton formId={formId} baseUrl={step.calon.baseUrl} resourceSlug={step.calon.resourceSlug} />
                     )}
+                    <CalonRequesterFields step={step} allSteps={allSteps} onChange={onChange} />
                   </>
                 )}
               </div>

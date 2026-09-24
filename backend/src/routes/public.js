@@ -149,6 +149,24 @@ router.post('/form/:slug/submit', async (req, res) => {
   }
 
   const id = uuid();
+
+  // A calon-connected Date & Timeslot answer is booked into calon *before* the
+  // submission is stored, so a slot that is no longer free goes straight back to
+  // the respondent instead of producing a lead with a booking that never happened.
+  // (models/calonBooking.js; calon being unreachable stores the submission and
+  // retries the booking in the background instead.)
+  const { bookSubmission } = require('../models/calonBooking');
+  const booking = await bookSubmission({ form, steps, data, submissionId: id });
+  if (booking.rejected) {
+    const { fieldId, code, message } = booking.rejected;
+    logger.info('calon_booking_rejected', { formId: form.id, fieldId, code });
+    return res.status(409).json({
+      error: code === 'INVALID_INPUT' ? message : 'This time is no longer available. Please pick another one.',
+      code: code === 'INVALID_INPUT' ? 'calon_invalid_input' : 'slot_unavailable',
+      fieldId,
+    });
+  }
+
   const metadata = {
     ip,
     userAgent: req.headers['user-agent'],
@@ -169,6 +187,11 @@ router.post('/form/:slug/submit', async (req, res) => {
     // API as-is, so anything else is dropped rather than stored.
     if (typeof tracking.fbc === 'string' && META_FBC_RE.test(tracking.fbc)) metadata.fbc = tracking.fbc;
     if (typeof tracking.fbp === 'string' && META_FBP_RE.test(tracking.fbp)) metadata.fbp = tracking.fbp;
+  }
+
+  if (Object.keys(booking.bookings).length > 0) {
+    metadata.calonBookings = booking.bookings;
+    if (Object.values(booking.bookings).some(b => b.status === 'pending')) metadata.calonPending = true;
   }
 
   db.prepare('INSERT INTO submissions (id, form_id, data, metadata) VALUES (?, ?, ?, ?)').run(

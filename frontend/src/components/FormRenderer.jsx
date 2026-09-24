@@ -222,6 +222,9 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [direction, setDirection] = useState('forward');
+  // Bumped to remount the current step, e.g. so a Date & Timeslot step reloads
+  // calon's availability after the picked slot was taken meanwhile.
+  const [stepNonce, setStepNonce] = useState(0);
   const containerRef = useRef(null);
   const trackedRef = useRef(false);
   const submittingRef = useRef(false);
@@ -435,6 +438,20 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     } catch (err) {
       // Failed sends have to stay retryable.
       submittingRef.current = false;
+      // calon turned the picked slot down (taken meanwhile, or against its rules):
+      // take the respondent back to that step with fresh availability to pick again.
+      if (err.code === 'slot_unavailable' && err.fieldId) {
+        const idx = steps.findIndex(s => s.id === err.fieldId
+          || (s.type === 'group' && Array.isArray(s.fields) && s.fields.some(f => f.id === err.fieldId)));
+        if (idx !== -1) {
+          setAnswers(prev => ({ ...prev, [err.fieldId]: '' }));
+          setDirection('back');
+          setCurrentStep(idx);
+          setStepNonce(n => n + 1);
+          setError(locale.errorSlotUnavailable);
+          return;
+        }
+      }
       setError(err.message || locale.errorSubmitFailed);
     }
   }
@@ -751,7 +768,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
       </div>
 
       <div className="form-content">
-        <div className={`form-step ${direction === 'forward' ? 'slide-in-forward' : 'slide-in-back'}`} key={currentStep}>
+        <div className={`form-step ${direction === 'forward' ? 'slide-in-forward' : 'slide-in-back'}`} key={`${currentStep}:${stepNonce}`}>
           {step.type === 'group' ? (
             <>
               <GroupInput step={step} answers={answers} setFieldAnswer={setFieldAnswer} formSlug={form.slug} />
