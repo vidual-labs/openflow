@@ -44,7 +44,7 @@ export default function Settings() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="cols-2" style={{ display: 'grid', gap: 16 }}>
             <div className="input-group">
               <label>Sidebar Logo</label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, cursor: 'pointer', marginTop: 8 }}>
@@ -178,8 +178,8 @@ function ApiTokensCard() {
         </div>
       )}
 
-      <form onSubmit={handleCreate} style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 16 }}>
-        <div className="input-group" style={{ flex: 1, margin: 0 }}>
+      <form onSubmit={handleCreate} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginBottom: 16 }}>
+        <div className="input-group" style={{ flex: '1 1 200px', margin: 0 }}>
           <label>Token name</label>
           <input
             className="input"
@@ -200,24 +200,24 @@ function ApiTokensCard() {
       {tokens.length === 0 ? (
         <p style={{ color: 'var(--text-light)', fontSize: 13 }}>No API tokens yet.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+        <table className="token-table table-cards">
           <thead>
-            <tr style={{ textAlign: 'left', color: 'var(--text-light)', fontSize: 12 }}>
-              <th style={{ padding: '6px 8px' }}>Name</th>
-              <th style={{ padding: '6px 8px' }}>Token</th>
-              <th style={{ padding: '6px 8px' }}>Last used</th>
-              <th style={{ padding: '6px 8px' }}>Created</th>
-              <th style={{ padding: '6px 8px' }}></th>
+            <tr>
+              <th>Name</th>
+              <th>Token</th>
+              <th>Last used</th>
+              <th>Created</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {tokens.map(t => (
-              <tr key={t.id} style={{ borderTop: '1px solid var(--border)' }}>
-                <td style={{ padding: '8px' }}>{t.name}</td>
-                <td style={{ padding: '8px', fontFamily: 'monospace', color: 'var(--text-light)' }}>{t.token_prefix}…</td>
-                <td style={{ padding: '8px', color: 'var(--text-light)' }}>{t.last_used_at ? new Date(t.last_used_at + 'Z').toLocaleString() : '—'}</td>
-                <td style={{ padding: '8px', color: 'var(--text-light)' }}>{t.created_at ? new Date(t.created_at + 'Z').toLocaleDateString() : '—'}</td>
-                <td style={{ padding: '8px', textAlign: 'right' }}>
+              <tr key={t.id}>
+                <td className="cell-primary">{t.name}</td>
+                <td data-label="Token" style={{ fontFamily: 'monospace', color: 'var(--text-light)' }}>{t.token_prefix}…</td>
+                <td data-label="Last used" style={{ color: 'var(--text-light)' }}>{t.last_used_at ? new Date(t.last_used_at + 'Z').toLocaleString() : '—'}</td>
+                <td data-label="Created" style={{ color: 'var(--text-light)' }}>{t.created_at ? new Date(t.created_at + 'Z').toLocaleDateString() : '—'}</td>
+                <td className="cell-actions" style={{ textAlign: 'right' }}>
                   <button type="button" className="btn btn-danger" onClick={() => handleRevoke(t.id)}>Revoke</button>
                 </td>
               </tr>
