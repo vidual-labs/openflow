@@ -2,6 +2,100 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.40.0] - 2026-09-28
+
+A bug-hunt release: one agent drove the admin app and the public form in a
+browser, another audited the code, and everything they confirmed is fixed.
+
+### Security
+- **Behind a reverse proxy, clients could pick their own IP.** The public
+  rate limiter, the stored `metadata.ip` and the IP forwarded to Meta's
+  Conversions API read the *first* `X-Forwarded-For` entry, which the client
+  controls. They now use Express's `req.ip`, which honours `trust proxy` and
+  takes the hop the proxy itself appended.
+- **No more HTML error pages with stack traces.** Malformed JSON, oversized
+  bodies and anything a route throws now come back as a JSON `{ error }`
+  (400 / 413 / 500) instead of Express's default page with server paths.
+  Login with non-string credentials is a plain 400 too.
+- **A malformed form can no longer crash the server.** `PUT /api/forms/:id`
+  accepted any JSON type for `steps`, `end_screen` and `theme`; a string
+  `steps` blanked the editor and the public form, and testing an integration
+  on it threw inside an async route, which took the whole process down.
+  The payload shape is validated (400), async routes are wrapped so a
+  rejection reaches the error handler, and an unhandled rejection is logged
+  rather than fatal.
+
+### Fixed
+- **Integration settings lost keystrokes.** Every keystroke in a webhook URL,
+  SMTP host, sheet id … fired its own PUT and the input was bound to the
+  server's reply, so fast typing (or any latency) dropped and reordered
+  characters (`http://localhost:9999/hook` became `t:lclot99hok`). Edits now
+  apply locally at once and are saved shortly after you stop typing; the
+  Test button saves pending edits first.
+- **A required question hidden by conditional logic blocked the whole form.**
+  The server checked "required" for every step regardless of visibility, so
+  a form with a required conditional step could only be submitted by
+  respondents who saw it. The server now evaluates the same rules as the
+  renderer, skips hidden steps, and drops their stale answers (the renderer
+  no longer sends them either).
+- **Delivery retries ran a day late.** `next_attempt_at` was stored as an
+  ISO string but compared with SQLite's `datetime('now')`; the `T` sorts
+  after a space, so every retry waited for the next calendar day and the
+  1/5/30/120/360-minute backoff became about five days.
+- **Analytics.** The 7/30-day window silently dropped its first day (same
+  comparison bug); "Starts" always equalled "Views" because both fired on
+  page load — a start is now the first answer or Next; step drop-off grouped
+  by the position in the *filtered* flow and so mislabelled or lost steps
+  whenever conditional logic hid one — it groups by step id now; the daily
+  chart's completions bar used a percentage top margin (resolved against the
+  width) and sat in the wrong place.
+- **Deleting a form that ever delivered a submission failed** with a foreign
+  key error (its `integration_deliveries` rows were never removed); deleting
+  a user who owns a form or an API token failed the same way — their forms
+  are handed to the deleting admin and their tokens revoked.
+- **Restoring a backup logged the restoring admin out** when they had ever
+  changed their password (`token_version` was reset to 0).
+- **Address and File Upload answers** exported as `[object Object]` in CSV,
+  as raw JSON in e-mails and Google Sheets, and the whole base64 file landed
+  in an e-mail / Sheets cell (Sheets rejects it). One shared formatter now
+  writes "street, postal city, country" and "name (size)" everywhere,
+  including the Responses table.
+- **Validation gaps.** Number Min/Max were never enforced (client or server);
+  phone fields accepted `abc`; a required Address passed with `{}`; a
+  required Multiple Choice passed with `[]`; e-mail format was client-only.
+  All are checked on both sides now, with EN/DE messages.
+- **Timestamps showed in the wrong timezone** on the Forms, Users and
+  Responses pages (SQLite's UTC text was parsed as local time; Safari showed
+  "Invalid Date"). Slug editor / subdomain editor no longer discard unsaved
+  edits from the other tabs when you press "Update URL".
+- **After logging in, the admin links were missing until a reload** (the
+  login response carried no role).
+- **Google Ads uploaded `conversionValue: 0`** when no default value was set.
+- **Consent step:** with the Submit button focused after "you must agree",
+  Enter did nothing although the hint promised "Enter to agree".
+- **Old-slug redirects dropped the query string**, losing `gclid`/`fbclid`
+  on links shared before a rename.
+- Standalone Date & Timeslot offered times already in the past for today.
+- Integration **Test** sent no values for the sub-fields of combined steps.
+- Deleting a question left a dangling, invisible condition on steps that
+  referred to it. The Design tab logged a "does not conform to #rrggbb"
+  warning for the empty accent color. Users page said "Min 6 characters"
+  while the server requires 10; changing your own admin role is refused
+  instead of logging you out as a regular user. A boot no longer writes a
+  scheduled backup when the newest one is younger than the interval, so a
+  crash loop can't prune the real history. The service-account Sheets
+  integration was labelled "Google Sheets (Simple)".
+- `npm test` no longer hangs: the rate limiter's cleanup interval kept the
+  process alive.
+
+### Added
+- **Help text** per question in the editor (the renderer already supported
+  `description`).
+- **Delete** button per response on the Responses page.
+- A real "Page not found" page and an "Admins only" page instead of an empty
+  main area; the public page's browser tab shows the form title.
+- German cookie banner defaults, "Max. N MB" and loading / not-found strings.
+
 ## [0.39.3] - 2026-09-28
 
 ### Changed

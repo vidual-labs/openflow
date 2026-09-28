@@ -1,4 +1,6 @@
 const { Router } = require('express');
+const { asyncHandler } = require('../middleware/errorHandler');
+const { validateFormPayload } = require('../utils/formPayload');
 const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
 const { randomUUID: uuid } = require('crypto');
@@ -64,6 +66,9 @@ router.post('/', (req, res) => {
   const id = uuid();
   const slug = nanoid();
   const { title, steps, end_screen, theme, gtm_id } = req.body;
+
+  const shapeError = validateFormPayload(req.body);
+  if (shapeError) return res.status(400).json({ error: shapeError });
 
   const gtmCheck = validateGtmId(gtm_id);
   if (!gtmCheck.ok) return res.status(400).json({ error: gtmCheck.error });
@@ -146,6 +151,9 @@ router.put('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Form not found' });
 
   const { title, slug, subdomain, steps, end_screen, theme, gtm_id, published } = req.body;
+
+  const shapeError = validateFormPayload(req.body);
+  if (shapeError) return res.status(400).json({ error: shapeError });
 
   if (gtm_id !== undefined) {
     const gtmCheck = validateGtmId(gtm_id);
@@ -249,6 +257,10 @@ router.delete('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Form not found' });
   const deleteForm = db.transaction((formId) => {
     db.prepare('DELETE FROM analytics_events WHERE form_id = ?').run(formId);
+    // Delivery rows reference both the form and its integrations; without
+    // this the integrations delete fails the FK check once anything was
+    // ever delivered for the form.
+    db.prepare('DELETE FROM integration_deliveries WHERE form_id = ?').run(formId);
     db.prepare('DELETE FROM integrations WHERE form_id = ?').run(formId);
     db.prepare('DELETE FROM submissions WHERE form_id = ?').run(formId);
     // Without this, orphaned rows lock the deleted form's old slugs out
@@ -263,7 +275,7 @@ router.delete('/:id', (req, res) => {
 // Try reaching a calon instance's availability endpoint, for the "Test connection"
 // button on a date-timeslot field. Mirrors the integration test endpoints
 // (routes/integrations.js) in spirit, but reads instead of sending anything.
-router.post('/:id/calon-test', async (req, res) => {
+router.post('/:id/calon-test', asyncHandler(async (req, res) => {
   const db = getDb();
   const form = db.prepare('SELECT id FROM forms WHERE id = ? AND user_id = ?').get(req.params.id, req.userId);
   if (!form) return res.status(404).json({ error: 'Form not found' });
@@ -288,6 +300,6 @@ router.post('/:id/calon-test', async (req, res) => {
   } catch (err) {
     res.status(400).json({ ok: false, error: err.message || 'Could not reach calon' });
   }
-});
+}));
 
 module.exports = router;

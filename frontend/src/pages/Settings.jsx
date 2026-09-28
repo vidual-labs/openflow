@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import { formatServerDate, formatServerDateTime } from '../utils/dates';
 import { PageHeader, Alert } from '../components/AdminUI';
 
 const DEFAULT_BRANDING = { logoVisible: true, logoUrl: '' };
@@ -215,8 +216,8 @@ function ApiTokensCard() {
               <tr key={t.id}>
                 <td className="cell-primary">{t.name}</td>
                 <td data-label="Token" style={{ fontFamily: 'monospace', color: 'var(--text-light)' }}>{t.token_prefix}…</td>
-                <td data-label="Last used" style={{ color: 'var(--text-light)' }}>{t.last_used_at ? new Date(t.last_used_at + 'Z').toLocaleString() : '—'}</td>
-                <td data-label="Created" style={{ color: 'var(--text-light)' }}>{t.created_at ? new Date(t.created_at + 'Z').toLocaleDateString() : '—'}</td>
+                <td data-label="Last used" style={{ color: 'var(--text-light)' }}>{formatServerDateTime(t.last_used_at)}</td>
+                <td data-label="Created" style={{ color: 'var(--text-light)' }}>{formatServerDate(t.created_at)}</td>
                 <td className="cell-actions" style={{ textAlign: 'right' }}>
                   <button type="button" className="btn btn-danger" onClick={() => handleRevoke(t.id)}>Revoke</button>
                 </td>

@@ -1,9 +1,11 @@
 const { Router } = require('express');
+const { asyncHandler } = require('../middleware/errorHandler');
 const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
 const { encrypt, decrypt } = require('../models/encryption');
 const { redactConfig, mergeConfig } = require('../models/integrationSecrets');
 const { randomUUID: uuid } = require('crypto');
+const { flattenFields } = require('../utils/steps');
 
 const router = Router();
 router.use(authMiddleware);
@@ -111,7 +113,7 @@ router.delete('/:formId/:integrationId', (req, res) => {
 });
 
 // Test integration
-router.post('/:formId/:integrationId/test', async (req, res) => {
+router.post('/:formId/:integrationId/test', asyncHandler(async (req, res) => {
   const db = getDb();
   const form = db.prepare('SELECT * FROM forms WHERE id = ? AND user_id = ?').get(req.params.formId, req.userId);
   if (!form) return res.status(404).json({ error: 'Form not found' });
@@ -120,8 +122,10 @@ router.post('/:formId/:integrationId/test', async (req, res) => {
   if (!integration) return res.status(404).json({ error: 'Integration not found' });
 
   const steps = JSON.parse(form.steps);
+  // One value per leaf field, so combined ("group") steps get their
+  // sub-fields filled instead of a value under the group's own id.
   const testData = {};
-  steps.forEach(s => { testData[s.id] = `Test value for ${s.label || s.id}`; });
+  flattenFields(steps).forEach(s => { testData[s.id] = `Test value for ${s.label || s.id}`; });
 
   const { runIntegrations, testGoogleAdsCredentials, testMetaConversionApiCredentials } = require('../models/integrations');
 
@@ -166,7 +170,7 @@ router.post('/:formId/:integrationId/test', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // List delivery attempts for a form's integrations, most recent first. Lets
 // the dashboard surface failed/dead leads instead of them vanishing silently.
@@ -184,7 +188,7 @@ router.get('/:formId/deliveries', (req, res) => {
 
 // Manually retry a failed/dead delivery (e.g. after the client fixes their
 // endpoint).
-router.post('/:formId/deliveries/:deliveryId/retry', async (req, res) => {
+router.post('/:formId/deliveries/:deliveryId/retry', asyncHandler(async (req, res) => {
   const db = getDb();
   const form = db.prepare('SELECT id FROM forms WHERE id = ? AND user_id = ?').get(req.params.formId, req.userId);
   if (!form) return res.status(404).json({ error: 'Form not found' });
@@ -199,6 +203,6 @@ router.post('/:formId/deliveries/:deliveryId/retry', async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+}));
 
 module.exports = router;

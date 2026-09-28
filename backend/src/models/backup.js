@@ -198,14 +198,17 @@ function restoreBackup(db, rawBackup, options = {}) {
           preserveUser.id,
           preserveUser.email
         );
+        // token_version must survive too: the admin's current JWT carries
+        // it, and resetting it to 0 would revoke their session mid-restore.
         db.prepare(
-          'INSERT INTO users (id, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)'
+          'INSERT INTO users (id, email, password_hash, role, created_at, token_version) VALUES (?, ?, ?, ?, ?, ?)'
         ).run(
           preserveUser.id,
           preserveUser.email,
           preserveUser.password_hash,
           'admin',
-          preserveUser.created_at || new Date().toISOString()
+          preserveUser.created_at || new Date().toISOString(),
+          preserveUser.token_version || 0
         );
 
         // If the backup had a matching user under a different id, their forms

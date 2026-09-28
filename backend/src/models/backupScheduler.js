@@ -82,7 +82,13 @@ function startBackupScheduler(db) {
     }
   };
 
-  run();
+  // Write one at boot only if the newest backup is older than the interval;
+  // otherwise a crash loop (or a few quick restarts) would fill the retention
+  // window with near-identical copies and prune the real daily history.
+  const newest = listScheduledBackups()[0];
+  const newestAge = newest ? Date.now() - new Date(newest.created_at).getTime() : Infinity;
+  if (!(newestAge < intervalHours * 60 * 60 * 1000)) run();
+  else logger.info('scheduled_backup_skipped_at_boot', { newest: newest.filename });
   const timer = setInterval(run, intervalHours * 60 * 60 * 1000);
   timer.unref();
   logger.info('scheduled_backups_enabled', { intervalHours, retentionCount, dir: backupDir() });

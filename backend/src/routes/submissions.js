@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
 const { flattenFields } = require('../utils/steps');
+const { formatValue } = require('../utils/formatValue');
 
 const router = Router();
 
@@ -46,7 +47,7 @@ router.get('/:formId/export', (req, res) => {
   const headers = ['Submitted At', ...fields.map(f => f.label || f.question || f.id)];
   const rows = submissions.map(s => {
     const data = JSON.parse(s.data);
-    return [s.created_at, ...fields.map(f => data[f.id] ?? '')];
+    return [s.created_at, ...fields.map(f => formatValue(f, data[f.id]))];
   });
 
   // Neutralize CSV/DDE formula injection: if a cell starts with a character

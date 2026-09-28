@@ -1,8 +1,9 @@
 // Simple in-memory rate limiting (no Redis needed)
 const buckets = new Map();
 
-// Clean up expired entries every 60 seconds
-setInterval(() => {
+// Clean up expired entries every 60 seconds. unref() so this housekeeping
+// timer never keeps the process (or a Jest worker) alive on its own.
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of buckets) {
     if (now > entry.expiresAt) {
@@ -10,6 +11,7 @@ setInterval(() => {
     }
   }
 }, 60_000);
+cleanupTimer.unref();
 
 function checkRateLimit(key, maxRequests, windowSeconds) {
   const now = Date.now();
@@ -33,4 +35,10 @@ function isRateLimited(key, maxRequests) {
   return entry.count >= maxRequests;
 }
 
-module.exports = { checkRateLimit, isRateLimited };
+// For tests: forget every bucket so files that submit many forms don't
+// trip the per-IP limits meant for real traffic.
+function resetRateLimits() {
+  buckets.clear();
+}
+
+module.exports = { resetRateLimits, checkRateLimit, isRateLimited };

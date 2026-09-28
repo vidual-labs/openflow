@@ -9,8 +9,12 @@ const logger = require('../utils/logger');
 const RETRY_DELAYS_MINUTES = [1, 5, 30, 120, 360];
 const MAX_ATTEMPTS = RETRY_DELAYS_MINUTES.length;
 
+// SQLite's datetime('now') format (UTC, 'YYYY-MM-DD HH:MM:SS'), so the
+// sweep's `next_attempt_at <= datetime('now')` compares like with like. An
+// ISO string ('...T...Z') sorts after every same-day datetime('now') value,
+// which used to defer each retry to the next calendar day.
 function inMinutes(n) {
-  return new Date(Date.now() + n * 60000).toISOString();
+  return new Date(Date.now() + n * 60000).toISOString().replace('T', ' ').slice(0, 19);
 }
 
 // Enqueue one delivery row per enabled integration and attempt each
