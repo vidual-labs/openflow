@@ -9,7 +9,7 @@ import Users from './pages/Users';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
-import { LogoMark, Loading } from './components/AdminUI';
+import { LogoMark, LogoWordmark, Loading } from './components/AdminUI';
 import { version as APP_VERSION } from '../package.json';
 
 function getInitialTheme() {
@@ -69,7 +69,7 @@ export default function App() {
   return (
     <div className="admin-layout">
       <header className="admin-topbar">
-        <span className="admin-topbar-brand"><LogoMark size={24} className="logo-mark" />OpenFlow</span>
+        <span className="admin-topbar-brand"><LogoMark size={24} className="logo-mark" /><LogoWordmark /></span>
         <button
           className="admin-menu-toggle"
           onClick={() => setMenuOpen(o => !o)}
@@ -81,7 +81,7 @@ export default function App() {
       </header>
       {menuOpen && <div className="admin-sidebar-backdrop" onClick={() => setMenuOpen(false)} />}
       <aside className={`admin-sidebar${menuOpen ? ' open' : ''}`}>
-        <h1><LogoMark size={28} className="logo-mark" />OpenFlow</h1>
+        <h1><LogoMark size={28} className="logo-mark" /><LogoWordmark /></h1>
         <nav>
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
           <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>Analytics</Link>

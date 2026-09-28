@@ -2,6 +2,15 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.39.3] - 2026-09-28
+
+### Changed
+- **The admin app wears the new logo too.** The sidebar, the mobile top bar
+  and the login page show the flow-ring mark from 0.39.2 with "Flow" on the
+  brand gradient, and the browser tab icon (`favicon.svg`) is the same mark
+  instead of the old wave tile. The operator-configurable logo at the bottom
+  of the sidebar (Settings → Branding) is unchanged.
+
 ## [0.39.2] - 2026-09-28
 
 ### Changed

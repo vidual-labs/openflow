@@ -41,32 +41,51 @@ export function EmptyState({ title, message, children }) {
 }
 
 /**
- * OpenFlow brand mark — three flowing waves on the brand gradient tile.
- * Each instance gets a unique gradient id so multiple marks can coexist.
+ * OpenFlow brand mark — one continuous stroke that forms an "O" and flows out
+ * into a wave, on the purple → teal brand gradient. The same mark as
+ * `docs/assets/openflow-mark.svg` and `public/favicon.svg`. `size` is the
+ * height; the mark is wider than tall (90 × 64). Each instance gets a unique
+ * gradient id so multiple marks can coexist on one page.
  */
+export const LOGO_MARK_RATIO = 90 / 64;
+
 export function LogoMark({ size = 28, className = '' }) {
   const uid = React.useId();
   const gradId = `of-grad-${uid}`;
   return (
     <svg
       className={className}
-      width={size}
+      width={Math.round(size * LOGO_MARK_RATIO)}
       height={size}
-      viewBox="0 0 32 32"
+      viewBox="0 0 90 64"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+        <linearGradient id={gradId} x1="10" y1="0" x2="88" y2="0" gradientUnits="userSpaceOnUse">
           <stop stopColor="#6C5CE7" />
-          <stop offset="1" stopColor="#A29BFE" />
+          <stop offset="1" stopColor="#00CEC9" />
         </linearGradient>
       </defs>
-      <rect width="32" height="32" rx="9" fill={`url(#${gradId})`} />
-      <path d="M6 12c3.2-3.4 6.6-3.4 10 0s6.8 3.4 10 0" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" opacity="0.95" />
-      <path d="M6 17c3.2-3.4 6.6-3.4 10 0s6.8 3.4 10 0" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" opacity="0.75" />
-      <path d="M6 22c3.2-3.4 6.6-3.4 10 0s6.8 3.4 10 0" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" opacity="0.5" />
+      <path
+        d="M83.5 30.5c-10-2-10 12-18 12s-10-12-16-20A20 20 0 1 0 49.5 41.5"
+        stroke={`url(#${gradId})`}
+        strokeWidth="9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
+  );
+}
+
+/**
+ * The "OpenFlow" wordmark as text: "Open" in the surrounding text colour,
+ * "Flow" on the brand gradient (see `.logo-word` in global.css). Pair it with
+ * <LogoMark /> inside a flex container.
+ */
+export function LogoWordmark() {
+  return (
+    <span className="logo-word">Open<span className="logo-word-flow">Flow</span></span>
   );
 }

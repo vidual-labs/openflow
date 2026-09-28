@@ -113,6 +113,23 @@ input, select, textarea {
   flex-shrink: 0;
 }
 
+/* "OpenFlow" wordmark: "Open" inherits the text colour, "Flow" sits on the
+   brand gradient. The sidebar and topbar are always dark, so they get the
+   lighter gradient stops. */
+.logo-word {
+  white-space: nowrap;
+}
+.logo-word-flow {
+  background: linear-gradient(90deg, #6C5CE7, #A29BFE);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.admin-sidebar .logo-word-flow,
+.admin-topbar .logo-word-flow {
+  background-image: linear-gradient(90deg, #A29BFE, #7FE0DC);
+}
+
 .login-box h1 {
   font-family: 'Space Grotesk', sans-serif;
   letter-spacing: -0.5px;
