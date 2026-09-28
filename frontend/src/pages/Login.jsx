@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../api';
-import { Alert, LogoMark } from '../components/AdminUI';
+import { Alert, LogoMark, LogoWordmark } from '../components/AdminUI';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ export default function Login({ onLogin }) {
   return (
     <div className="login-container">
       <div className="login-box card">
-        <h1><LogoMark size={32} className="logo-mark" />OpenFlow</h1>
+        <h1><LogoMark size={32} className="logo-mark" /><LogoWordmark /></h1>
         <form onSubmit={handleSubmit}>
           <div className="input-group">
             <label>E-Mail</label>
