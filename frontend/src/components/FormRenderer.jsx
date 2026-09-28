@@ -110,6 +110,19 @@ function validateField(field, value, locale) {
   if (field.required && empty) return locale.errorRequired;
   if (field.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return locale.errorEmail;
   if (field.type === 'website' && value && !/^https?:\/\/.+\..+/.test(value)) return locale.errorUrl;
+  if (field.type === 'phone' && value && !(/^\+?[\d\s().\/-]{3,30}$/.test(String(value).trim()) && (String(value).match(/\d/g) || []).length >= 3)) {
+    return locale.errorPhone;
+  }
+  // Min/max are configured in the editor but the native input attributes never
+  // fire (there is no <form> submit), so the range has to be checked here.
+  if (field.type === 'number' && value !== undefined && value !== null && value !== '') {
+    const n = Number(value);
+    const min = toNumberOrNull(field.min);
+    const max = toNumberOrNull(field.max);
+    if (!Number.isFinite(n)) return locale.errorNumber;
+    if (min !== null && n < min) return locale.errorNumberMin(min);
+    if (max !== null && n > max) return locale.errorNumberMax(max);
+  }
   if (field.type === 'consent' && field.required && !value) return locale.errorConsent;
   // A half-picked range ("2026-08-10" with no end) is a valid-looking answer that isn't
   // finished, so it has to be caught on optional steps too — `required` never sees it.
@@ -227,6 +240,14 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const [stepNonce, setStepNonce] = useState(0);
   const containerRef = useRef(null);
   const trackedRef = useRef(false);
+  // 'start' is a real interaction (first answer or first Next), not the page
+  // load — otherwise Starts always equals Views and the start rate is 100 %.
+  const startedRef = useRef(false);
+  function trackStart() {
+    if (startedRef.current || !form?.id) return;
+    startedRef.current = true;
+    trackEvent(form.id, 'start');
+  }
   const submittingRef = useRef(false);
   // Always-current ref so auto-advance timer can check if user navigated away
   const currentStepRef = useRef(currentStep);
@@ -298,6 +319,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   }, [formBg]);
 
   function setFieldAnswer(fieldId, value) {
+    trackStart();
     setAnswers(prev => ({ ...prev, [fieldId]: value }));
     setError('');
     // Editing an answer takes the confirmation back: the hint returns to the field
@@ -351,6 +373,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // ticked first. Called straight from onClick too, where the argument is an event.
   const next = useCallback(function next(opts) {
     const agree = opts?.agree === true;
+    trackStart();
     // The consent step has no field to validate — it is agreed to or it isn't.
     if (isConsentStep) {
       if (!consentGiven && !agree) {
@@ -416,7 +439,13 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     // A held-down or double-tapped Enter must not post the form twice.
     if (submittingRef.current) return;
     submittingRef.current = true;
-    const submitData = { ...answers };
+    // Only the answers of steps the visitor actually saw: a question hidden by
+    // conditional logic after it was answered must not leak its stale value.
+    const visibleIds = new Set(flattenFields(questionSteps).map(f => f.id));
+    const submitData = {};
+    for (const [key, val] of Object.entries(answers)) {
+      if (visibleIds.has(key)) submitData[key] = val;
+    }
     if (consentRequired) {
       submitData._consent = consentOverride === undefined ? consentGiven : consentOverride;
     }
@@ -467,7 +496,17 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     // Enter on a focused button or link has to activate that element — a choice
     // option, the Next button, a footer link. Advancing here instead would eat
     // the keystroke and skip the step without recording the answer.
-    if (e.target.closest?.('button, a')) return;
+    if (e.target.closest?.('button, a')) {
+      // Except on the consent screens, where the hint promises "Enter to agree":
+      // a Submit button that just reported the missing consent keeps focus, and
+      // its click would only repeat the error. Enter there is the agreement.
+      const onSubmitButton = e.target.closest('button')?.classList.contains('form-btn');
+      if (onSubmitButton && (isConsentStep || (showInlineConsent && answerConfirmed)) && !consentGiven) {
+        e.preventDefault();
+        next({ agree: true });
+      }
+      return;
+    }
     // Textareas need plain Enter for newlines; only advance on Ctrl/Cmd+Enter.
     if (step?.type === 'textarea' && !(e.metaKey || e.ctrlKey)) return;
     e.preventDefault();
@@ -512,7 +551,6 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     if (!trackedRef.current && form?.id) {
       trackedRef.current = true;
       trackEvent(form.id, 'view');
-      trackEvent(form.id, 'start');
     }
   }, [form?.id]);
 
@@ -1153,9 +1191,15 @@ function generateStandaloneSlots(step) {
 
   const byDate = {};
   const base = new Date();
+  // Today only offers times that are still ahead (with a little lead time);
+  // a day with nothing left is dropped so the picker starts on tomorrow.
+  const nowMinutes = base.getHours() * 60 + base.getMinutes() + 15;
   for (let i = 0; i < rangeDays; i++) {
     const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
-    byDate[toISO(d.getFullYear(), d.getMonth(), d.getDate())] = times;
+    const dayTimes = i === 0
+      ? times.filter(t => { const [h, m] = t.split(':').map(Number); return h * 60 + m >= nowMinutes; })
+      : times;
+    if (dayTimes.length) byDate[toISO(d.getFullYear(), d.getMonth(), d.getDate())] = dayTimes;
   }
   return byDate;
 }
@@ -1559,7 +1603,7 @@ function FileUploadInput({ step, value, onChange }) {
           <>
             <span className="file-icon">&#128193;</span>
             <span>{locale.fileUploadPrompt}</span>
-            <span className="file-hint">{step.accept || '.pdf,.jpg,.png'} &middot; Max {step.maxSizeMB || 10} MB</span>
+            <span className="file-hint">{step.accept || '.pdf,.jpg,.png'} &middot; {locale.fileMaxSize(step.maxSizeMB || 10)}</span>
           </>
         )}
       </div>

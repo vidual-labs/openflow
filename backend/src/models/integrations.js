@@ -4,6 +4,7 @@ const net = require('net');
 const dns = require('dns').promises;
 const { google } = require('googleapis');
 const { flattenFields } = require('../utils/steps');
+const { formatValue } = require('../utils/formatValue');
 const { assertSafeUrl, resolveSafeHost, isLinkLocalOrUnspecified } = require('../utils/ssrf');
 const { decrypt } = require('./encryption');
 const logger = require('../utils/logger');
@@ -158,10 +159,8 @@ async function runEmail(config, formId, formTitle, data, steps) {
   // Build a nice HTML table from submission data (one row per field, groups expanded)
   const rows = flattenFields(steps).map(field => {
     const rawVal = data[field.id];
-    let val = rawVal;
-    if (val === undefined || val === null) val = '-';
-    if (Array.isArray(val)) val = val.join(', ');
-    else if (typeof val === 'object') val = JSON.stringify(val);
+    // Addresses become one line, uploads "name (size)" — never the base64 blob.
+    const val = formatValue(field, rawVal) || '-';
 
     let valueHtml = escapeHtmlAttr(val);
     if (contact_links_enabled && typeof rawVal === 'string' && rawVal.trim()) {
@@ -282,13 +281,9 @@ async function runGoogleSheets(config, formId, data, steps) {
   // Append the submission row (one cell per field, groups expanded)
   const row = [
     new Date().toISOString(),
-    ...flattenFields(steps).map(s => {
-      const val = data[s.id];
-      if (val === undefined || val === null) return '';
-      if (Array.isArray(val)) return val.join(', ');
-      if (typeof val === 'object') return JSON.stringify(val);
-      return String(val);
-    }),
+    // Sheets rejects cells over 50 000 chars, so a base64 upload must never
+    // be written raw; formatValue turns it into "name (size)".
+    ...flattenFields(steps).map(s => formatValue(s, data[s.id])),
   ];
 
   await sheets.spreadsheets.values.append({
@@ -335,11 +330,12 @@ async function runGoogleAdsConversion(config, data, metadata) {
 
   const accessToken = await getGoogleAdsAccessToken(config);
 
-  let conversionValue = default_value !== undefined ? Number(default_value) : undefined;
+  // The UI stores '' when no default is set; Number('') would upload value 0.
+  let conversionValue = default_value !== undefined && default_value !== '' && default_value !== null ? Number(default_value) : undefined;
   if (value_field_id) {
     const raw = data[value_field_id];
     const parsed = Number(raw);
-    if (raw !== undefined && !Number.isNaN(parsed)) conversionValue = parsed;
+    if (raw !== undefined && raw !== null && String(raw).trim() !== '' && !Number.isNaN(parsed)) conversionValue = parsed;
   }
 
   const adIdentifiers = {};

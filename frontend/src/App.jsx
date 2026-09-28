@@ -9,11 +9,27 @@ import Users from './pages/Users';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
-import { LogoMark, LogoWordmark, Loading } from './components/AdminUI';
+import { LogoMark, LogoWordmark, Loading, EmptyState } from './components/AdminUI';
 import { version as APP_VERSION } from '../package.json';
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
+}
+
+function NotFound() {
+  return (
+    <EmptyState title="Page not found" message="There is nothing at this address.">
+      <Link to="/" className="btn btn-primary">Back to forms</Link>
+    </EmptyState>
+  );
+}
+
+function Forbidden() {
+  return (
+    <EmptyState title="Admins only" message="This page is only available to administrators.">
+      <Link to="/" className="btn btn-primary">Back to forms</Link>
+    </EmptyState>
+  );
 }
 
 export default function App() {
@@ -115,9 +131,10 @@ export default function App() {
           <Route path="/forms/:id" element={<FormEditor />} />
           <Route path="/forms/:id/submissions" element={<Submissions />} />
           <Route path="/analytics" element={<Analytics />} />
-          {isAdmin && <Route path="/users" element={<Users />} />}
-          {isAdmin && <Route path="/settings" element={<Settings />} />}
-          {isAdmin && <Route path="/backup" element={<Backup />} />}
+          <Route path="/users" element={isAdmin ? <Users /> : <Forbidden />} />
+          <Route path="/settings" element={isAdmin ? <Settings /> : <Forbidden />} />
+          <Route path="/backup" element={isAdmin ? <Backup /> : <Forbidden />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
     </div>

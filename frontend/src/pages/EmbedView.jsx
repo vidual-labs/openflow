@@ -2,19 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import FormRenderer from '../components/FormRenderer';
 import { api } from '../api';
+import { LOCALES } from '../locales';
 import { captureClickIds, withMetaCookies } from '../clickIds';
 
 function CookieBanner({ form, onAccept, onDecline }) {
   const es = form.end_screen || {};
-  const text = es.cookieConsentText || 'We use Google Tag Manager to analyze form interactions and improve your experience. Do you accept?';
-  const acceptLabel = es.cookieConsentAcceptLabel || 'Accept';
-  const declineLabel = es.cookieConsentDeclineLabel || 'Decline';
+  // Defaults follow the form's language (Design tab), like every other
+  // respondent-facing string; the operator's own texts still win.
+  const locale = LOCALES[form.theme?.language] || LOCALES.en;
+  const text = es.cookieConsentText || locale.cookieConsentText;
+  const acceptLabel = es.cookieConsentAcceptLabel || locale.cookieAccept;
+  const declineLabel = es.cookieConsentDeclineLabel || locale.cookieDecline;
   const primary = form.theme?.primaryColor || '#6C5CE7';
 
   return (
     <div
       role="region"
-      aria-label="Cookie preferences"
+      aria-label={locale.cookieBannerLabel}
       style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
         background: '#fff', borderTop: '1px solid #e0e0e0',
@@ -84,7 +88,9 @@ export default function EmbedView() {
     api.getPublicForm(slug)
       .then(d => {
         if (d.form && d.form.slug && d.form.slug !== slug) {
-          navigate(`/embed/${d.form.slug}`, { replace: true });
+          // Keep the query string: embed URLs shared before a rename carry
+          // the ad click ids (gclid/fbclid) the conversion uploads depend on.
+          navigate(`/embed/${d.form.slug}${window.location.search}${window.location.hash}`, { replace: true });
           return;
         }
         setForm(d.form);
@@ -159,8 +165,8 @@ export default function EmbedView() {
     return result;
   }
 
-  if (error) return <div style={{ padding: 40, textAlign: 'center' }}>Form not found</div>;
-  if (!form) return <div style={{ padding: 40, textAlign: 'center' }} role="status" aria-live="polite">Loading...</div>;
+  if (error) return <div style={{ padding: 40, textAlign: 'center' }}>{LOCALES.en.formNotFound}</div>;
+  if (!form) return <div style={{ padding: 40, textAlign: 'center' }} role="status" aria-live="polite">{LOCALES.en.loading}</div>;
 
   return (
     <>

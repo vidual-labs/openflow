@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import { formatServerDate } from '../utils/dates';
 import { PageHeader, Alert } from '../components/AdminUI';
 
 export default function Users() {
@@ -53,8 +54,13 @@ export default function Users() {
 
   async function toggleRole(user) {
     const newRole = user.role === 'admin' ? 'user' : 'admin';
-    await api.updateUser(user.id, { role: newRole });
-    loadUsers();
+    if (!confirm(`Make "${user.email}" ${newRole === 'admin' ? 'an admin' : 'a regular user'}? They will be logged out of all sessions.`)) return;
+    try {
+      await api.updateUser(user.id, { role: newRole });
+      loadUsers();
+    } catch (err) {
+      alert(err.message);
+    }
   }
 
   async function handleRevokeSessions(user) {
@@ -84,7 +90,7 @@ export default function Users() {
               </div>
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label>Password</label>
-                <input className="input" type="text" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 6 characters" required minLength={6} />
+                <input className="input" type="text" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 10 characters" required minLength={10} />
               </div>
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label>Role</label>
@@ -120,7 +126,7 @@ export default function Users() {
                     {user.role || 'user'}
                   </span>
                 </td>
-                <td data-label="Created" style={{ fontSize: 13, color: 'var(--text-light)' }}>{new Date(user.created_at).toLocaleDateString()}</td>
+                <td data-label="Created" style={{ fontSize: 13, color: 'var(--text-light)' }}>{formatServerDate(user.created_at)}</td>
                 <td className="cell-actions">
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button className="btn btn-sm btn-secondary" onClick={() => toggleRole(user)} title="Toggle role">

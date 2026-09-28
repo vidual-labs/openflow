@@ -102,7 +102,7 @@ export default function Analytics() {
               <h4 style={{ marginBottom: 16 }}>Step Drop-off</h4>
               {detail.stepDropoff.map((step, i) => (
                 <FunnelBar
-                  key={step.stepIndex}
+                  key={step.stepId || `idx-${step.stepIndex}`}
                   label={`${i + 1}. ${step.label}`}
                   value={step.sessions}
                   max={detail.stepDropoff[0]?.sessions || 1}
@@ -159,9 +159,14 @@ function DailyChart({ data }) {
         {dayKeys.map(day => {
           const d = days[day];
           return (
-            <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }} title={`${day}\nViews: ${d.views}\nStarts: ${d.starts}\nCompletions: ${d.completions}`}>
-              <div style={{ width: '100%', maxWidth: 24, background: 'var(--primary)', borderRadius: '3px 3px 0 0', height: `${(d.views / maxVal) * 100}%`, minHeight: d.views > 0 ? 4 : 0, opacity: 0.3 }} />
-              <div style={{ width: '100%', maxWidth: 24, background: 'var(--success)', borderRadius: '3px 3px 0 0', height: `${(d.completions / maxVal) * 100}%`, minHeight: d.completions > 0 ? 4 : 0, marginTop: -1 * ((d.views / maxVal) * 100) + '%', position: 'relative' }} />
+            <div key={day} style={{ flex: 1, display: 'flex', justifyContent: 'center', height: '100%' }} title={`${day}\nViews: ${d.views}\nStarts: ${d.starts}\nCompletions: ${d.completions}`}>
+              {/* Both bars grow from the bottom of the same box, so the completions
+                  bar overlays the views bar (a percentage margin would resolve
+                  against the container's width, not its height). */}
+              <div style={{ position: 'relative', width: '100%', maxWidth: 24, height: '100%' }}>
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'var(--primary)', borderRadius: '3px 3px 0 0', height: `${(d.views / maxVal) * 100}%`, minHeight: d.views > 0 ? 4 : 0, opacity: 0.3 }} />
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'var(--success)', borderRadius: '3px 3px 0 0', height: `${(d.completions / maxVal) * 100}%`, minHeight: d.completions > 0 ? 4 : 0 }} />
+              </div>
             </div>
           );
         })}

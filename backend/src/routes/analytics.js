@@ -5,6 +5,14 @@ const { authMiddleware } = require('../middleware/auth');
 const router = Router();
 router.use(authMiddleware);
 
+// analytics_events.created_at is SQLite's datetime('now') text
+// ('YYYY-MM-DD HH:MM:SS'); the window bound must use the same format, since
+// an ISO string ('...T...Z') sorts after every same-day row and silently
+// dropped the window's first day.
+function sinceSql(days) {
+  return new Date(Date.now() - days * 86400000).toISOString().replace('T', ' ').slice(0, 19);
+}
+
 // Get analytics overview for all forms
 router.get('/overview', (req, res) => {
   const db = getDb();
@@ -15,7 +23,7 @@ router.get('/overview', (req, res) => {
 
   const placeholders = formIds.map(() => '?').join(',');
   const days = parseInt(req.query.days) || 30;
-  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const since = sinceSql(days);
 
   const stats = db.prepare(`
     SELECT form_id, event, COUNT(*) as count,
@@ -49,7 +57,7 @@ router.get('/:formId', (req, res) => {
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
   const days = parseInt(req.query.days) || 30;
-  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const since = sinceSql(days);
 
   // Overall funnel
   const funnel = db.prepare(`
@@ -60,12 +68,15 @@ router.get('/:formId', (req, res) => {
   `).all(req.params.formId, since);
 
   // Step drop-off
+  // Grouped by step *id*, not index: the renderer reports its position in
+  // the conditionally filtered flow, so the same index can be different
+  // questions for different visitors. Rows without a step id (events from
+  // before ids were recorded) still fall back to the index.
   const stepEvents = db.prepare(`
-    SELECT step_index, step_id, COUNT(DISTINCT session_id) as sessions
+    SELECT MIN(step_index) as step_index, step_id, COUNT(DISTINCT session_id) as sessions
     FROM analytics_events
     WHERE form_id = ? AND event = 'step' AND created_at >= ? AND step_index IS NOT NULL
-    GROUP BY step_index
-    ORDER BY step_index
+    GROUP BY COALESCE(step_id, 'idx:' || step_index)
   `).all(req.params.formId, since);
 
   // Daily trend
@@ -95,7 +106,10 @@ router.get('/:formId', (req, res) => {
       startRate: views > 0 ? Math.round((starts / views) * 100) : 0,
     },
     stepDropoff: stepEvents.map(se => {
-      const s = steps[se.step_index];
+      const configuredIndex = se.step_id ? steps.findIndex(st => st && st.id === se.step_id) : -1;
+      const s = configuredIndex >= 0 ? steps[configuredIndex] : (se.step_id ? undefined : steps[se.step_index]);
+      // Order by the configured position; the consent step always comes last.
+      const order = se.step_id === '__consent__' ? steps.length : configuredIndex >= 0 ? configuredIndex : se.step_index;
       // The GDPR consent is a step of its own at the end of the flow, but it isn't
       // in the form's configured steps — name it rather than showing "Step 8".
       const label = se.step_id === '__consent__'
@@ -108,8 +122,9 @@ router.get('/:formId', (req, res) => {
         stepId: se.step_id,
         label,
         sessions: se.sessions,
+        order,
       };
-    }),
+    }).sort((a, b) => a.order - b.order || a.stepIndex - b.stepIndex),
     daily,
   });
 });

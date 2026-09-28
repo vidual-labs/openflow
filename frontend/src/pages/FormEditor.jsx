@@ -69,12 +69,29 @@ export default function FormEditor() {
     api.getSettings().then(d => setPrimaryHost(d.primaryHost || null)).catch(() => {});
   }, []);
 
+  // Snapshot of what the server holds, to warn before unsaved edits are lost.
+  const savedSnapshotRef = useRef(null);
+  function snapshotOf(f) {
+    return f ? JSON.stringify({ title: f.title, steps: f.steps, end_screen: f.end_screen, theme: f.theme, gtm_id: f.gtm_id }) : null;
+  }
+  const isDirty = !!form && savedSnapshotRef.current !== null && snapshotOf(form) !== savedSnapshotRef.current;
+
   useEffect(() => {
     setLoadError('');
     api.getForm(id)
-      .then(d => setForm(d.form))
+      .then(d => { savedSnapshotRef.current = snapshotOf(d.form); setForm(d.form); })
       .catch(err => setLoadError(err.message || 'Failed to load form'));
   }, [id]);
+
+  useEffect(() => {
+    if (!isDirty) return undefined;
+    function onBeforeUnload(e) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
 
   if (loadError) return (
     <div style={{ padding: 40, textAlign: 'center', color: 'var(--danger)' }}>
@@ -98,6 +115,7 @@ export default function FormEditor() {
     };
     try {
       const { form: updated } = await api.updateForm(id, payload);
+      savedSnapshotRef.current = snapshotOf(updated);
       setForm(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -157,7 +175,15 @@ export default function FormEditor() {
   }
 
   function removeStep(index) {
-    const steps = form.steps.filter((_, i) => i !== index);
+    const removed = form.steps[index];
+    const removedIds = new Set(removed?.type === 'group' ? (removed.fields || []).map(f => f.id) : [removed?.id]);
+    // A rule pointing at a deleted question would silently stay on the step
+    // (and be invisible in the editor once no other field is left to refer to).
+    const dropDangling = (s) => (s.condition && removedIds.has(s.condition.field) ? { ...s, condition: undefined } : s);
+    const steps = form.steps.filter((_, i) => i !== index).map(s => {
+      const cleaned = dropDangling(s);
+      return cleaned.type === 'group' && Array.isArray(cleaned.fields) ? { ...cleaned, fields: cleaned.fields.map(dropDangling) } : cleaned;
+    });
     setForm({ ...form, steps });
     if (expandedStep === index) setExpandedStep(null);
     else if (expandedStep > index) setExpandedStep(expandedStep - 1);
@@ -207,7 +233,13 @@ export default function FormEditor() {
     <div className="editor-page">
       <div className="editor-header">
         <div className="editor-header-titles">
-          <Link to="/" className="back-link">&larr; Back</Link>
+          <Link
+            to="/"
+            className="back-link"
+            onClick={e => { if (isDirty && !confirm('You have unsaved changes. Leave without saving?')) e.preventDefault(); }}
+          >
+            &larr; Back
+          </Link>
           <div className="editor-title-row">
             <input
               className="editor-title-input"
@@ -354,7 +386,7 @@ export default function FormEditor() {
               <div className="input-group">
                 <label>Accent Color</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="color" value={form.theme?.accentColor || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, accentColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer', borderRadius: 8 }} />
+                  <input type="color" value={form.theme?.accentColor || form.theme?.primaryColor || '#6C5CE7'} onChange={e => setForm({ ...form, theme: { ...form.theme, accentColor: e.target.value } })} style={{ width: 48, height: 40, border: 'none', cursor: 'pointer', borderRadius: 8 }} />
                   <input className="input" value={form.theme?.accentColor || ''} onChange={e => setForm({ ...form, theme: { ...form.theme, accentColor: e.target.value } })} placeholder="Auto" />
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>Used for animated backgrounds. Auto-derived if empty.</span>
@@ -779,9 +811,11 @@ export default function FormEditor() {
             Copy the code and paste it into your landing page.
           </p>
 
+          {/* Merge only the renamed field: the server row would replace every
+              unsaved edit made on the other tabs. */}
           <SlugEditor
             form={form}
-            onUpdated={(updated) => setForm(updated)}
+            onUpdated={(updated) => setForm(f => ({ ...f, slug: updated.slug }))}
             baseUrl={baseUrl}
           />
 
@@ -789,7 +823,7 @@ export default function FormEditor() {
             <SubdomainEditor
               form={form}
               primaryHost={primaryHost}
-              onUpdated={(updated) => setForm(updated)}
+              onUpdated={(updated) => setForm(f => ({ ...f, subdomain: updated.subdomain }))}
             />
           )}
 
@@ -1017,6 +1051,11 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
               <input className="input" value={step.placeholder || ''} onChange={e => onChange({ placeholder: e.target.value })} placeholder="Placeholder text..." />
             </div>
           )}
+
+          <div className="input-group" style={{ marginTop: 12 }}>
+            <label>Help text (optional)</label>
+            <input className="input" value={step.description || ''} onChange={e => onChange({ description: e.target.value || undefined })} placeholder="Shown under the question" />
+          </div>
 
           {step.type === 'text' && <AutofillEditor field={step} onChange={onChange} />}
 

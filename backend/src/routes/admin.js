@@ -59,7 +59,7 @@ router.post('/restore', (req, res) => {
     const db = getDb();
     // Preserve the acting admin so a restore can never lock them out.
     const me = db
-      .prepare('SELECT id, email, password_hash, role, created_at FROM users WHERE id = ?')
+      .prepare('SELECT id, email, password_hash, role, created_at, token_version FROM users WHERE id = ?')
       .get(req.userId);
     const result = restoreBackup(db, req.body, { preserveUser: me });
     logAuditEvent({ userId: req.userId, action: 'backup_restored', ip: clientIp(req), details: result });

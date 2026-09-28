@@ -14,8 +14,10 @@ function clientIp(req) {
 }
 
 router.post('/login', (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
+  const { email, password } = req.body || {};
+  // Non-string values would throw inside the SQLite binding / bcrypt and
+  // surface as an HTML 500 page, bypassing the failed-login counter.
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
   }
 
@@ -50,7 +52,7 @@ router.post('/login', (req, res) => {
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
-  res.json({ user: { id: user.id, email: user.email } });
+  res.json({ user: { id: user.id, email: user.email, role: user.role, created_at: user.created_at } });
 });
 
 router.post('/logout', (req, res) => {
@@ -122,6 +124,12 @@ router.put('/users/:id', authMiddleware, requireAdmin, (req, res) => {
 
   const { role, password } = req.body;
   if (role) {
+    // An admin demoting themselves would lock the last admin out (the role
+    // change also revokes their session); make that a deliberate act by
+    // another admin instead.
+    if (req.params.id === req.userId && role !== 'admin') {
+      return res.status(400).json({ error: 'You cannot change your own role' });
+    }
     db.prepare('UPDATE users SET role = ?, token_version = token_version + 1 WHERE id = ?').run(role === 'admin' ? 'admin' : 'user', req.params.id);
     logAuditEvent({ userId: req.userId, action: 'user_role_changed', target: user.email, ip: clientIp(req), details: { role: role === 'admin' ? 'admin' : 'user' } });
   }
@@ -163,8 +171,19 @@ router.delete('/users/:id', authMiddleware, requireAdmin, (req, res) => {
     if (!targetUser) {
       return res.status(404).json({ error: 'User not found' });
     }
-    db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
-    logAuditEvent({ userId: req.userId, action: 'user_deleted', target: targetUser.email, ip: clientIp(req) });
+    // forms.user_id and api_tokens.user_id reference users(id): hand the
+    // user's forms (and their leads) to the deleting admin instead of
+    // failing the FK check, and revoke their API tokens.
+    const reassigned = db.transaction((userId, newOwnerId) => {
+      const { changes } = db.prepare('UPDATE forms SET user_id = ? WHERE user_id = ?').run(newOwnerId, userId);
+      db.prepare('DELETE FROM api_tokens WHERE user_id = ?').run(userId);
+      db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+      return changes;
+    })(req.params.id, req.userId);
+    logAuditEvent({
+      userId: req.userId, action: 'user_deleted', target: targetUser.email, ip: clientIp(req),
+      details: { formsReassigned: reassigned }
+    });
     res.json({ ok: true });
   } catch (err) {
     logger.error('delete_user_failed', { error: err.message });

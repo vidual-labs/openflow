@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { formatServerDate } from '../utils/dates';
 import { PageHeader, Alert, EmptyState, Loading } from '../components/AdminUI';
 
 export default function Dashboard() {
@@ -108,7 +109,7 @@ export default function Dashboard() {
                       </span>
                     </td>
                     <td data-label="Responses">{form.submission_count}</td>
-                    <td data-label="Created" style={{ fontSize: 13, color: 'var(--text-light)' }}>{new Date(form.created_at).toLocaleDateString('en')}</td>
+                    <td data-label="Created" style={{ fontSize: 13, color: 'var(--text-light)' }}>{formatServerDate(form.created_at)}</td>
                     <td className="cell-actions">
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <Link to={`/forms/${form.id}/submissions`} className="btn btn-sm btn-secondary" style={{ textDecoration: 'none' }}>

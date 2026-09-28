@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
 import { flattenFields } from '../utils/steps';
 
@@ -20,6 +20,13 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
   const [deliveries, setDeliveries] = useState([]);
   const [showDeliveries, setShowDeliveries] = useState(false);
   const [retrying, setRetrying] = useState(null);
+  // Config edits are applied locally at once and saved a moment after the
+  // last keystroke (one PUT per pause instead of per character). Saving on
+  // every onChange with the input bound to the server's response dropped
+  // and reordered characters typed while a request was in flight.
+  const integrationsRef = useRef(integrations);
+  integrationsRef.current = integrations;
+  const pendingRef = useRef({});
 
   useEffect(() => {
     api.getIntegrations(formId)
@@ -83,14 +90,44 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
     }
   }
 
+  // Applies the server's row but keeps config edits typed while the request
+  // was in flight (they are saved by their own pending flush).
+  function applyServerIntegration(integration) {
+    setIntegrations(prev => prev.map(i => {
+      if (i.id !== integration.id) return i;
+      const stillPending = pendingRef.current[integration.id]?.patch;
+      return stillPending ? { ...integration, config: { ...integration.config, ...stillPending } } : integration;
+    }));
+  }
+
   async function updateIntegration(id, updates) {
     try {
       const { integration } = await api.updateIntegration(formId, id, updates);
-      setIntegrations(prev => prev.map(i => i.id === id ? integration : i));
+      applyServerIntegration(integration);
     } catch (err) {
       setError(err.message || 'Failed to update integration');
     }
   }
+
+  async function flushConfig(id) {
+    const pending = pendingRef.current[id];
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    delete pendingRef.current[id];
+    const current = integrationsRef.current.find(i => i.id === id);
+    if (!current) return;
+    try {
+      const { integration } = await api.updateIntegration(formId, id, { config: current.config });
+      applyServerIntegration(integration);
+    } catch (err) {
+      setError(err.message || 'Failed to update integration');
+    }
+  }
+
+  // Save whatever is still pending when the panel unmounts (tab switch).
+  useEffect(() => () => {
+    for (const id of Object.keys(pendingRef.current)) flushConfig(id);
+  }, []);
 
   async function deleteIntegration(id) {
     if (!confirm('Delete this integration?')) return;
@@ -106,6 +143,8 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
     setTesting(id);
     setTestResult(null);
     try {
+      // The test runs against the stored config, so land pending edits first.
+      await flushConfig(id);
       const result = await api.testIntegration(formId, id);
       const first = result.results?.[0];
       setTestResult({ id, ok: first?.ok ?? false, error: first?.error });
@@ -117,10 +156,21 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
   }
 
   function updateConfig(id, key, value) {
-    const integration = integrations.find(i => i.id === id);
-    if (!integration) return;
-    const newConfig = { ...integration.config, [key]: value };
-    updateIntegration(id, { config: newConfig });
+    setIntegrations(prev => prev.map(i => i.id === id ? { ...i, config: { ...i.config, [key]: value } } : i));
+    integrationsRef.current = integrationsRef.current.map(i => i.id === id ? { ...i, config: { ...i.config, [key]: value } } : i);
+    const pending = pendingRef.current[id] || { patch: {}, timer: null };
+    pending.patch = { ...pending.patch, [key]: value };
+    clearTimeout(pending.timer);
+    pending.timer = setTimeout(() => flushConfig(id), 400);
+    pendingRef.current[id] = pending;
+  }
+
+  // Both Google Sheets variants share one type and differ by config.mode.
+  function typeInfo(integration) {
+    const value = integration.type === 'google_sheets' && integration.config?.mode === 'service_account'
+      ? 'google_sheets_sa'
+      : integration.type;
+    return INTEGRATION_TYPES.find(t => t.value === value) || INTEGRATION_TYPES.find(t => t.value === integration.type);
   }
 
   return (
@@ -197,9 +247,9 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
         <div key={integration.id} className="card" style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 20 }}>{INTEGRATION_TYPES.find(t => t.value === integration.type)?.icon}</span>
+              <span style={{ fontSize: 20 }}>{typeInfo(integration)?.icon}</span>
               <div>
-                <strong>{INTEGRATION_TYPES.find(t => t.value === integration.type)?.label}</strong>
+                <strong>{typeInfo(integration)?.label}</strong>
                 <span className={`badge ${integration.enabled ? 'badge-published' : 'badge-draft'}`} style={{ marginLeft: 8 }}>
                   {integration.enabled ? 'Active' : 'Disabled'}
                 </span>

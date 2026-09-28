@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const formRoutes = require('./routes/forms');
 const submissionRoutes = require('./routes/submissions');
 const publicRoutes = require('./routes/public');
+const { errorHandler } = require('./middleware/errorHandler');
 const integrationRoutes = require('./routes/integrations');
 const analyticsRoutes = require('./routes/analytics');
 const settingsRoutes = require('./routes/settings');
@@ -18,6 +19,12 @@ const { createSubdomainMiddleware } = require('./middleware/subdomain');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Last line of defence: a rejected promise nobody awaited (a background
+// worker, a fire-and-forget delivery) is logged, not fatal.
+process.on('unhandledRejection', (reason) => {
+  logger.error('unhandled_rejection', { error: reason && reason.message ? reason.message : String(reason), stack: reason && reason.stack });
+});
 
 // Trust X-Forwarded-* headers only when this deployment is fronted by a
 // reverse proxy (subdomain routing requires one). Trusting in unproxied
@@ -124,6 +131,10 @@ app.use('/api/admin', adminRoutes);
 app.all('/api/*', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
 });
+
+// JSON error responses for body-parser errors (malformed JSON, oversized
+// bodies) and anything a route throws — never Express's HTML stack page.
+app.use(errorHandler);
 
 // Serve frontend
 const fs = require('fs');

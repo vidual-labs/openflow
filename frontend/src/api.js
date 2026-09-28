@@ -47,6 +47,7 @@ export const api = {
   testCalonConnection: (id, data) => request(`/forms/${id}/calon-test`, { method: 'POST', body: JSON.stringify(data) }),
 
   getSubmissions: (formId, page = 1) => request(`/submissions/${formId}?page=${page}`),
+  deleteSubmission: (formId, submissionId) => request(`/submissions/${formId}/${submissionId}`, { method: 'DELETE' }),
   exportSubmissions: (formId) => `${BASE}/submissions/${formId}/export`,
 
   getIntegrations: (formId) => request(`/integrations/${formId}`),

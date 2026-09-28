@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.39.3 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.40.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -152,7 +152,7 @@ backwards compatibility with forms built before this moved.
 ### Integration Engine (`models/integrations.js`)
 Handles all outbound data flows via `runIntegration()`'s switch on
 `integration.type`:
-- **`webhook`**: POST/PUT with optional HMAC-SHA256 signing in `X-OpenFlow-Signature`. ⚠️ Known bug: the digest is computed over `{formId, formTitle, data, timestamp: Date.now()}` while the body sent is `{event, formId, formTitle, data, timestamp: <ISO>}`, so receivers can never verify it. Sign the exact bytes being sent when fixing — and treat it as a breaking change for anyone who worked around it.
+- **`webhook`**: POST/PUT with optional HMAC-SHA256 signing in `X-OpenFlow-Signature`. The digest is computed over the exact serialized body bytes (`{event, formId, formTitle, data, timestamp: <ISO>}`), so a receiver verifies it by HMAC-ing the raw request body. Keep signing the exact bytes sent.
 - **`email`**: SMTP with HTML-formatted submission table (values HTML-escaped)
 - **`google_sheets`**: Both Sheets variants share this type and branch on `config.mode` — `apps_script` (URL only) or `service_account` (JSON key, auto-creates headers). The UI's `google_sheets_sa` option is mapped to `google_sheets` before saving.
 - **`google_ads_conversion`**: Offline conversion upload via the Data Manager API; only runs for submissions carrying a `gclid`/`gbraid`/`wbraid`
@@ -303,7 +303,7 @@ docker compose up -d --build
 - **SQLite**: All data is in the SQLite database. The Docker volume `db-data` persists data across restarts; scheduled backups go to the separate `./backups` bind mount so a lost `db-data` volume doesn't take them with it.
 - **Rate Limiting**: In-memory rate limiter in `models/rateLimit.js` (no external Redis). Resets on restart.
 - **HMAC Signing**: Webhooks can be signed with a shared secret for security.
-- **Conditional Logic**: Stored as rules array in field config. Evaluated client-side during form render — the server does not re-check visibility, only that required fields are non-empty.
+- **Conditional Logic**: Stored as a `condition` on the step. Evaluated client-side during form render and mirrored on submit by `utils/conditions.js`, so the server skips validation of hidden steps and drops their stale answers.
 - **Form Slugs**: Unique URL identifier for public form access (`/f/<slug>` and `/embed/<slug>`). Renaming a slug archives the old one in `slug_history` so old links still resolve.
 - **Multi-User**: Admin can invite users and assign roles. Role-based access control in `middleware/auth.js`.
 - **Secrets**: `JWT_SECRET` is auto-generated and persisted next to the DB when unset; there is no hardcoded fallback. Set it explicitly in production.

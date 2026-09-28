@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
+import { formatServerDateTime } from '../utils/dates';
 import { PageHeader, Alert, EmptyState, Loading } from '../components/AdminUI';
 import { flattenFields } from '../utils/steps';
 
@@ -12,6 +13,13 @@ function formatValue(val, step) {
     return parts.join(', ') || '-';
   }
   if (Array.isArray(val)) return val.join(', ');
+  // File Upload stores { name, type, size, data: <base64 data URL> } — show
+  // the name and size, never the encoded file.
+  if (val && typeof val === 'object' && typeof val.name === 'string' && typeof val.data === 'string') {
+    const size = Number(val.size);
+    const sizeText = Number.isFinite(size) ? ` (${size < 1024 * 1024 ? `${Math.max(1, Math.round(size / 1024))} KB` : `${(size / (1024 * 1024)).toFixed(1)} MB`})` : '';
+    return `${val.name}${sizeText}`;
+  }
   if (val && typeof val === 'object') return JSON.stringify(val);
   return String(val ?? '-');
 }
@@ -23,6 +31,21 @@ export default function Submissions() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState(null);
+
+  async function handleDelete(subId) {
+    if (!confirm('Delete this response? This cannot be undone.')) return;
+    setDeleting(subId);
+    try {
+      await api.deleteSubmission(id, subId);
+      setSubmissions(prev => prev.filter(s => s.id !== subId));
+      setTotal(t => Math.max(0, t - 1));
+    } catch (err) {
+      setError(err.message || 'Failed to delete response');
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   useEffect(() => {
     api.getForm(id)
@@ -71,6 +94,7 @@ export default function Submissions() {
                   <th>#</th>
                   {fields.map(s => <th key={s.id}>{s.label || s.question}</th>)}
                   <th>Date</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -83,7 +107,12 @@ export default function Submissions() {
                       </td>
                     ))}
                     <td style={{ fontSize: 13, color: 'var(--text-light)', whiteSpace: 'nowrap' }}>
-                      {new Date(sub.created_at).toLocaleString('en')}
+                      {formatServerDateTime(sub.created_at)}
+                    </td>
+                    <td>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleDelete(sub.id)} disabled={deleting === sub.id}>
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
