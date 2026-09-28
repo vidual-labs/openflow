@@ -1,5 +1,24 @@
-# 🌊 OpenFlow v0.39.1
-> Open-source form builder for lead generation. A self-hosted alternative to Typeform and Heyflow.
+<p align="center">
+  <a href="https://github.com/vidual-labs/openflow">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/openflow-logo-dark.svg">
+      <img src="docs/assets/openflow-logo-light.svg" alt="OpenFlow" width="360">
+    </picture>
+  </a>
+</p>
+
+<p align="center">
+  <strong>Open-source form builder for lead generation.</strong><br>
+  A self-hosted alternative to Typeform and Heyflow.
+</p>
+
+<p align="center">
+  <a href="https://github.com/vidual-labs/openflow/releases"><img alt="Version" src="https://img.shields.io/github/package-json/v/vidual-labs/openflow?filename=backend%2Fpackage.json&label=version&color=6C5CE7"></a>
+  <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/github/license/vidual-labs/openflow?color=00CEC9"></a>
+  <a href="https://github.com/vidual-labs/openflow/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/vidual-labs/openflow/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://github.com/vidual-labs/openflow/pkgs/container/openflow"><img alt="Docker image on GHCR" src="https://img.shields.io/badge/ghcr.io-vidual--labs%2Fopenflow-2496ED?logo=docker&logoColor=white"></a>
+  <a href="https://github.com/vidual-labs/openflow/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/vidual-labs/openflow?style=flat&logo=github&color=A29BFE"></a>
+</p>
 
 ## 📚 Table of Contents
 
