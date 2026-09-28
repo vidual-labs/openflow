@@ -2,6 +2,18 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.39.2] - 2026-09-28
+
+### Changed
+- **New logo.** OpenFlow has a proper logo: a single stroke that forms an "O"
+  and flows out into a wave, in the brand purple-to-teal gradient, next to an
+  "OpenFlow" wordmark. It lives in `docs/assets/` as light and dark SVGs (the
+  wordmark is outlined, so it renders the same everywhere) plus a standalone
+  mark.
+- **README header.** The title line is replaced by the centered logo, the
+  tagline and five badges: version (read live from `backend/package.json`),
+  license, CI status, the GHCR Docker image and GitHub stars.
+
 ## [0.39.1] - 2026-09-24
 
 ### Fixed

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
 
-**Current Version**: 0.39.1 (see version badge in README.md and CHANGELOG.md)
+**Current Version**: 0.39.2 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -200,15 +200,17 @@ rules, and backup/restore. There is no frontend test suite.
 **Important**: Every commit must include a version bump.
 
 Version files to update:
-1. **README.md** — Update badge: `# 🌊 OpenFlow v0.X.X`
-2. **CHANGELOG.md** — Add new entry with date and changes
-3. **backend/package.json** + **backend/package-lock.json** — Update `version` (twice in the lockfile: the root and the `""` package entry)
-4. **frontend/package.json** + **frontend/package-lock.json** — Same
-5. **CLAUDE.md** — Update "Current Version" at the top of this file
+1. **CHANGELOG.md** — Add new entry with date and changes
+2. **backend/package.json** + **backend/package-lock.json** — Update `version` (twice in the lockfile: the root and the `""` package entry)
+3. **frontend/package.json** + **frontend/package-lock.json** — Same
+4. **CLAUDE.md** — Update "Current Version" at the top of this file
 
 Nothing else needs touching: the admin sidebar reads the version from
-`frontend/package.json` and `GET /api/` reads it from `backend/package.json`,
-so neither can go stale. The WordPress plugin is versioned separately.
+`frontend/package.json`, `GET /api/` reads it from `backend/package.json`, and
+the README's version badge is a shields.io badge over `backend/package.json`,
+so none of them can go stale. The README header is the logo in `docs/assets/`
+(light/dark SVGs swapped by a `<picture>` element) plus badges — it carries no
+version text. The WordPress plugin is versioned separately.
 
 **Version Format**: Semantic versioning (e.g., 0.7.4)
 - Patch (0.7.4 → 0.7.5): Bug fixes
