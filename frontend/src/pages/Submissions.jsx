@@ -16,8 +16,14 @@ function formatValue(val, step) {
   // File Upload stores { name, type, size, data: <base64 data URL> } — show
   // the name and size, never the encoded file.
   if (val && typeof val === 'object' && typeof val.name === 'string' && typeof val.data === 'string') {
+    // Same B / KB / MB steps as the CSV export (backend utils/formatValue.js).
     const size = Number(val.size);
-    const sizeText = Number.isFinite(size) ? ` (${size < 1024 * 1024 ? `${Math.max(1, Math.round(size / 1024))} KB` : `${(size / (1024 * 1024)).toFixed(1)} MB`})` : '';
+    let sizeText = '';
+    if (Number.isFinite(size) && size >= 0) {
+      if (size < 1024) sizeText = ` (${size} B)`;
+      else if (size < 1024 * 1024) sizeText = ` (${(size / 1024).toFixed(1)} KB)`;
+      else sizeText = ` (${(size / (1024 * 1024)).toFixed(1)} MB)`;
+    }
     return `${val.name}${sizeText}`;
   }
   if (val && typeof val === 'object') return JSON.stringify(val);

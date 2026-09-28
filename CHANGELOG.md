@@ -2,6 +2,12 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.40.1] - 2026-09-28
+
+### Fixed
+- The Responses table showed a small upload as "1 KB" while the CSV export
+  said "14 B"; both now use the same B / KB / MB steps.
+
 ## [0.40.0] - 2026-09-28
 
 A bug-hunt release: one agent drove the admin app and the public form in a
