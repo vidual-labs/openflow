@@ -83,8 +83,15 @@ function signToken(userId, tokenVersion = 0) {
   return jwt.sign({ userId, tv: tokenVersion }, JWT_SECRET, { expiresIn: '7d' });
 }
 
-// Must run after authMiddleware (relies on req.userId). Rejects non-admins.
+// Must run after authMiddleware (relies on req.userId). Rejects non-admins,
+// and rejects API tokens outright: a token is a read-only integration
+// credential (e.g. the lodgely connector), and must never inherit its owner's
+// admin rights — otherwise an admin-minted token could download a full backup
+// (password hashes, every submission) or list users.
 function requireAdmin(req, res, next) {
+  if (req.authVia === 'api_token') {
+    return res.status(403).json({ error: 'API tokens cannot access admin endpoints' });
+  }
   const { getDb } = require('../models/db');
   const db = getDb();
   const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId);

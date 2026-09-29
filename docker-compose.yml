@@ -28,6 +28,11 @@ services:
       # cloud metadata service is always blocked). Leave unset if you relay
       # mail through a server on your own network.
       - SMTP_BLOCK_PRIVATE_HOSTS=${SMTP_BLOCK_PRIVATE_HOSTS:-}
+      # Behind a reverse proxy (Nginx, Traefik, a load balancer…) set this to
+      # the number of proxies in front (usually 1), so rate limits and the
+      # stored submitter IP use the visitor's address, not the proxy's.
+      # Implied (=1) when OPENFLOW_PRIMARY_HOST is set.
+      - TRUST_PROXY=${TRUST_PROXY:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@openflow.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       # Scheduled backups: written every BACKUP_INTERVAL_HOURS, keeping the

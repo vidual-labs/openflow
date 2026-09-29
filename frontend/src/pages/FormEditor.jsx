@@ -514,7 +514,7 @@ export default function FormEditor() {
                   Automatically advance when answer is selected
                 </label>
                 <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 8, display: 'block' }}>
-                  Auto-advance only works for choice-based fields (single choice, multiple choice, yes/no, rating, image select).
+                  Auto-advance only works for choice-based fields (single choice, multiple choice, yes/no, rating, image select) and Date &amp; Timeslot once a time is picked.
                 </span>
               </div>
               <div className="input-group">
@@ -665,7 +665,7 @@ export default function FormEditor() {
           <div className="card">
             <h3 style={{ marginBottom: 4 }}>Google Tag Manager</h3>
             <p style={{ color: 'var(--text-light)', fontSize: 13, marginBottom: 16 }}>
-              GTM is injected automatically when this form is viewed. Events are pushed to the dataLayer on each step change and on submit.
+              GTM is injected when this form is viewed — or, with the cookie banner enabled, only after the visitor accepts it. Events are pushed to the dataLayer on each step change and on submit.
             </p>
             <div className="input-group">
               <label>GTM Container ID</label>
@@ -676,7 +676,7 @@ export default function FormEditor() {
                 <strong>Events fired:</strong>
                 <ul style={{ margin: '8px 0 0 16px', color: 'var(--text-light)' }}>
                   <li><code>openflow_step</code> — on each step change (formId, stepIndex, stepId)</li>
-                  <li><code>openflow_submit</code> — on form submission (formId, formTitle)</li>
+                  <li><code>openflow_submit</code> — on form submission (formId, formTitle, eventId — the submission id, for Meta Pixel deduplication)</li>
                 </ul>
               </div>
             )}

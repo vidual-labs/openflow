@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, requireAdmin } = require('../middleware/auth');
 const { logAuditEvent } = require('../models/auditLog');
 
 const router = Router();
@@ -31,12 +31,8 @@ router.get('/', (req, res) => {
 });
 
 // PUT /api/settings/:key — admin only
-router.put('/:key', authMiddleware, (req, res) => {
+router.put('/:key', authMiddleware, requireAdmin, (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId);
-  if (!user || user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin only' });
-  }
 
   const { key } = req.params;
   if (!ALLOWED_KEYS.includes(key)) {

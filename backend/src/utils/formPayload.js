@@ -6,6 +6,20 @@ function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
+// Operator-supplied links end up in an href / window.top.location on the
+// public form, so a `javascript:` URL would run script in every visitor's
+// browser. Mirrors frontend/src/utils/safeUrl.js.
+const ALLOWED_URL_SCHEMES = ['http', 'https', 'mailto', 'tel'];
+
+function isSafeUrl(url) {
+  if (typeof url !== 'string') return false;
+  const cleaned = url.replace(/[\u0000-\u0020\u007f]/g, '');
+  if (!cleaned) return true; // empty = not set
+  const match = cleaned.match(/^([a-z][a-z0-9+.-]*):/i);
+  if (!match) return true; // relative URL
+  return ALLOWED_URL_SCHEMES.includes(match[1].toLowerCase());
+}
+
 function validateFormPayload(body) {
   const { title, steps, end_screen, theme } = body || {};
   if (title !== undefined && title !== null) {
@@ -26,7 +40,17 @@ function validateFormPayload(body) {
   }
   if (end_screen !== undefined && end_screen !== null && !isPlainObject(end_screen)) return 'end_screen must be an object';
   if (theme !== undefined && theme !== null && !isPlainObject(theme)) return 'theme must be an object';
+  if (isPlainObject(end_screen) && end_screen.redirectUrl != null && !isSafeUrl(end_screen.redirectUrl)) {
+    return 'Redirect URL must be an http(s), mailto: or tel: link';
+  }
+  if (isPlainObject(theme) && Array.isArray(theme.footerLinks)) {
+    for (const link of theme.footerLinks) {
+      if (isPlainObject(link) && link.url != null && !isSafeUrl(link.url)) {
+        return 'Footer links must be http(s), mailto: or tel: links';
+      }
+    }
+  }
   return null;
 }
 
-module.exports = { validateFormPayload, isPlainObject };
+module.exports = { validateFormPayload, isPlainObject, isSafeUrl };
