@@ -3,6 +3,7 @@ import './FormRenderer.css';
 import AnimatedBackground from './AnimatedBackground';
 import { LOCALES } from '../locales';
 import { flattenFields } from '../utils/steps';
+import { isSafeUrl, safeUrl } from '../utils/safeUrl';
 import { autofillToken } from '../autofill';
 
 const LocaleContext = createContext(LOCALES.en);
@@ -629,15 +630,17 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
     }
   }, [inlineConsentReady, clickAnswered, consentGiven]);
 
+  const redirectUrl = safeUrl(endScreen.redirectUrl);
+
   // Auto-redirect on submission. Navigates window.top so the browser leaves
   // any embedding iframe entirely, instead of just changing the iframe's own
   // location (which would strand the visitor inside the embedded form).
   useEffect(() => {
-    if (submitted && endScreen.redirectUrl && endScreen.autoRedirect) {
+    if (submitted && redirectUrl && endScreen.autoRedirect) {
       try {
-        (window.top || window).location.href = endScreen.redirectUrl;
+        (window.top || window).location.href = redirectUrl;
       } catch {
-        window.location.href = endScreen.redirectUrl;
+        window.location.href = redirectUrl;
       }
     }
   }, [submitted]);
@@ -666,11 +669,11 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
             </div>
             <h2 style={{ '--i': 1 }}>{endScreen.title || locale.thankYou}</h2>
             <p style={{ '--i': 2 }}>{endScreen.message || locale.submittedMessage}</p>
-            {endScreen.redirectUrl && endScreen.autoRedirect && (
+            {redirectUrl && endScreen.autoRedirect && (
               <p className="end-redirecting" style={{ '--i': 3 }}>{locale.redirecting}</p>
             )}
-            {endScreen.redirectUrl && (
-              <a href={endScreen.redirectUrl} target="_top" className="form-btn" style={{ '--i': 3, marginTop: 24 }}>
+            {redirectUrl && (
+              <a href={redirectUrl} target="_top" className="form-btn" style={{ '--i': 3, marginTop: 24 }}>
                 {locale.continueBtn}
               </a>
             )}
@@ -689,7 +692,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // Flat-rate pricing filter: hide budget options that can't cover the minimum cost
   const displayStep = applyPricingFilter(step, answers);
 
-  const footerLinks = (theme.footerLinks || []).filter(l => l.title && l.url);
+  const footerLinks = (theme.footerLinks || []).filter(l => l.title && l.url && isSafeUrl(l.url));
 
   const isMacPlatform = typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/.test(navigator.platform || navigator.userAgent || '');
   const enterKbdLabel = step?.type === 'textarea'

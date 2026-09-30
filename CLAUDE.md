@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads), analytics, and a WordPress plugin.
+**OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.40.1 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.41.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -18,7 +18,9 @@ OpenFlow is a **full-stack application** with three main components:
 - **Key Files**:
   - `index.js` — Server entry point, CORS, route initialization, SPA fallback
   - `models/db.js` — Database schema, migrations, first-boot admin seeding
-  - `models/integrations.js` — Integration engine (webhooks, email, Google Sheets, Google Ads)
+  - `models/integrations.js` — Integration engine (webhooks, email, Google Sheets, Google Ads, Meta Conversions API)
+  - `models/secureDefaults.js` — Refuses a publicly known `JWT_SECRET` / weak seed `ADMIN_PASSWORD` at boot, flags accounts still on a well-known default password (admin UI banner)
+  - `models/auditLog.js` — Security audit trail (logins, user/role changes, settings, backup/restore)
   - `models/deliveryQueue.js` — Persists each integration delivery and retries it with backoff
   - `models/backup.js` / `models/backupScheduler.js` — JSON backup/restore + the rotating scheduled backup job
   - `models/apiTokens.js` — Read-only `ofw_` API tokens (hashed at rest)
@@ -89,11 +91,15 @@ Dev server on `http://localhost:5173` with hot reload. Proxies API requests to b
 ```bash
 docker compose up -d --build
 # Access at http://localhost:3000
-# Default login: admin@openflow.local / admin123
+# Login: admin@openflow.local + the one-time password printed by
+#   docker compose logs app
 ```
-`docker-compose.yml` supplies `admin123` as the fallback `ADMIN_PASSWORD`. Running
-the backend **without** those compose defaults generates a random one-time admin
-password and prints it to the server log on first boot instead.
+There is no default password anywhere: with `ADMIN_PASSWORD` unset, the first
+boot generates a random one-time admin password and prints it to the log (the
+old `admin123` compose fallback was removed in 0.16). A weak or well-known
+`ADMIN_PASSWORD` (< 10 chars, `admin123`, …) makes the first boot refuse to
+seed, and a publicly known `JWT_SECRET` (e.g. `change-me-in-production`) makes
+every boot refuse to start (`models/secureDefaults.js`).
 
 ## Key Development Patterns
 
@@ -193,7 +199,9 @@ npm test -- --watch
 
 Tests live in `backend/tests/` and cover: authentication, authorization, API
 tokens, rate limiting, form CRUD, submission validation, slug rules, subdomain
-rules, and backup/restore. There is no frontend test suite.
+rules, backup/restore, calon availability/booking, encryption, integration
+secrets, Meta CAPI, the audit log, session revocation and the security
+hardening (`securityHardening.test.js`). There is no frontend test suite.
 
 ## Version Management
 
@@ -206,7 +214,7 @@ Version files to update:
 4. **CLAUDE.md** — Update "Current Version" at the top of this file
 
 Nothing else needs touching: the admin sidebar reads the version from
-`frontend/package.json`, `GET /api/` reads it from `backend/package.json`, and
+`frontend/package.json`, `GET /api/health` reads it from `backend/package.json`, and
 the README's version badge is a shields.io badge over `backend/package.json`,
 so none of them can go stale. The README header is the logo in `docs/assets/`
 (light/dark SVGs swapped by a `<picture>` element) plus badges — it carries no
@@ -222,24 +230,25 @@ version text. The WordPress plugin is versioned separately.
 Defined in one `CREATE TABLE IF NOT EXISTS` block plus additive `ALTER TABLE`
 migrations in `models/db.js`:
 
-- `users` — Admin/editor users (email, hashed password, role)
+- `users` — Users (email, bcrypt `password_hash`, `role` = `admin` | `user`, `token_version` for session revocation)
 - `forms` — Everything about a form: `steps`, `end_screen`, `theme` (JSON text columns), `slug`, `gtm_id`, `published`. Steps are **not** a separate table.
 - `submissions` — User responses (`data` + `metadata` JSON, keyed by field id)
 - `integrations` — Integration configs per form (`type`, `enabled`, `config` JSON)
-- `analytics_events` — Analytics events (view, start, step, complete) with `session_id`, `step_index`, `step_id`
-- `integration_deliveries` — One row per delivery attempt (status, attempts, `next_attempt_at`, `last_error`) backing retries and dead letters
+- `analytics_events` — Analytics events (view, start, step, complete; `drop` is accepted but never sent) with `session_id`, `step_index`, `step_id` — no IP, no answers
+- `integration_deliveries` — One row per (submission, integration) delivery; `attempts` counts retries in place (status, `next_attempt_at`, `last_error`) backing retries and dead letters
 - `api_tokens` — Read-only API tokens (SHA-256 `token_hash`, `token_prefix`, `last_used_at`)
 - `slug_history` — Old slugs of renamed forms, so previously shared links keep resolving
 - `site_settings` — Global key/value settings (currently just `branding`)
+- `audit_log` — Security events (actor, action, target, IP, details)
 
 ## API Structure
 
 - **Public** (`/api/public/`): No auth required. Load form, submit response, track analytics.
-- **Admin** (`/api/forms`, `/api/submissions`, `/api/auth`): JWT auth required (`router.use(authMiddleware)`).
+- **Admin** (`/api/forms`, `/api/submissions`, `/api/auth`): session (JWT cookie / Bearer) or a read-only `ofw_` API token (`router.use(authMiddleware)`). Every query is scoped to the **owning user** (`user_id = req.userId`) — admins included; there is no cross-user form visibility yet.
 - **Integrations** (`/api/integrations`): Test, create, update, delete integrations; list and retry deliveries.
 - **Analytics** (`/api/analytics`): Get funnel and trend data.
 - **Settings** (`/api/settings`): `GET` is public (branding + `primaryHost` are needed by the login screen and form editor); `PUT /:key` is admin-only and restricted to an allowlist of keys.
-- **Admin-only** (`/api/admin/`): Backup, restore, and scheduled-backup listing. The whole router is behind `authMiddleware, requireAdmin`, and it is blocked outright on per-form subdomains.
+- **Admin-only** (`/api/admin/`): Backup, restore, and scheduled-backup listing. The whole router is behind `authMiddleware, requireAdmin`, and it is blocked outright on per-form subdomains. `requireAdmin` rejects API tokens, so a token never inherits its owner's admin rights.
 
 ### External consumer: lodgely (lead intake hub)
 
@@ -274,7 +283,7 @@ managed in the UI under **Settings → API Tokens**.
 
 ### Add a New Field Type
 1. Add an entry to `FIELD_TYPES` in `frontend/src/pages/FormEditor.jsx` (value, label, icon, smart defaults) plus any type-specific config UI
-2. Add a renderer + client-side validation in `frontend/src/components/FormRenderer.jsx` (`INPUTS` map and `validateField`), and add it to `AUTO_ADVANCE_FIELDS` if it should advance on click
+2. Add a renderer + client-side validation in `frontend/src/components/FormRenderer.jsx` (`FIELD_TYPES` map and `validateField`), and add it to `AUTO_ADVANCE_FIELDS` if it should advance on click
 3. Add respondent-facing strings to `frontend/src/locales.js` for every language
 4. If the server needs to enforce more than "required and non-empty", extend the validation loop in `backend/src/routes/public.js` (`POST /form/:slug/submit`)
 5. Test in FormEditor, FormView and EmbedView
@@ -305,7 +314,8 @@ docker compose up -d --build
 - **HMAC Signing**: Webhooks can be signed with a shared secret for security.
 - **Conditional Logic**: Stored as a `condition` on the step. Evaluated client-side during form render and mirrored on submit by `utils/conditions.js`, so the server skips validation of hidden steps and drops their stale answers.
 - **Form Slugs**: Unique URL identifier for public form access (`/f/<slug>` and `/embed/<slug>`). Renaming a slug archives the old one in `slug_history` so old links still resolve.
-- **Multi-User**: Admin can invite users and assign roles. Role-based access control in `middleware/auth.js`.
+- **Multi-User**: Admin can invite users and assign roles (`admin` / `user`). `requireAdmin` / `requireSession` live in `middleware/auth.js` (the one copy — don't re-implement role checks inline). Forms are private to their owner.
+- **Reverse proxy**: set `TRUST_PROXY` (e.g. `1`) behind a proxy, or every visitor shares the proxy's IP — one rate-limit bucket and a wrong `metadata.ip`. `utils/trustProxy.js` logs `trust_proxy_not_configured` once when it sees `X-Forwarded-For` without it.
 - **Secrets**: `JWT_SECRET` is auto-generated and persisted next to the DB when unset; there is no hardcoded fallback. Set it explicitly in production.
 - **Untrusted input into HTML**: GTM ids, custom CSS and emailed field values all pass through validation/sanitization (`validateGtmId`, `utils/sanitizeCss.js`, `escapeHtmlAttr`). Keep it that way when touching those paths.
 

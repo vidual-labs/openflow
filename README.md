@@ -161,11 +161,12 @@ Environment variables (in `.env` or docker-compose):
 | `SMTP_BLOCK_PRIVATE_HOSTS` | *(unset)* | 📧 SMTP hosts resolving to link-local/cloud-metadata addresses are always refused. Set to `true` to also refuse private networks and localhost (as webhooks do) when you don't relay mail through an internal server |
 | `ADMIN_EMAIL` | `admin@openflow.local` | 👤 Admin email |
 | `ADMIN_PASSWORD` | *(none — auto-generated)* | 🔑 Admin password (only on first start). If unset, a random one is generated and printed to the log once |
-| `DB_PATH` | `/app/data/openflow.db` | 💾 SQLite database path |
+| `DB_PATH` | `/app/data/openflow.db` (from `docker-compose.yml`; otherwise `backend/data/openflow.db`) | 💾 SQLite database path |
 | `PORT` | `3000` | 🌐 Port the app listens on *inside* the container |
 | `HOST_PORT` | `3000` | 🌐 Host-side port `docker-compose.yml` publishes (set this instead of editing `docker-compose.yml` directly, so `git pull` never conflicts with a local port change) |
 | `CORS_ORIGINS` | *(empty)* | 🌍 Comma-separated extra origins allowed to call the API. Same-origin requests are always allowed, so this is only needed when the admin UI is served from a different host than the API |
-| `OPENFLOW_PRIMARY_HOST` | *(empty)* | 🌐 Apex host for [custom subdomains](#custom-subdomains). Also implicitly allowed as a CORS origin |
+| `OPENFLOW_PRIMARY_HOST` | *(empty)* | 🌐 Apex host for [custom subdomains](#custom-subdomains). Also implicitly allowed as a CORS origin, and implies `TRUST_PROXY=1` |
+| `TRUST_PROXY` | *(empty = off)* | 🔀 Set when OpenFlow runs behind a reverse proxy: a hop count (`1` = one proxy in front), `true`, or a comma-separated list of proxy IPs/CIDRs. Without it every visitor shares the proxy's IP — one rate-limit bucket for everybody and the proxy's address stored as the submitter IP |
 | `OPENFLOW_VERSION` | `latest` | 🐳 Image tag `docker-compose.yml` pulls (e.g. `0.31.0` to pin a version instead of always tracking `latest`) |
 | `BACKUP_ENABLED` | `true` | ⏰ Set to `false` to disable the scheduled backup job |
 | `BACKUP_DIR` | `/app/backups` (from `docker-compose.yml`; otherwise a `backups/` folder next to `DB_PATH`) | 📁 Where scheduled backups are written (point at a separate volume for real off-box protection) |
@@ -327,12 +328,15 @@ no Meta Pixel needs to be installed on the form.
 hub — can **pull** a form's submissions into a specific client view. Unlike the
 push integrations above, this is configured entirely in lodgely (under
 **Imports → OpenFlow**), so there is nothing to set up on the OpenFlow side
-beyond an admin account:
+beyond an account that owns the form:
 
 - **Recommended:** create a **read-only API token** under **Settings → API
-  Tokens** and paste it into lodgely. The token can only read forms and
-  submissions, never modify anything, and you can revoke it anytime without
-  touching your password.
+  Tokens** and paste it into lodgely. The token can read what its owner can
+  read (their forms and submissions) but never modify anything, never manage
+  tokens, and never reach admin endpoints (backups, users, audit log) — even
+  when an admin created it. Revoke it anytime without touching your password.
+  Creating it from a dedicated non-admin account that owns only the forms
+  lodgely needs keeps its reach smallest.
 - Alternatively, lodgely can sign in with an OpenFlow login (email + password).
 - It maps each OpenFlow field to a lead field; unmapped answers are kept as
   custom answers. Re-fetches are idempotent on the submission id.
@@ -579,21 +583,23 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 ### Public (no auth)
 - `GET /api/health` — Liveness/readiness check (database connectivity + uptime), for orchestrators and uptime monitors
 - `GET /api/public/form/:slug` — Load published form
-- `POST /api/public/form/:slug/submit` — Submit response
+- `GET /api/public/form/:slug/availability` — Bookable times for a calon-backed Date & Timeslot field (proxied, SSRF-guarded)
+- `POST /api/public/form/:slug/submit` — Submit response (`400 consent_required` when the form asks for consent and it wasn't given)
 - `POST /api/public/track` — Track analytics event
 
 ### Auth
-- `POST /api/auth/login` — Log in (sets a `token` httpOnly cookie and returns the JWT)
+- `POST /api/auth/login` — Log in (sets the JWT as a `token` httpOnly cookie; the body is `{ user }`)
 - `POST /api/auth/logout` — Clear the session cookie
 - `GET /api/auth/me` — Current user
 
 ### Admin (auth required)
-- `GET /api/forms` — List all forms
+- `GET /api/forms` — List your forms (every form query is scoped to its owner)
 - `GET /api/forms/:id` — Get one form (including its `steps`)
 - `POST /api/forms` — Create form
 - `POST /api/forms/:id/clone` — Duplicate a form (draft copy, integrations disabled)
 - `PUT /api/forms/:id` — Update form
 - `DELETE /api/forms/:id` — Delete form
+- `POST /api/forms/:id/calon-test` — Check a calon base URL + resource from the editor
 - `GET /api/submissions/:formId` — Get submissions (paginated, newest first)
 - `GET /api/submissions/:formId/export` — CSV export
 - `DELETE /api/submissions/:formId/:submissionId` — Delete a submission
@@ -676,6 +682,34 @@ terminate TLS itself. Put a reverse proxy in front in production:
   you — most self-hosters already have a reverse proxy in front of every
   service on their box.
 
+### Reverse proxy & client IPs
+
+Behind any reverse proxy, set `TRUST_PROXY=1` (or the number of proxies in
+front). Without it, Express sees every request as coming from the proxy: all
+visitors share **one** rate-limit bucket (10 submissions per minute for the
+whole install, so real leads get a 429 during a campaign spike), and the
+proxy's address is stored as the submitter IP and sent to Meta's Conversions
+API. OpenFlow logs `trust_proxy_not_configured` once when it sees an
+`X-Forwarded-For` header without `TRUST_PROXY`. The subdomain overlay implies
+it via `OPENFLOW_PRIMARY_HOST`. Don't set it when OpenFlow is reachable
+directly — any client could then pick its own IP.
+
+### Secure defaults
+
+- No password or secret ships with OpenFlow. `JWT_SECRET` and
+  `ENCRYPTION_KEY` are generated on first boot when unset; the first admin
+  gets a random one-time password printed to the log.
+- A publicly known `JWT_SECRET` (e.g. the pre-0.16 compose default
+  `change-me-in-production`) makes OpenFlow **refuse to start**; a short one
+  logs a warning. A weak `ADMIN_PASSWORD` (< 10 characters or a well-known
+  default) makes the first boot refuse to create the admin.
+- Accounts that still use a well-known default password (e.g. `admin123`
+  from an install older than 0.16) are logged as
+  `default_admin_password_in_use` at boot, and the user sees a red "change
+  your password" banner in the admin UI until they do.
+- API tokens are read-only and never pass an admin check, even when an admin
+  created them.
+
 ### Single-instance architecture
 
 OpenFlow's rate limiter (`models/rateLimit.js`) and scheduled-backup job
@@ -721,7 +755,7 @@ The following are known gaps, deliberately not addressed yet:
 - ✅ **Phase 3**: Conditional logic, file uploads, custom CSS per form, multi-user support, landing page header/footer
 - ✅ **Phase 4**: Analytics dashboard, simplified Google Sheets, dark mode, delete protection for live forms
 - ✅ **Phase 5**: Editable slugs and per-form subdomains, backup & restore, read-only API tokens, retrying integration deliveries, server-side Google Ads conversions, Meta Conversions API, Date & Timeslot with calon booking, browser autofill, published Docker image
-- 🔜 **Phase 6**: A/B testing, form templates, more languages
+- 🔜 **Next** — see **[ROADMAP.md](ROADMAP.md)**: a versioned submission contract and signed webhook for lodgely, answer-based routing (jump logic, conditional end screens and redirects), hidden fields / UTM capture, spam protection, opt-in partial submissions, and GDPR retention & erasure. A/B testing is deferred and arbitrary custom domains are out of scope (reasons in the roadmap).
 
 --
 
@@ -733,7 +767,7 @@ OpenFlow is a marketing tool. We ask, as a non-binding ethical request, that you
     Fossil-fuel energy (extraction, refining, distribution, generation)
     Internal-combustion / fossil-fuel passenger vehicles — electric vehicles, bicycles and public transit are explicitly fine.
 
-This is a request from the maintainers, not a legal restriction (lodgely remains GPL-3.0). See the preamble in LICENSE for the full statement.
+This is a request from the maintainers, not a legal restriction (OpenFlow remains GPL-3.0). See the preamble in LICENSE for the full statement.
 
 
 ---

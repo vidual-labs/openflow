@@ -16,6 +16,8 @@ const analyticsRoutes = require('./routes/analytics');
 const settingsRoutes = require('./routes/settings');
 const adminRoutes = require('./routes/admin');
 const { createSubdomainMiddleware } = require('./middleware/subdomain');
+const { resolveTrustProxy, createProxyMisconfigWarning } = require('./utils/trustProxy');
+const { checkJwtSecret, scanForDefaultPasswords } = require('./models/secureDefaults');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,11 +29,13 @@ process.on('unhandledRejection', (reason) => {
 });
 
 // Trust X-Forwarded-* headers only when this deployment is fronted by a
-// reverse proxy (subdomain routing requires one). Trusting in unproxied
-// setups would let any client spoof req.ip via X-Forwarded-For.
-if (process.env.OPENFLOW_PRIMARY_HOST) {
-  app.set('trust proxy', 1);
+// reverse proxy (TRUST_PROXY, or implicitly for subdomain routing). Trusting
+// in unproxied setups would let any client spoof req.ip via X-Forwarded-For.
+const trustProxy = resolveTrustProxy();
+if (trustProxy !== false) {
+  app.set('trust proxy', trustProxy);
 }
+app.use(createProxyMisconfigWarning(logger, trustProxy));
 
 // The frontend is served by this same app (or proxied same-origin in dev via
 // Vite, or behind a reverse proxy in production), so browser requests don't
@@ -196,6 +200,14 @@ function warnOnUnreadableIntegrationConfigs(db) {
 }
 
 async function start() {
+  // Refuse to run with a publicly known JWT secret; warn about weak ones.
+  try {
+    for (const warning of checkJwtSecret()) logger.warn('weak_jwt_secret', { hint: warning });
+  } catch (err) {
+    logger.error('startup_refused', { error: err.message });
+    process.exit(1);
+  }
+
   try {
     initDb();
     logger.info('database_initialized');
@@ -210,6 +222,14 @@ async function start() {
 
   app.listen(PORT, '0.0.0.0', () => {
     logger.info('server_started', { port: PORT, version });
+    scanForDefaultPasswords(getDb()).then((emails) => {
+      if (emails.length > 0) {
+        logger.error('default_admin_password_in_use', {
+          accounts: emails,
+          hint: 'These admin accounts still use a well-known default password (e.g. admin123). Change it now under Users; anyone who finds this install can otherwise log in as admin.',
+        });
+      }
+    }).catch((err) => logger.warn('default_password_scan_failed', { error: err.message }));
   });
 }
 

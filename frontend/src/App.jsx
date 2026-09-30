@@ -9,7 +9,7 @@ import Users from './pages/Users';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
-import { LogoMark, LogoWordmark, Loading, EmptyState } from './components/AdminUI';
+import { LogoMark, LogoWordmark, Loading, EmptyState, Alert } from './components/AdminUI';
 import { version as APP_VERSION } from '../package.json';
 
 function getInitialTheme() {
@@ -126,6 +126,14 @@ export default function App() {
         </div>
       </aside>
       <main className="admin-main">
+        {user.weakPassword && (
+          <Alert type="error" style={{ marginBottom: 16 }}>
+            Your account uses a weak or well-known password (such as the old default <code>admin123</code>).{' '}
+            {isAdmin
+              ? <>Change it now on the <Link to="/users">Users</Link> page — anyone who finds this install could otherwise log in as you.</>
+              : <>Ask an admin to set a new password for you.</>}
+          </Alert>
+        )}
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/forms/:id" element={<FormEditor />} />

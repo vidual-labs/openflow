@@ -115,11 +115,11 @@ router.post('/form/:slug/submit', asyncHandler(async (req, res) => {
   }
 
   const db = getDb();
-  let form = db.prepare('SELECT id, title, steps FROM forms WHERE slug = ? AND published = 1').get(req.params.slug);
+  let form = db.prepare('SELECT id, title, steps, end_screen FROM forms WHERE slug = ? AND published = 1').get(req.params.slug);
   if (!form) {
     const historic = db.prepare('SELECT form_id FROM slug_history WHERE old_slug = ?').get(req.params.slug);
     if (historic) {
-      form = db.prepare('SELECT id, title, steps FROM forms WHERE id = ? AND published = 1').get(historic.form_id);
+      form = db.prepare('SELECT id, title, steps, end_screen FROM forms WHERE id = ? AND published = 1').get(historic.form_id);
     }
   }
   if (!form) return res.status(404).json({ error: 'Form not found' });
@@ -136,8 +136,23 @@ router.post('/form/:slug/submit', asyncHandler(async (req, res) => {
   // changed their mind is not part of what they submitted).
   const steps = visibleSteps(allSteps, data);
   const visibleFieldIds = new Set(flattenFields(steps).map(f => f.id));
+  // `_consent` is the only non-field key the renderer sends; anything else a
+  // client adds would otherwise be stored unvalidated and forwarded to every
+  // webhook.
   for (const key of Object.keys(data)) {
-    if (!visibleFieldIds.has(key) && !key.startsWith('_')) delete data[key];
+    if (!visibleFieldIds.has(key) && key !== '_consent') delete data[key];
+  }
+
+  // GDPR consent is enforced here too, not only in the renderer: a form that
+  // asks for consent must never store a submission without it.
+  let endScreen = {};
+  try { endScreen = JSON.parse(form.end_screen || '{}') || {}; } catch { endScreen = {}; }
+  if (endScreen.consentEnabled) {
+    if (data._consent !== true) {
+      return res.status(400).json({ error: 'Consent is required', code: 'consent_required' });
+    }
+  } else {
+    delete data._consent;
   }
 
   // Basic validation. Combined ("group") steps validate each sub-field, and may

@@ -192,6 +192,7 @@ function initDb() {
     // takeover given this is an internet-reachable, single-tenant app.
     const crypto = require('crypto');
     const generatedPassword = !process.env.ADMIN_PASSWORD ? crypto.randomBytes(12).toString('base64url') : null;
+    require('./secureDefaults').assertSeedPasswordStrong(process.env.ADMIN_PASSWORD);
     const adminPassword = process.env.ADMIN_PASSWORD || generatedPassword;
     const hash = bcrypt.hashSync(adminPassword, 10);
     db.prepare("INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, 'admin')").run(uuid(), adminEmail, hash);

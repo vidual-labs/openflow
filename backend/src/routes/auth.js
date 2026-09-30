@@ -1,11 +1,12 @@
 const { Router } = require('express');
 const bcrypt = require('bcryptjs');
 const { getDb } = require('../models/db');
-const { authMiddleware, signToken, requireSession } = require('../middleware/auth');
+const { authMiddleware, signToken, requireSession, requireAdmin } = require('../middleware/auth');
 const apiTokens = require('../models/apiTokens');
 const { checkRateLimit, isRateLimited } = require('../models/rateLimit');
 const { logAuditEvent } = require('../models/auditLog');
 const logger = require('../utils/logger');
+const { isWeakPassword, flagWeakPassword, hasWeakPassword } = require('../models/secureDefaults');
 
 const router = Router();
 
@@ -45,6 +46,10 @@ router.post('/login', (req, res) => {
   }
 
   logAuditEvent({ userId: user.id, action: 'login_succeeded', target: user.email, ip: clientIp(req) });
+  // The plaintext is only ever at hand here, so this is where a weak or
+  // well-known password (e.g. a pre-0.16 `admin123`) gets noticed; the admin
+  // UI shows a "change your password" banner while the flag is set.
+  flagWeakPassword(user.id, isWeakPassword(password));
   const token = signToken(user.id, user.token_version || 0);
   res.cookie('token', token, {
     httpOnly: true,
@@ -52,7 +57,7 @@ router.post('/login', (req, res) => {
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
-  res.json({ user: { id: user.id, email: user.email, role: user.role, created_at: user.created_at } });
+  res.json({ user: { id: user.id, email: user.email, role: user.role, created_at: user.created_at, weakPassword: hasWeakPassword(user.id) } });
 });
 
 router.post('/logout', (req, res) => {
@@ -64,19 +69,10 @@ router.get('/me', authMiddleware, (req, res) => {
   const db = getDb();
   const user = db.prepare('SELECT id, email, role, created_at FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ user });
+  res.json({ user: { ...user, weakPassword: hasWeakPassword(user.id) } });
 });
 
 // --- Multi-user management (admin only) ---
-
-function requireAdmin(req, res, next) {
-  const db = getDb();
-  const user = db.prepare('SELECT role FROM users WHERE id = ?').get(req.userId);
-  if (!user || user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  next();
-}
 
 // List all users
 router.get('/users', authMiddleware, requireAdmin, (req, res) => {
@@ -95,8 +91,8 @@ router.post('/users', authMiddleware, requireAdmin, (req, res) => {
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
   }
-  if (password.length < 10) {
-    return res.status(400).json({ error: 'Password must be at least 10 characters' });
+  if (isWeakPassword(password)) {
+    return res.status(400).json({ error: 'Password must be at least 10 characters and not a well-known default' });
   }
 
   const db = getDb();
@@ -134,11 +130,12 @@ router.put('/users/:id', authMiddleware, requireAdmin, (req, res) => {
     logAuditEvent({ userId: req.userId, action: 'user_role_changed', target: user.email, ip: clientIp(req), details: { role: role === 'admin' ? 'admin' : 'user' } });
   }
   if (password) {
-    if (password.length < 10) {
-      return res.status(400).json({ error: 'Password must be at least 10 characters' });
+    if (isWeakPassword(password)) {
+      return res.status(400).json({ error: 'Password must be at least 10 characters and not a well-known default' });
     }
     const hash = bcrypt.hashSync(password, 10);
     db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE id = ?').run(hash, req.params.id);
+    flagWeakPassword(req.params.id, false);
     logAuditEvent({ userId: req.userId, action: 'user_password_changed', target: user.email, ip: clientIp(req) });
   }
 

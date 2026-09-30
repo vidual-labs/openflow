@@ -2,6 +2,82 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.41.0] - 2026-09-29
+
+A security and correctness batch from a cross-repo review with lodgely, plus
+a new [ROADMAP.md](ROADMAP.md) that replaces the "Phase 6" line in the README.
+
+### Upgrade notes
+- **OpenFlow now refuses to start with a publicly known `JWT_SECRET`**, e.g.
+  `change-me-in-production`, the `docker-compose.yml` default before 0.16.
+  If your `.env` still carries it, remove the line (a random secret is then
+  generated and persisted) or set a random value of 32+ characters.
+  Everyone has to log in once more.
+- **Behind a reverse proxy, set `TRUST_PROXY=1`** (see below). The
+  subdomain overlay implies it.
+
+### Security
+- **API tokens can no longer reach admin endpoints.** A read-only `ofw_`
+  token created by an admin inherited that admin's rights on every GET route.
+  That included `GET /api/admin/backup`: a full dump with every submission
+  and all password hashes. It also included scheduled backups, the audit log
+  and the user list. lodgely stores exactly this kind of token. `requireAdmin`
+  now rejects token-authenticated callers. The duplicate admin checks in
+  `routes/auth.js` and `routes/settings.js` now use the one shared
+  middleware.
+- **Weak and well-known passwords are caught.**
+  - The first boot refuses to create the admin from an `ADMIN_PASSWORD`
+    shorter than 10 characters or on a short list of well-known defaults
+    (`admin123`, `password`, …).
+  - Setting a user's password to one of those is refused.
+  - At boot, admins whose stored password is still a well-known default
+    (e.g. an install older than 0.16 that kept `admin123`) are logged as
+    `default_admin_password_in_use`.
+  - A user who logs in with a weak password sees a red "change your
+    password" banner in the admin UI until it's changed.
+- **A short `JWT_SECRET` logs a warning.** A publicly known one refuses to
+  start (see Upgrade notes).
+- **`javascript:` links are rejected.** The end-screen redirect URL and
+  footer links are now limited to http(s), mailto:, tel: and relative URLs,
+  both on save (400) and when the public form renders (for forms saved
+  earlier).
+- **Client-supplied `_*` keys are no longer stored.** The submit route kept
+  any answer key starting with `_`, unvalidated, and forwarded it to every
+  webhook. Only `_consent` is accepted now.
+
+### Fixed
+- **Consent is enforced on the server.** A form with GDPR consent enabled
+  now rejects a submission without `_consent: true` with
+  `400 { code: 'consent_required' }`. Before, only the renderer checked. A
+  form without consent no longer stores a stray `_consent` value.
+- **Rate limiting and submitter IPs behind a reverse proxy.**
+  - `trust proxy` was only enabled together with `OPENFLOW_PRIMARY_HOST`.
+    Behind any other proxy, every visitor shared the proxy's IP: one
+    rate-limit bucket (10 submissions a minute for the whole install) and the
+    proxy's address stored as `metadata.ip` and sent to Meta's Conversions
+    API.
+  - The new `TRUST_PROXY` variable takes a hop count, `true`, or a list of
+    proxy IPs/CIDRs.
+  - OpenFlow logs `trust_proxy_not_configured` once when it sees
+    `X-Forwarded-For` without it.
+
+### Changed
+- Editor copy:
+  - The GTM tab now says GTM waits for the cookie banner when that's
+    enabled.
+  - It lists `eventId` on `openflow_submit`.
+  - The auto-advance hint mentions Date & Timeslot.
+- Docs:
+  - CLAUDE.md no longer claims `docker-compose.yml` ships `admin123`.
+  - Roles are `admin` / `user`, not "editor".
+  - `audit_log` is listed.
+  - The version comes from `/api/health`.
+  - Form access is scoped to the owner, admins included.
+  - The README lodgely section describes what a token can really read.
+  - The README API list gains the calon endpoints.
+  - "Ethical use" now says OpenFlow, not lodgely.
+  - The env table gains `TRUST_PROXY` and a correct `DB_PATH` default.
+
 ## [0.40.1] - 2026-09-28
 
 ### Fixed
