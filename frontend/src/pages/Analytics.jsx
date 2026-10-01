@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { PageHeader, Alert, EmptyState, Loading } from '../components/AdminUI';
+import { Delta, Kpi, formatPct } from '../components/AnalyticsUI';
 
 export default function Analytics() {
+  const navigate = useNavigate();
   const [forms, setForms] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [detail, setDetail] = useState(null);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -20,22 +20,19 @@ export default function Analytics() {
       .finally(() => setLoading(false));
   }, [days]);
 
-  useEffect(() => {
-    if (selected) {
-      api.getAnalyticsDetail(selected, days)
-        .then(d => setDetail(d))
-        .catch(() => setDetail(null));
-    } else {
-      setDetail(null);
-    }
-  }, [selected, days]);
-
-  if (loading) return <Loading label="Loading analytics…" />;
+  const totals = forms.reduce((t, f) => ({
+    views: t.views + f.views,
+    starts: t.starts + f.starts,
+    completions: t.completions + f.completions,
+    prevViews: t.prevViews + f.previous.views,
+    prevCompletions: t.prevCompletions + f.previous.completions,
+  }), { views: 0, starts: 0, completions: 0, prevViews: 0, prevCompletions: 0 });
+  const rate = (a, b) => (b > 0 ? Math.round((a / b) * 1000) / 10 : 0);
 
   return (
     <div>
-      <PageHeader title="Analytics">
-        <select className="input" style={{ width: 'auto' }} value={days} onChange={e => setDays(Number(e.target.value))}>
+      <PageHeader title="Analytics" subtitle={`All forms, last ${days} days compared with the ${days} days before.`}>
+        <select className="input" style={{ width: 'auto' }} value={days} onChange={e => setDays(Number(e.target.value))} aria-label="Period">
           <option value={7}>Last 7 days</option>
           <option value={30}>Last 30 days</option>
           <option value={90}>Last 90 days</option>
@@ -44,137 +41,64 @@ export default function Analytics() {
 
       <Alert type="error">{error}</Alert>
 
-      {/* Overview cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
-        {forms.map(form => (
-          <div
-            key={form.id}
-            className="card"
-            style={{ cursor: 'pointer', border: selected === form.id ? '2px solid var(--primary)' : '2px solid transparent', transition: 'border-color 0.2s' }}
-            onClick={() => setSelected(selected === form.id ? null : form.id)}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, margin: 0 }}>{form.title}</h3>
-              <span style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary)' }}>{form.conversionRate}%</span>
-            </div>
-            <div style={{ display: 'flex', gap: 24, fontSize: 14 }}>
-              <div>
-                <div style={{ color: 'var(--text-light)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Views</div>
-                <div style={{ fontWeight: 600, fontSize: 20 }}>{form.views}</div>
-              </div>
-              <div>
-                <div style={{ color: 'var(--text-light)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Starts</div>
-                <div style={{ fontWeight: 600, fontSize: 20 }}>{form.starts}</div>
-              </div>
-              <div>
-                <div style={{ color: 'var(--text-light)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Completions</div>
-                <div style={{ fontWeight: 600, fontSize: 20 }}>{form.completions}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {forms.length === 0 && !error && (
-        <EmptyState title="No analytics data yet" message="Publish a form and share it to start collecting analytics." />
-      )}
-
-      {/* Detail view */}
-      {detail && (
-        <div>
-          <h3 style={{ marginBottom: 16 }}>{detail.title} — Detailed Analytics</h3>
-
-          {/* Funnel */}
-          <div className="card" style={{ marginBottom: 16 }}>
-            <h4 style={{ marginBottom: 16 }}>Conversion Funnel</h4>
-            <FunnelBar label="Views" value={detail.summary.views} max={detail.summary.views} color="var(--primary)" />
-            <FunnelBar label="Started" value={detail.summary.starts} max={detail.summary.views} color="#0984E3" />
-            <FunnelBar label="Completed" value={detail.summary.completions} max={detail.summary.views} color="var(--success)" />
-            <div style={{ display: 'flex', gap: 24, marginTop: 16, fontSize: 14, color: 'var(--text-light)' }}>
-              <span>Start Rate: <strong>{detail.summary.startRate}%</strong></span>
-              <span>Conversion: <strong>{detail.summary.conversionRate}%</strong></span>
-            </div>
+      {loading ? <Loading label="Loading analytics…" /> : forms.length === 0 ? (
+        !error && <EmptyState title="No forms yet" message="Create and publish a form to start collecting analytics." />
+      ) : (
+        <>
+          <div className="kpi-grid">
+            <Kpi label="Views" value={totals.views}><Delta kind="rel" value={totals.views} previous={totals.prevViews} /></Kpi>
+            <Kpi label="Starts" value={totals.starts} />
+            <Kpi label="Completions" value={totals.completions}><Delta kind="rel" value={totals.completions} previous={totals.prevCompletions} /></Kpi>
+            <Kpi label="Conversion" value={formatPct(rate(totals.completions, totals.views))}>
+              <Delta value={rate(totals.completions, totals.views)} previous={rate(totals.prevCompletions, totals.prevViews)} />
+            </Kpi>
           </div>
 
-          {/* Step drop-off */}
-          {detail.stepDropoff.length > 0 && (
-            <div className="card" style={{ marginBottom: 16 }}>
-              <h4 style={{ marginBottom: 16 }}>Step Drop-off</h4>
-              {detail.stepDropoff.map((step, i) => (
-                <FunnelBar
-                  key={step.stepId || `idx-${step.stepIndex}`}
-                  label={`${i + 1}. ${step.label}`}
-                  value={step.sessions}
-                  max={detail.stepDropoff[0]?.sessions || 1}
-                  color={i === detail.stepDropoff.length - 1 ? 'var(--success)' : 'var(--primary)'}
-                />
-              ))}
+          <div className="card" style={{ padding: 0 }}>
+            <div className="table-wrap">
+              <table className="table table-cards analytics-table">
+                <thead>
+                  <tr>
+                    <th>Form</th>
+                    <th className="num">Views</th>
+                    <th className="num">Starts</th>
+                    <th className="num">Completions</th>
+                    <th className="num">Start rate</th>
+                    <th className="num">Conversion</th>
+                    <th className="num">vs. previous</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {forms.map(form => (
+                    <tr key={form.id} className="row-link" onClick={() => navigate(`/analytics/${form.id}`)}>
+                      <td className="cell-primary">
+                        <Link to={`/analytics/${form.id}`} onClick={e => e.stopPropagation()} style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>
+                          {form.title}
+                        </Link>
+                        {!form.published && <span className="badge badge-draft" style={{ marginLeft: 8 }}>Draft</span>}
+                      </td>
+                      <td data-label="Views" className="num">{form.views}</td>
+                      <td data-label="Starts" className="num">{form.starts}</td>
+                      <td data-label="Completions" className="num">{form.completions}</td>
+                      <td data-label="Start rate" className="num">{formatPct(form.startRate)}</td>
+                      <td data-label="Conversion" className="num"><strong>{formatPct(form.conversionRate)}</strong></td>
+                      <td data-label="vs. previous" className="num">
+                        {form.views || form.previous.views
+                          ? <Delta value={form.conversionRate} previous={form.previous.conversionRate} />
+                          : <span className="muted">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-
-          {/* Daily trend */}
-          {detail.daily.length > 0 && (
-            <div className="card">
-              <h4 style={{ marginBottom: 16 }}>Daily Trend</h4>
-              <DailyChart data={detail.daily} />
-            </div>
-          )}
-        </div>
+          </div>
+          <p className="analytics-note">
+            Conversion = completions ÷ views. Open a form to see where visitors drop off and to compare periods,
+            e.g. before and after you changed the flow.
+          </p>
+        </>
       )}
-    </div>
-  );
-}
-
-function FunnelBar({ label, value, max, color }) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-        <span>{label}</span>
-        <span style={{ fontWeight: 600 }}>{value}</span>
-      </div>
-      <div style={{ height: 8, background: 'rgba(0,0,0,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width 0.6s ease' }} />
-      </div>
-    </div>
-  );
-}
-
-function DailyChart({ data }) {
-  // Group by day
-  const days = {};
-  data.forEach(d => {
-    if (!days[d.day]) days[d.day] = { views: 0, starts: 0, completions: 0 };
-    if (d.event === 'view') days[d.day].views = d.sessions;
-    if (d.event === 'start') days[d.day].starts = d.sessions;
-    if (d.event === 'complete') days[d.day].completions = d.sessions;
-  });
-
-  const dayKeys = Object.keys(days).sort();
-  const maxVal = Math.max(...dayKeys.map(d => days[d].views || 1), 1);
-
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 120, marginBottom: 8 }}>
-        {dayKeys.map(day => {
-          const d = days[day];
-          return (
-            <div key={day} style={{ flex: 1, display: 'flex', justifyContent: 'center', height: '100%' }} title={`${day}\nViews: ${d.views}\nStarts: ${d.starts}\nCompletions: ${d.completions}`}>
-              {/* Both bars grow from the bottom of the same box, so the completions
-                  bar overlays the views bar (a percentage margin would resolve
-                  against the container's width, not its height). */}
-              <div style={{ position: 'relative', width: '100%', maxWidth: 24, height: '100%' }}>
-                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'var(--primary)', borderRadius: '3px 3px 0 0', height: `${(d.views / maxVal) * 100}%`, minHeight: d.views > 0 ? 4 : 0, opacity: 0.3 }} />
-                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'var(--success)', borderRadius: '3px 3px 0 0', height: `${(d.completions / maxVal) * 100}%`, minHeight: d.completions > 0 ? 4 : 0 }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text-light)' }}>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--primary)', borderRadius: 2, marginRight: 4, opacity: 0.3 }} />Views</span>
-        <span><span style={{ display: 'inline-block', width: 8, height: 8, background: 'var(--success)', borderRadius: 2, marginRight: 4 }} />Completions</span>
-      </div>
     </div>
   );
 }

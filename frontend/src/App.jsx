@@ -7,6 +7,7 @@ import FormEditor from './pages/FormEditor';
 import Submissions from './pages/Submissions';
 import Users from './pages/Users';
 import Analytics from './pages/Analytics';
+import FormAnalytics from './pages/FormAnalytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
 import { LogoMark, LogoWordmark, Loading, EmptyState, Alert } from './components/AdminUI';
@@ -113,7 +114,7 @@ export default function App() {
         <h1><LogoMark size={28} className="logo-mark" /><LogoWordmark /></h1>
         <nav>
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
-          <Link to="/analytics" className={location.pathname === '/analytics' ? 'active' : ''}>Analytics</Link>
+          <Link to="/analytics" className={location.pathname.startsWith('/analytics') ? 'active' : ''}>Analytics</Link>
           {isAdmin && <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>Users</Link>}
           {isAdmin && <Link to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>Settings</Link>}
           {isAdmin && <Link to="/backup" className={location.pathname === '/backup' ? 'active' : ''}>Backup</Link>}
@@ -153,6 +154,7 @@ export default function App() {
           <Route path="/forms/:id" element={<FormEditor />} />
           <Route path="/forms/:id/submissions" element={<Submissions />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/analytics/:formId" element={<FormAnalytics />} />
           <Route path="/users" element={isAdmin ? <Users /> : <Forbidden />} />
           <Route path="/settings" element={isAdmin ? <Settings /> : <Forbidden />} />
           <Route path="/backup" element={isAdmin ? <Backup /> : <Forbidden />} />

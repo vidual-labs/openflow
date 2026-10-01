@@ -974,3 +974,358 @@ input, select, textarea {
     padding: 32px 20px;
   }
 }
+
+/* Analytics */
+.muted {
+  color: var(--text-light);
+}
+
+.table th.num,
+.table td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.row-link {
+  cursor: pointer;
+}
+
+.row-link:hover td {
+  background: var(--panel);
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.card.kpi {
+  padding: 18px 20px;
+}
+
+.kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 4px 0 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+
+.delta {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.delta-good { color: var(--success); }
+.delta-bad { color: var(--danger); }
+.delta-flat { color: var(--text-light); }
+
+.analytics-note {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.analytics-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.analytics-control label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.analytics-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.analytics-control .input {
+  width: auto;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.analytics-split {
+  max-width: 340px;
+}
+
+.analytics-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.date-range {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.analytics-ranges {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 13px;
+}
+
+.range-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.range-chip::before,
+.swatch {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.range-a::before, .swatch-a { background: var(--primary); }
+.range-b::before, .swatch-b { background: var(--primary); opacity: 0.3; }
+.swatch-views { background: var(--primary); opacity: 0.3; }
+.swatch-completions { background: var(--success); }
+
+.analytics-card-head {
+  padding: 20px 24px 8px;
+}
+
+.analytics-card-head h4 {
+  margin: 0 0 4px;
+}
+
+.analytics-card-head .muted {
+  font-size: 13px;
+}
+
+.analytics-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 24px 16px;
+  font-size: 12px;
+}
+
+.analytics-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-table td {
+  vertical-align: top;
+}
+
+.step-cell {
+  min-width: 220px;
+}
+
+.step-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.step-num {
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+  min-width: 18px;
+}
+
+.tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--panel);
+  color: var(--text-light);
+  border: 1px solid var(--border);
+}
+
+.tag-bad {
+  color: var(--danger);
+  border-color: currentColor;
+  background: transparent;
+}
+
+.step-row-missing .step-title > span:nth-child(2) {
+  color: var(--text-light);
+}
+
+.reach-bar {
+  position: relative;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.reach-bar > div {
+  position: absolute;
+  left: 0;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.reach-bar-cur {
+  top: 0;
+  height: 100%;
+  background: var(--primary);
+}
+
+/* The comparison sits under the current bar, showing only where it was longer */
+.reach-bar-prev {
+  top: 0;
+  height: 100%;
+  background: var(--primary);
+  opacity: 0.3;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.metric-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-sub {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.analytics-loading {
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.trend {
+  position: relative;
+  padding-left: 36px;
+}
+
+.trend-max {
+  position: absolute;
+  left: 0;
+  top: -6px;
+  font-size: 11px;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 140px;
+  border-bottom: 1px solid var(--border);
+}
+
+.trend-slot {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  max-width: 24px;
+  margin: 0 auto;
+}
+
+.trend-slot:hover {
+  background: var(--panel);
+}
+
+.trend-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 3px 3px 0 0;
+}
+
+.trend-views {
+  background: var(--primary);
+  opacity: 0.3;
+}
+
+.trend-completions {
+  background: var(--success);
+}
+
+.trend-axis {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 36px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+  .table-cards td.num {
+    text-align: left;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .kpi-grid .card.kpi {
+    margin-bottom: 0;
+    padding: 14px 16px;
+  }
+
+  .kpi-value {
+    font-size: 22px;
+  }
+
+  /* The step name and its reach bar stack, not sit side by side */
+  .table-cards td.step-cell {
+    display: block;
+    min-width: 0;
+  }
+
+  .analytics-split {
+    max-width: none;
+  }
+}
