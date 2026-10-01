@@ -5,6 +5,7 @@ import LandingBackground from '../components/LandingBackground';
 import './Landing.css';
 
 const GITHUB_URL = 'https://github.com/vidual-labs/openflow';
+const LODGELY_URL = 'https://github.com/vidual-labs/lodgely';
 const QUICK_START = [
   'git clone https://github.com/vidual-labs/openflow.git',
   'cd openflow',
@@ -18,7 +19,7 @@ const FIELD_TYPES = [
 
 const DESTINATIONS = [
   'Webhooks', 'SMTP Email', 'Google Sheets', 'Google Ads', 'Meta Conversions API', 'Google Tag Manager',
-  'WordPress', 'calon', 'CSV Export', 'REST API',
+  'lodgely', 'WordPress', 'calon', 'CSV Export', 'REST API',
 ];
 
 function prefersReducedMotion() {
@@ -206,6 +207,12 @@ const DELIVERY_LOG = [
   ['14:02:42', 'POST', 'datamanager.googleapis.com', '200', 'ok'],
 ];
 
+const LODGELY_INBOX = [
+  ['Project inquiry', 'forms.northwind.io', '2m'],
+  ['Spring launch', 'acme.forms.example.com', '14m'],
+  ['Callback request', 'northwind.io/f/callback', '1h'],
+];
+
 function Features() {
   return (
     <div className="lp-bento">
@@ -268,24 +275,25 @@ function Features() {
       </article>
 
       <article className="lp-cell lp-reveal" onPointerMove={trackSpotlight}>
-        <div className="lp-cell-label">07 / Privacy</div>
+        <div className="lp-cell-label">07 / Lead inbox</div>
+        <h3>Every form, one inbox.</h3>
+        <p><a href={LODGELY_URL} target="_blank" rel="noopener noreferrer">lodgely</a> pulls the leads from all your OpenFlow installs into one inbox, using a read-only API token.</p>
+        <div className="lp-inbox">
+          {LODGELY_INBOX.map(([form, source, age], i) => (
+            <div key={form} className="lp-inbox-row" style={{ transitionDelay: `${i * 140}ms` }}>
+              <i />
+              <span><b>{form}</b><em>{source}</em></span>
+              <small>{age}</small>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <article className="lp-cell lp-reveal" onPointerMove={trackSpotlight}>
+        <div className="lp-cell-label">08 / Privacy</div>
         <h3>GDPR-ready by default.</h3>
         <p>Consent steps, a cookie banner, and ad click IDs only captured after consent. Your data stays on your own server.</p>
         <label className="lp-consent"><span className="lp-box" />I agree to the privacy policy.</label>
-      </article>
-
-      <article className="lp-cell lp-cell-wide lp-reveal" onPointerMove={trackSpotlight}>
-        <div className="lp-cell-label">08 / Design</div>
-        <h3>On brand, down to the background.</h3>
-        <p>Colors, fonts, custom CSS, a landing-page mode and five animated backgrounds, all with a live preview while you edit.</p>
-        <div className="lp-design">
-          <div className="lp-swatches">
-            {['#6C5CE7', '#00CEC9', '#FD79A8', '#FDCB6E', '#E17055'].map(c => <span key={c} style={{ background: c }} />)}
-          </div>
-          <div className="lp-chips lp-chips-inline">
-            {['Waves', 'Aurora', 'Gradient Wave', 'Gateway Flow', 'Flow'].map((b, i) => <span key={b} style={{ transitionDelay: `${i * 60}ms` }}>{b}</span>)}
-          </div>
-        </div>
       </article>
 
       <article className="lp-cell lp-reveal" onPointerMove={trackSpotlight}>
@@ -294,6 +302,20 @@ function Features() {
         <p>Invite users with roles, read leads through read-only API tokens, and keep rotating backups.</p>
         <div className="lp-token">
           <span>ofw_3f9a…c71e</span><b>read-only</b>
+        </div>
+      </article>
+
+      <article className="lp-cell lp-reveal" onPointerMove={trackSpotlight}>
+        <div className="lp-cell-label">10 / Design</div>
+        <h3>On brand, down to the background.</h3>
+        <p>Colors, fonts, custom CSS and five animated backgrounds, with a live preview while you edit.</p>
+        <div className="lp-design">
+          <div className="lp-swatches">
+            {['#6C5CE7', '#00CEC9', '#FD79A8', '#FDCB6E', '#E17055'].map(c => <span key={c} style={{ background: c }} />)}
+          </div>
+          <div className="lp-chips lp-chips-inline">
+            {['Waves', 'Aurora', 'Gradient Wave', 'Gateway Flow', 'Flow'].map((b, i) => <span key={b} style={{ transitionDelay: `${i * 60}ms` }}>{b}</span>)}
+          </div>
         </div>
       </article>
     </div>
@@ -357,11 +379,11 @@ export default function Landing({ version }) {
                 <a href="#self-host" className="lp-btn lp-btn-primary">Get started <Arrow /></a>
                 <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn-ghost"><GitHubIcon /> Star on GitHub</a>
               </div>
-              <div className="lp-command lp-reveal">
+              <a className="lp-command lp-reveal" href="#self-host">
                 <span className="lp-prompt">$</span>
-                <code>docker compose up -d</code>
-                <CopyButton text="docker compose up -d" label="Copy command" />
-              </div>
+                <code>self-host in 3 commands</code>
+                <span className="lp-command-go" aria-hidden="true">↓</span>
+              </a>
             </div>
             <div className="lp-hero-visual lp-reveal">
               <DemoForm />
