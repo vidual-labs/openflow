@@ -11,6 +11,13 @@ function clientIp(req) {
 
 const ALLOWED_KEYS = ['branding'];
 
+// OPENFLOW_LANDING_PAGE=true shows the marketing landing page at `/` to
+// logged-out visitors (login moves to /login). Off by default, so an install
+// keeps opening straight on the login screen unless the operator opts in.
+function isLandingPageEnabled() {
+  return ['1', 'true', 'yes', 'on'].includes(String(process.env.OPENFLOW_LANDING_PAGE || '').trim().toLowerCase());
+}
+
 function getSetting(db, key) {
   const row = db.prepare('SELECT value FROM site_settings WHERE key = ?').get(key);
   return row ? JSON.parse(row.value) : null;
@@ -27,7 +34,7 @@ router.get('/', (req, res) => {
   // Expose the operator-configured primary host so the form editor can render
   // a correct subdomain preview ("<your-subdomain>.openflow.example.com").
   const primaryHost = process.env.OPENFLOW_PRIMARY_HOST || null;
-  res.json({ settings, primaryHost });
+  res.json({ settings, primaryHost, landingPage: isLandingPageEnabled() });
 });
 
 // PUT /api/settings/:key — admin only

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { Alert, LogoMark, LogoWordmark } from '../components/AdminUI';
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, backHref }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -36,6 +37,7 @@ export default function Login({ onLogin }) {
             Sign in
           </button>
         </form>
+        {backHref && <Link to={backHref} className="login-back">← Back to home</Link>}
       </div>
     </div>
   );

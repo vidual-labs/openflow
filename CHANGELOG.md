@@ -2,6 +2,23 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.42.0] - 2026-10-01
+
+### Added
+- **Optional landing page.** Set `OPENFLOW_LANDING_PAGE=true` and logged-out
+  visitors see an OpenFlow landing page at `/` instead of the login. The login
+  moves to `/login`, linked from the landing page's nav, and gets a "Back to
+  home" link. The page has an animated flow-line hero background (plain
+  canvas, no new dependencies) and a self-playing demo form. It showcases the
+  builder, logic, analytics, booking, embedding, integrations, privacy, design
+  and teams features, explains server-side conversion tracking and ends with
+  the `docker compose` quick start. It pauses its animations off-screen and
+  shows a still frame with "reduce motion" on. It is lazy-loaded, so the admin
+  bundle doesn't grow. Off by default: without the variable nothing changes.
+  Deep links to admin pages still go straight to the login, and per-form
+  subdomains are unaffected. `GET /api/settings` now also returns
+  `landingPage: true|false`.
+
 ## [0.41.0] - 2026-09-29
 
 A security and correctness batch from a cross-repo review with lodgely, plus
