@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.41.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.42.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -42,6 +42,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `pages/FormEditor.jsx` — Form builder UI (`FIELD_TYPES` lives here; steps, end screen, design, GTM/GDPR, integrations, embed tabs)
   - `pages/FormView.jsx` — Public form page at `/f/:slug` (landing page, GTM, cookie banner)
   - `pages/EmbedView.jsx` — Iframe-optimized form page at `/embed/:slug` (posts resize messages)
+  - `pages/Landing.jsx` (+ `Landing.css`, `components/LandingBackground.jsx`) — Marketing landing page shown at `/` to logged-out visitors when `OPENFLOW_LANDING_PAGE=true` (read via `GET /api/settings` → `landingPage`); login then lives at `/login`. Lazy-loaded, always dark, styles scoped under `.lp`
   - `pages/Dashboard.jsx` — Form list (create, duplicate, publish, delete)
   - `pages/Analytics.jsx` — Funnel and drop-off analysis
   - `pages/Submissions.jsx` — View, delete and export submissions
@@ -247,7 +248,7 @@ migrations in `models/db.js`:
 - **Admin** (`/api/forms`, `/api/submissions`, `/api/auth`): session (JWT cookie / Bearer) or a read-only `ofw_` API token (`router.use(authMiddleware)`). Every query is scoped to the **owning user** (`user_id = req.userId`) — admins included; there is no cross-user form visibility yet.
 - **Integrations** (`/api/integrations`): Test, create, update, delete integrations; list and retry deliveries.
 - **Analytics** (`/api/analytics`): Get funnel and trend data.
-- **Settings** (`/api/settings`): `GET` is public (branding + `primaryHost` are needed by the login screen and form editor); `PUT /:key` is admin-only and restricted to an allowlist of keys.
+- **Settings** (`/api/settings`): `GET` is public (branding, `primaryHost` and the `landingPage` flag are needed by the logged-out screen and form editor); `PUT /:key` is admin-only and restricted to an allowlist of keys.
 - **Admin-only** (`/api/admin/`): Backup, restore, and scheduled-backup listing. The whole router is behind `authMiddleware, requireAdmin`, and it is blocked outright on per-form subdomains. `requireAdmin` rejects API tokens, so a token never inherits its owner's admin rights.
 
 ### External consumer: lodgely (lead intake hub)

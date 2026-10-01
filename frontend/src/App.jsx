@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { api } from './api';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -11,6 +11,10 @@ import Settings from './pages/Settings';
 import Backup from './pages/Backup';
 import { LogoMark, LogoWordmark, Loading, EmptyState, Alert } from './components/AdminUI';
 import { version as APP_VERSION } from '../package.json';
+
+// Only fetched when OPENFLOW_LANDING_PAGE is on, so the admin bundle doesn't
+// carry the marketing page's code and styles.
+const Landing = lazy(() => import('./pages/Landing'));
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
@@ -37,6 +41,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(getInitialTheme);
   const [branding, setBranding] = useState({ logoVisible: true, logoUrl: '' });
+  const [landingPage, setLandingPage] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,7 +49,10 @@ export default function App() {
   useEffect(() => {
     Promise.all([
       api.me().then(d => setUser(d.user)).catch(() => setUser(null)),
-      api.getSettings().then(d => { if (d.settings?.branding) setBranding(b => ({ ...b, ...d.settings.branding })); }).catch(() => {}),
+      api.getSettings().then(d => {
+        if (d.settings?.branding) setBranding(b => ({ ...b, ...d.settings.branding }));
+        setLandingPage(d.landingPage === true);
+      }).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -72,7 +80,12 @@ export default function App() {
   if (loading) return <Loading />;
 
   if (!user) {
-    return <Login onLogin={(u) => { setUser(u); navigate('/'); }} />;
+    // With the landing page on, logged-out visitors see it at `/` and sign in
+    // at /login; any other admin path (a deep link) still goes to the login.
+    if (landingPage && location.pathname === '/') {
+      return <Suspense fallback={<Loading />}><Landing version={APP_VERSION} /></Suspense>;
+    }
+    return <Login backHref={landingPage ? '/' : null} onLogin={(u) => { setUser(u); navigate('/'); }} />;
   }
 
   async function handleLogout() {
@@ -136,6 +149,7 @@ export default function App() {
         )}
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/forms/:id" element={<FormEditor />} />
           <Route path="/forms/:id/submissions" element={<Submissions />} />
           <Route path="/analytics" element={<Analytics />} />

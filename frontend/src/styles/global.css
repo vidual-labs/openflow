@@ -487,6 +487,19 @@ input, select, textarea {
   margin-bottom: 32px;
 }
 
+.login-back {
+  display: block;
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-light);
+  text-decoration: none;
+}
+
+.login-back:hover {
+  color: var(--primary);
+}
+
 /* Responsive grids — the admin's multi-column form rows. They collapse on
    narrow screens (see the max-width:768px block below). Gap and margins stay
    on the element's inline style. */

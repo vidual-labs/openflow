@@ -188,6 +188,23 @@ describe('PUT /api/forms/:id with subdomain (integration)', () => {
     expect(res.status).toBe(200);
     expect(res.body.primaryHost).toBeNull();
   });
+
+  it('reports the landing page as off unless OPENFLOW_LANDING_PAGE is truthy', async () => {
+    delete process.env.OPENFLOW_LANDING_PAGE;
+    let res = await request(app).get('/api/settings');
+    expect(res.body.landingPage).toBe(false);
+
+    process.env.OPENFLOW_LANDING_PAGE = 'false';
+    res = await request(app).get('/api/settings');
+    expect(res.body.landingPage).toBe(false);
+
+    for (const value of ['true', '1', 'ON', ' yes ']) {
+      process.env.OPENFLOW_LANDING_PAGE = value;
+      res = await request(app).get('/api/settings');
+      expect(res.body.landingPage).toBe(true);
+    }
+    delete process.env.OPENFLOW_LANDING_PAGE;
+  });
 });
 
 describe('Subdomain middleware (integration)', () => {

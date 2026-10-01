@@ -33,6 +33,9 @@ services:
       # stored submitter IP use the visitor's address, not the proxy's.
       # Implied (=1) when OPENFLOW_PRIMARY_HOST is set.
       - TRUST_PROXY=${TRUST_PROXY:-}
+      # Set to true to show the marketing landing page at / to logged-out
+      # visitors (the login moves to /login). Off by default.
+      - OPENFLOW_LANDING_PAGE=${OPENFLOW_LANDING_PAGE:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@openflow.local}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       # Scheduled backups: written every BACKUP_INTERVAL_HOURS, keeping the

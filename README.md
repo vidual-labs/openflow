@@ -167,6 +167,7 @@ Environment variables (in `.env` or docker-compose):
 | `CORS_ORIGINS` | *(empty)* | 🌍 Comma-separated extra origins allowed to call the API. Same-origin requests are always allowed, so this is only needed when the admin UI is served from a different host than the API |
 | `OPENFLOW_PRIMARY_HOST` | *(empty)* | 🌐 Apex host for [custom subdomains](#custom-subdomains). Also implicitly allowed as a CORS origin, and implies `TRUST_PROXY=1` |
 | `TRUST_PROXY` | *(empty = off)* | 🔀 Set when OpenFlow runs behind a reverse proxy: a hop count (`1` = one proxy in front), `true`, or a comma-separated list of proxy IPs/CIDRs. Without it every visitor shares the proxy's IP — one rate-limit bucket for everybody and the proxy's address stored as the submitter IP |
+| `OPENFLOW_LANDING_PAGE` | *(unset = off)* | 🏠 Set to `true` to show the OpenFlow landing page (features, self-host guide) at `/` to logged-out visitors; the login then lives at `/login`. Off, `/` opens straight on the login screen as before |
 | `OPENFLOW_VERSION` | `latest` | 🐳 Image tag `docker-compose.yml` pulls (e.g. `0.31.0` to pin a version instead of always tracking `latest`) |
 | `BACKUP_ENABLED` | `true` | ⏰ Set to `false` to disable the scheduled backup job |
 | `BACKUP_DIR` | `/app/backups` (from `docker-compose.yml`; otherwise a `backups/` folder next to `DB_PATH`) | 📁 Where scheduled backups are written (point at a separate volume for real off-box protection) |
