@@ -32,6 +32,19 @@ All notable changes to OpenFlow are documented in this file.
   and `published` flag. Drop-off is measured on each session's last step,
   so a visitor who goes back a step and leaves is counted where they left.
 
+## [0.42.1] - 2026-10-01
+
+### Changed
+- **Landing page: the hero's command box now links to the install guide.** It
+  showed only `docker compose up -d`, which doesn't work without cloning the
+  repo first. It is now a "self-host in 3 commands ↓" link that scrolls to the
+  Self-host section, which has the full `git clone` → `docker compose up -d`
+  steps. Anchored sections now stop below the sticky nav, and in-page links
+  scroll smoothly unless "reduce motion" is on.
+- **Landing page: lodgely is featured.** It is in the integrations marquee and
+  has its own "Lead inbox" feature tile. lodgely pulls leads from all your
+  OpenFlow installs into one inbox via a read-only API token.
+
 ## [0.42.0] - 2026-10-01
 
 ### Added
