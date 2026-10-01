@@ -2,6 +2,36 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.43.0] - 2026-10-01
+
+### Changed
+- **Redesigned analytics, built for "did my flow change help?".** The
+  Analytics page is now an overview table of all forms (views, starts,
+  completions, start rate, conversion) with totals and the change against the
+  same-length period before it. Each form opens its own page at
+  `/analytics/:formId` with:
+  - **Any period and a comparison period**: presets, a custom range, the
+    previous period or a custom comparison range. All of it lives in the URL,
+    so a comparison can be bookmarked or shared.
+  - **"Changed the flow?" shortcut**: pick the day a change went live, and the
+    days since then (up to 90) are compared with as many days right before it.
+  - **Per-step drop-off**: for each step, how many visitors reached it, the
+    reach (share of visitors who saw the first step), the drop-off (share who
+    left the form on that step) and the median time on step. With a comparison
+    each metric shows the earlier value and the change in percentage points,
+    coloured by whether it is better or worse. The step losing the most
+    visitors is flagged, a step new since the comparison is marked "New", and
+    a step that was removed meanwhile still shows its old numbers.
+  - KPI tiles for views, start rate, finish rate (of started) and conversion,
+    and a daily trend that no longer skips days without visits.
+- `GET /api/analytics/:formId` accepts `from`/`to` (UTC days, inclusive) and
+  an optional `compareFrom`/`compareTo` next to `days`. Step rows gain `key`,
+  `reachRate`, `dropped`, `dropRate`, `medianSeconds` and `removed`, the
+  summary gains `completionRate` and `entered`, and rates now carry one
+  decimal. `GET /api/analytics/overview` adds each form's `previous` period
+  and `published` flag. Drop-off is measured on each session's last step,
+  so a visitor who goes back a step and leaves is counted where they left.
+
 ## [0.42.0] - 2026-10-01
 
 ### Added

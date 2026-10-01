@@ -72,7 +72,8 @@ export const api = {
 
   // Analytics
   getAnalyticsOverview: (days = 30) => request(`/analytics/overview?days=${days}`),
-  getAnalyticsDetail: (formId, days = 30) => request(`/analytics/${formId}?days=${days}`),
+  // params: { from, to, compareFrom?, compareTo? } (UTC days, inclusive)
+  getAnalyticsDetail: (formId, params) => request(`/analytics/${formId}?${new URLSearchParams(params)}`),
 
   getSettings: () => request('/settings'),
   updateSettings: (key, value) => request(`/settings/${key}`, { method: 'PUT', body: JSON.stringify(value) }),

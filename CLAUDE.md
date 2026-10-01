@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.42.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.43.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -44,7 +44,8 @@ OpenFlow is a **full-stack application** with three main components:
   - `pages/EmbedView.jsx` — Iframe-optimized form page at `/embed/:slug` (posts resize messages)
   - `pages/Landing.jsx` (+ `Landing.css`, `components/LandingBackground.jsx`) — Marketing landing page shown at `/` to logged-out visitors when `OPENFLOW_LANDING_PAGE=true` (read via `GET /api/settings` → `landingPage`); login then lives at `/login`. Lazy-loaded, always dark, styles scoped under `.lp`
   - `pages/Dashboard.jsx` — Form list (create, duplicate, publish, delete)
-  - `pages/Analytics.jsx` — Funnel and drop-off analysis
+  - `pages/Analytics.jsx` — Analytics overview: all forms vs. the previous period
+  - `pages/FormAnalytics.jsx` — Per-form analytics at `/analytics/:formId`: period + comparison range (in the URL), a "changed the flow on…" before/after shortcut, per-step reach / drop-off / median time on step, daily trend. Shared bits (`Delta`, `Kpi`, UTC day helpers) in `components/AnalyticsUI.jsx`
   - `pages/Submissions.jsx` — View, delete and export submissions
   - `pages/Users.jsx` / `pages/Settings.jsx` / `pages/Backup.jsx` — Admin-only pages (users, branding + API tokens, backup/restore)
   - `components/FormRenderer.jsx` — Renders forms with animations, validation, conditional logic and consent
@@ -182,7 +183,13 @@ attempt and retries with backoff before marking it dead.
 
 ### Analytics
 Tracks per-form and global stats: views, starts, completions, conversion rates,
-step drop-off. Data stored in the `analytics_events` table.
+step drop-off. Data stored in the `analytics_events` table. Ranges are whole
+UTC days (`from`/`to`, inclusive). Per-step numbers come from walking each
+session's own ordered `step`/`complete` events (`stepStats` in
+`routes/analytics.js`), keyed by step id: *reached* = saw the step, *dropped* =
+the session's last step and no completion, *time on step* = until the next
+step or the completion. There is no flow-version history: comparing two date
+ranges is how an operator checks whether a flow change moved the drop-off.
 
 ## Testing
 
@@ -200,7 +207,7 @@ npm test -- --watch
 
 Tests live in `backend/tests/` and cover: authentication, authorization, API
 tokens, rate limiting, form CRUD, submission validation, slug rules, subdomain
-rules, backup/restore, calon availability/booking, encryption, integration
+rules, backup/restore, calon availability/booking, analytics ranges and step drop-off, encryption, integration
 secrets, Meta CAPI, the audit log, session revocation and the security
 hardening (`securityHardening.test.js`). There is no frontend test suite.
 
