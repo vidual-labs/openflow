@@ -198,17 +198,19 @@ function restoreBackup(db, rawBackup, options = {}) {
           preserveUser.id,
           preserveUser.email
         );
-        // token_version must survive too: the admin's current JWT carries
-        // it, and resetting it to 0 would revoke their session mid-restore.
+        // Their two-factor setting survives too: a restore must not quietly
+        // switch off the admin's 2FA. (token_version is legacy since 0.44's
+        // server-side sessions, kept so older code reading it stays happy.)
         db.prepare(
-          'INSERT INTO users (id, email, password_hash, role, created_at, token_version) VALUES (?, ?, ?, ?, ?, ?)'
+          'INSERT INTO users (id, email, password_hash, role, created_at, token_version, twofa_enabled) VALUES (?, ?, ?, ?, ?, ?, ?)'
         ).run(
           preserveUser.id,
           preserveUser.email,
           preserveUser.password_hash,
           'admin',
           preserveUser.created_at || new Date().toISOString(),
-          preserveUser.token_version || 0
+          preserveUser.token_version || 0,
+          preserveUser.twofa_enabled ? 1 : 0
         );
 
         // If the backup had a matching user under a different id, their forms

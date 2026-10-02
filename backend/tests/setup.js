@@ -6,6 +6,10 @@ const fs = require('fs');
 
 jest.setTimeout(10000);
 
+// Production hashes at bcrypt cost 12 (~300 ms each in pure JS); the suite
+// logs in hundreds of times, so it hashes at the minimum instead.
+process.env.BCRYPT_ROUNDS = '10';
+
 function setupTestDb() {
   const testDbPath = path.join(__dirname, '../data/test.db');
   if (fs.existsSync(testDbPath)) {
@@ -37,6 +41,10 @@ beforeEach(() => {
   db.exec('DELETE FROM integrations');
   db.exec('DELETE FROM api_tokens');
   db.exec('DELETE FROM audit_log');
+  db.exec('DELETE FROM sessions');
+  db.exec('DELETE FROM trusted_devices');
+  db.exec('DELETE FROM auth_challenges');
+  db.exec('DELETE FROM login_failures');
   db.exec('DELETE FROM forms');
   db.exec('DELETE FROM users');
   db.pragma('foreign_keys = ON');

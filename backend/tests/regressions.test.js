@@ -140,6 +140,22 @@ describe('backup restore keeps the acting admin logged in', () => {
     const me = await request(app).get('/api/auth/me').set('Cookie', cookie);
     expect(me.status).toBe(200);
   });
+
+  it("keeps the restoring admin's two-factor login on and signs everyone else out", async () => {
+    const db = getDb();
+    const adminId = seedUser();
+    const cookie = await login(app);
+    const backup = await request(app).get('/api/admin/backup').set('Cookie', cookie);
+    // 2FA switched on after the backup was taken: the restore must not undo it.
+    db.prepare('UPDATE users SET twofa_enabled = 1 WHERE id = ?').run(adminId);
+    db.prepare("INSERT INTO sessions (id, user_id, token_hash, created_at, last_seen_at, expires_at) VALUES ('other', 'someone-else', 'h', 0, 0, ?)").run(Date.now() + 60000);
+
+    const restore = await request(app).post('/api/admin/restore').set('Cookie', cookie).send(backup.body);
+    expect(restore.status).toBe(200);
+    expect(db.prepare('SELECT twofa_enabled FROM users WHERE id = ?').get(adminId).twofa_enabled).toBe(1);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM sessions WHERE id = 'other'").get().n).toBe(0);
+    expect((await request(app).get('/api/auth/me').set('Cookie', cookie)).status).toBe(200);
+  });
 });
 
 describe('submission validation', () => {

@@ -10,6 +10,7 @@ import Analytics from './pages/Analytics';
 import FormAnalytics from './pages/FormAnalytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
+import Account from './pages/Account';
 import { LogoMark, LogoWordmark, Loading, EmptyState, Alert } from './components/AdminUI';
 import { version as APP_VERSION } from '../package.json';
 
@@ -118,6 +119,7 @@ export default function App() {
           {isAdmin && <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>Users</Link>}
           {isAdmin && <Link to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>Settings</Link>}
           {isAdmin && <Link to="/backup" className={location.pathname === '/backup' ? 'active' : ''}>Backup</Link>}
+          <Link to="/account" className={location.pathname === '/account' ? 'active' : ''}>Account</Link>
         </nav>
         <div style={{ marginTop: 'auto', paddingTop: 16 }}>
           <span style={{ fontSize: 13, opacity: 0.5, display: 'block', padding: '0 12px', marginBottom: 8 }}>{user.email}</span>
@@ -142,10 +144,8 @@ export default function App() {
       <main className="admin-main">
         {user.weakPassword && (
           <Alert type="error" style={{ marginBottom: 16 }}>
-            Your account uses a weak or well-known password (such as the old default <code>admin123</code>).{' '}
-            {isAdmin
-              ? <>Change it now on the <Link to="/users">Users</Link> page — anyone who finds this install could otherwise log in as you.</>
-              : <>Ask an admin to set a new password for you.</>}
+            Your account uses a weak or easily guessed password (such as the old default <code>admin123</code>).{' '}
+            <Link to="/account">Change it now on your Account page</Link> — anyone who finds this install could otherwise log in as you.
           </Alert>
         )}
         <Routes>
@@ -158,6 +158,7 @@ export default function App() {
           <Route path="/users" element={isAdmin ? <Users /> : <Forbidden />} />
           <Route path="/settings" element={isAdmin ? <Settings /> : <Forbidden />} />
           <Route path="/backup" element={isAdmin ? <Backup /> : <Forbidden />} />
+          <Route path="/account" element={<Account user={user} onUserChange={setUser} />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

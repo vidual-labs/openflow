@@ -94,12 +94,75 @@ export default function Settings() {
         </div>
       </form>
 
-      <ApiTokensCard />
+      <SystemMailCard />
     </div>
   );
 }
 
-function ApiTokensCard() {
+// Outgoing mail is configured by the operator through SMTP_* environment
+// variables; this only shows whether it is set up and lets an admin send a
+// test message before anyone relies on e-mailed login codes.
+function SystemMailCard() {
+  const [status, setStatus] = useState(null);
+  const [result, setResult] = useState({ type: '', text: '' });
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    api.getMailStatus().then(setStatus).catch(() => {});
+  }, []);
+
+  async function handleTest() {
+    setResult({ type: '', text: '' });
+    setSending(true);
+    try {
+      const d = await api.sendTestMail();
+      setResult({ type: 'success', text: `Test e-mail sent to ${d.to}.` });
+    } catch (err) {
+      setResult({ type: 'error', text: err.message });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 24 }}>
+      <div className="section-header">
+        <span style={{ fontSize: 20 }}>✉️</span>
+        <div>
+          <h3 style={{ margin: 0 }}>System e-mail</h3>
+          <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>
+            Sends two-factor login codes and security notices (new sign-in, password changed, repeated failed logins).
+            Configured on the server with the <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code> and <code>SMTP_FROM</code> environment variables.
+          </p>
+        </div>
+      </div>
+      {!status ? null : status.configured ? (
+        <>
+          <p style={{ margin: '0 0 12px', fontSize: 14 }}>
+            <span className="badge badge-published">configured</span>{' '}
+            <span style={{ color: 'var(--text-light)' }}>{status.host}:{status.port} · from {status.from}</span>
+          </p>
+          <button type="button" className="btn btn-secondary" onClick={handleTest} disabled={sending}>
+            {sending ? 'Sending…' : 'Send test e-mail to me'}
+          </button>
+        </>
+      ) : (
+        <p style={{ margin: 0, fontSize: 14 }}>
+          <span className="badge badge-draft">not configured</span>{' '}
+          <span style={{ color: 'var(--text-light)' }}>Users can't turn on two-factor login until it is.</span>
+        </p>
+      )}
+      {status?.twoFactorDisabledByOperator && (
+        <Alert type="error" style={{ marginTop: 12 }}>
+          <code>OPENFLOW_2FA_DISABLED</code> is set: accounts with two-factor login currently sign in with their password only. Remove it once e-mail works again.
+        </Alert>
+      )}
+      <Alert type={result.type || 'error'} style={{ marginTop: 12, marginBottom: 0 }}>{result.text}</Alert>
+    </div>
+  );
+}
+
+export function ApiTokensCard() {
   const [tokens, setTokens] = useState([]);
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -161,7 +224,8 @@ function ApiTokensCard() {
           <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>
             Read-only tokens for programmatic API access — e.g. the lodgely lead-intake connector.
             A token can read your forms and submissions but cannot change anything, and can be revoked
-            here at any time without affecting your password.
+            here at any time without affecting your password. Connect integrations with a token rather
+            than your password — it keeps working when two-factor login is on.
           </p>
         </div>
       </div>

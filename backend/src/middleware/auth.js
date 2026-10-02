@@ -1,42 +1,20 @@
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
 const { looksLikeApiToken, findByToken, touchLastUsed } = require('../models/apiTokens');
+const { SESSION_COOKIE, findSession } = require('../models/sessions');
 
-// If JWT_SECRET isn't provided via env, generate a random one and persist it
-// next to the database (same volume as DB_PATH) so it survives restarts.
-// This avoids ever falling back to a hardcoded, publicly-known secret, which
-// would let anyone forge admin session tokens.
-function loadOrCreateJwtSecret() {
-  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
-
-  const dataDir = path.dirname(process.env.DB_PATH || path.join(__dirname, '../../data/openflow.db'));
-  const secretPath = path.join(dataDir, '.jwt_secret');
-
-  try {
-    if (fs.existsSync(secretPath)) {
-      const existing = fs.readFileSync(secretPath, 'utf8').trim();
-      if (existing) return existing;
-    }
-    fs.mkdirSync(dataDir, { recursive: true });
-    const generated = crypto.randomBytes(48).toString('hex');
-    fs.writeFileSync(secretPath, generated, { mode: 0o600 });
-    console.warn('WARNING: JWT_SECRET is not set. Generated and persisted a random secret at ' + secretPath + '. Set JWT_SECRET explicitly in production to control this.');
-    return generated;
-  } catch (err) {
-    // Can't persist (e.g. read-only filesystem) — fall back to an
-    // in-memory random secret. Sessions won't survive a restart, but at
-    // least no hardcoded/guessable secret is ever used.
-    console.warn('WARNING: JWT_SECRET is not set and could not be persisted (' + err.message + '). Using an ephemeral random secret; all sessions will be invalidated on restart.');
-    return crypto.randomBytes(48).toString('hex');
-  }
+// The session token comes from the httpOnly cookie, or — for API clients such
+// as the lodgely connector, which logs in and replays the cookie value — from
+// an `Authorization: Bearer` header. Read-only `ofw_` API tokens use the
+// header too.
+function readToken(req) {
+  const cookie = req.cookies?.[SESSION_COOKIE];
+  if (cookie) return cookie;
+  const header = req.headers.authorization;
+  if (typeof header === 'string' && header.startsWith('Bearer ')) return header.slice(7).trim();
+  return null;
 }
 
-const JWT_SECRET = loadOrCreateJwtSecret();
-
 function authMiddleware(req, res, next) {
-  const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
+  const token = readToken(req);
   if (!token) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
@@ -58,29 +36,18 @@ function authMiddleware(req, res, next) {
     return next();
   }
 
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-
-    // Reject tokens minted before the user's last password change, role
-    // change, or an explicit "log out everywhere" — otherwise a compromised
-    // or since-demoted account's JWT keeps working for up to 7 more days.
-    const { getDb } = require('../models/db');
-    const db = getDb();
-    const user = db.prepare('SELECT token_version FROM users WHERE id = ?').get(payload.userId);
-    if (!user || (user.token_version || 0) !== (payload.tv || 0)) {
-      return res.status(401).json({ error: 'Session revoked. Please log in again.' });
-    }
-
-    req.userId = payload.userId;
-    req.authVia = 'session';
-    next();
-  } catch {
+  // Server-side session (models/sessions.js). Logging out, a password or role
+  // change, and an admin's "log out everywhere" delete the row, so a stolen
+  // cookie stops working the moment any of those happen. Cookies from before
+  // 0.44 (signed JWTs) match no row and simply ask for a fresh login.
+  const session = findSession(token);
+  if (!session) {
     return res.status(401).json({ error: 'Invalid token' });
   }
-}
-
-function signToken(userId, tokenVersion = 0) {
-  return jwt.sign({ userId, tv: tokenVersion }, JWT_SECRET, { expiresIn: '7d' });
+  req.userId = session.user_id;
+  req.sessionId = session.id;
+  req.authVia = 'session';
+  next();
 }
 
 // Must run after authMiddleware (relies on req.userId). Rejects non-admins,
@@ -111,4 +78,4 @@ function requireSession(req, res, next) {
   next();
 }
 
-module.exports = { authMiddleware, signToken, requireAdmin, requireSession };
+module.exports = { authMiddleware, requireAdmin, requireSession, readToken };

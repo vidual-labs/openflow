@@ -1,6 +1,5 @@
 const Database = require('better-sqlite3');
 const path = require('path');
-const bcrypt = require('bcryptjs');
 
 let db;
 
@@ -148,6 +147,66 @@ function initDb() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
+
+    -- Login state (models/sessions.js, models/loginGuard.js,
+    -- models/twoFactor.js). Only SHA-256 hashes of the random tokens are
+    -- stored, so a leaked DB or backup can't be replayed as a login. No
+    -- FOREIGN KEYs: a restore wipes and re-inserts users with foreign keys
+    -- off, and deleting a user clears these rows explicitly. None of these
+    -- tables are part of a backup.
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_hash TEXT UNIQUE NOT NULL,
+      ip TEXT,
+      user_agent TEXT,
+      created_at INTEGER NOT NULL,
+      last_seen_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+
+    -- A browser that has logged in to an account before. Exempts that
+    -- browser from the account lockout, and — when trusted_2fa is set — from
+    -- the e-mailed login code for 30 days. It never replaces the password.
+    CREATE TABLE IF NOT EXISTS trusted_devices (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_hash TEXT UNIQUE NOT NULL,
+      trusted_2fa INTEGER NOT NULL DEFAULT 0,
+      ip TEXT,
+      user_agent TEXT,
+      created_at INTEGER NOT NULL,
+      last_used_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_trusted_devices_user ON trusted_devices(user_id);
+
+    -- E-mailed one-time codes (login, enabling 2FA). id is the hash of the
+    -- challenge token the browser holds; the code itself is only stored as a
+    -- hash keyed by that token.
+    CREATE TABLE IF NOT EXISTS auth_challenges (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      purpose TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      consumed INTEGER NOT NULL DEFAULT 0,
+      ip TEXT,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_auth_challenges_user ON auth_challenges(user_id, purpose, created_at);
+
+    -- Failed logins per (lower-cased) e-mail, whether or not the account
+    -- exists, so a lockout can't be used to find out which accounts do.
+    CREATE TABLE IF NOT EXISTS login_failures (
+      email TEXT PRIMARY KEY,
+      failures INTEGER NOT NULL DEFAULT 0,
+      locked_until INTEGER NOT NULL DEFAULT 0,
+      last_failure_at INTEGER NOT NULL,
+      notified_at INTEGER NOT NULL DEFAULT 0
+    );
   `);
 
   // Migrate: add role column if missing (existing DBs)
@@ -167,6 +226,14 @@ function initDb() {
   } catch {
     db.exec('ALTER TABLE users ADD COLUMN token_version INTEGER DEFAULT 0');
     console.log('Migration: added token_version column to users');
+  }
+
+  // Migrate: opt-in e-mail two-factor login (existing DBs).
+  try {
+    db.prepare('SELECT twofa_enabled FROM users LIMIT 1').get();
+  } catch {
+    db.exec('ALTER TABLE users ADD COLUMN twofa_enabled INTEGER DEFAULT 0');
+    console.log('Migration: added twofa_enabled column to users');
   }
 
   // Migrate: add subdomain column to forms (existing DBs).
@@ -194,7 +261,7 @@ function initDb() {
     const generatedPassword = !process.env.ADMIN_PASSWORD ? crypto.randomBytes(12).toString('base64url') : null;
     require('./secureDefaults').assertSeedPasswordStrong(process.env.ADMIN_PASSWORD);
     const adminPassword = process.env.ADMIN_PASSWORD || generatedPassword;
-    const hash = bcrypt.hashSync(adminPassword, 10);
+    const hash = require('./passwords').hashPasswordSync(adminPassword);
     db.prepare("INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, 'admin')").run(uuid(), adminEmail, hash);
     if (generatedPassword) {
       console.log('='.repeat(60));

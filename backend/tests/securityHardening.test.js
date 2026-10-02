@@ -174,17 +174,12 @@ describe('Security hardening', () => {
   });
 
   describe('JWT secret', () => {
-    it('refuses a publicly known secret', () => {
-      expect(() => secureDefaults.checkJwtSecret({ JWT_SECRET: 'change-me-in-production' })).toThrow(/JWT_SECRET/);
-    });
-
-    it('warns about a short secret', () => {
-      expect(secureDefaults.checkJwtSecret({ JWT_SECRET: 'tooshort' })).toHaveLength(1);
-    });
-
-    it('accepts an unset or long random secret', () => {
+    // Sessions are server-side since 0.44: JWT_SECRET is unused, so any
+    // value only produces a "you can remove it" note and never stops boot.
+    it('only notes that a set JWT_SECRET is unused', () => {
+      expect(() => secureDefaults.checkJwtSecret({ JWT_SECRET: 'change-me-in-production' })).not.toThrow();
+      expect(secureDefaults.checkJwtSecret({ JWT_SECRET: 'change-me-in-production' })[0]).toMatch(/no longer used/);
       expect(secureDefaults.checkJwtSecret({})).toEqual([]);
-      expect(secureDefaults.checkJwtSecret({ JWT_SECRET: 'f'.repeat(64) })).toEqual([]);
     });
   });
 

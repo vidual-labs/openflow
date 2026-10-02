@@ -87,12 +87,14 @@
 - **🛡️ Rate Limiting** — Built-in in-memory spam protection
 - **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
 - **🏷️ White-Label Branding** — Admins can swap or hide the vendor logo in the admin sidebar (**Settings → Branding**)
-- **🔑 API Tokens** — Read-only tokens for programmatic API access (e.g. the lodgely connector); created under Settings, hashed at rest, revocable anytime
+- **🔑 API Tokens** — Read-only tokens for programmatic API access (e.g. the lodgely connector); created by each user on their **Account** page, hashed at rest, revocable anytime
 - **💾 Backup & Restore** — Admins can download a full JSON snapshot of the database and restore it later; older backups are auto-migrated to the current format on restore
 - **⏰ Scheduled Backups** — A background job writes a rotating backup on an interval to a separate volume, so recovery doesn't depend on someone remembering to click "Download"
 - **🔁 Retrying Integration Deliveries** — Failed webhook/email/Sheets deliveries retry with backoff instead of silently dropping the lead; exhausted retries surface as a dead letter you can manually retry from the Integrations tab
 - **📋 Audit Log** — Logins (success/failure), user/role changes, settings changes, and backup/restore are recorded with actor, IP and timestamp for post-incident review (`GET /api/admin/audit-log`, admin only)
-- **🔒 Session Revocation** — Changing a user's password or role, or clicking **Log out everywhere** on the Users page, immediately invalidates that user's existing login sessions instead of letting a stale JWT keep working for up to 7 more days
+- **🔒 Server-Side Sessions** — Logging out, changing a password or role, or **Log out everywhere** on the Users page ends the session immediately; every user sees their own sessions and remembered browsers on the **Account** page and can sign out everywhere else
+- **✉️ Two-Factor Login (opt-in)** — Each user can require a 6-digit code sent by e-mail when signing in from a new browser; "remember this browser" skips it for 30 days (needs `SMTP_*`)
+- **🧱 Brute-Force Lockout** — Repeated failed logins lock the account for escalating periods (1 → 60 min), persisted across restarts, without locking the owner out of browsers they already use
 - **🔐 Encrypted, Write-Only Integration Secrets** — SMTP passwords, Google service-account keys, OAuth client secrets/refresh tokens, Meta access tokens and webhook HMAC secrets are encrypted (AES-256-GCM) before being stored, so a leaked database file or backup JSON doesn't hand over live credentials. The API never returns them once saved — the editor only shows that one is set, and lets you replace or remove it
 - **❤️ Health Check** — `GET /api/health` reports database connectivity and uptime for uptime monitors and container orchestrators
 - **📊 Structured Logging** — Request, integration-delivery, and backup events are logged as single-line JSON so they can be piped into any log aggregator
@@ -156,9 +158,16 @@ Environment variables (in `.env` or docker-compose):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `JWT_SECRET` | *(none — auto-generated)* | 🔐 JWT signing key. If unset, a random secret is generated and persisted next to the database — set this explicitly in production so sessions survive a volume reset |
 | `ENCRYPTION_KEY` | *(none — auto-generated)* | 🔐 64 hex chars (32 bytes). Encrypts integration secrets (SMTP passwords, Google credentials, webhook HMAC secrets) at rest. If unset, a random key is generated and persisted next to the database — set this explicitly in production **and back it up separately from the database**, since losing it makes existing encrypted integration config unrecoverable. Setting it on an install that ran on an auto-generated key is safe: the old key file is still used to read existing secrets. Backups contain secrets encrypted with this key, so restoring on another instance needs the same key |
 | `SMTP_BLOCK_PRIVATE_HOSTS` | *(unset)* | 📧 SMTP hosts resolving to link-local/cloud-metadata addresses are always refused. Set to `true` to also refuse private networks and localhost (as webhooks do) when you don't relay mail through an internal server |
+| `SMTP_HOST` | *(unset)* | ✉️ OpenFlow's own outgoing mail: two-factor login codes and security notices (new sign-in, password changed, repeated failed logins). Unset, two-factor login can't be turned on. Check it with **Settings → System e-mail → Send test e-mail** |
+| `SMTP_PORT` | `587` | ✉️ SMTP port (`465` implies `SMTP_SECURE=true`) |
+| `SMTP_SECURE` | `true` on port 465, else `false` | ✉️ `true` = implicit TLS; otherwise STARTTLS |
+| `SMTP_REQUIRE_TLS` | `true` | ✉️ Refuse to send codes over an unencrypted connection. Set `false` only for a relay on a trusted local network |
+| `SMTP_USER` / `SMTP_PASS` | *(unset)* | ✉️ SMTP credentials |
+| `SMTP_FROM` | `SMTP_USER` if it is an address | ✉️ Sender, e.g. `OpenFlow <no-reply@example.com>` (required when `SMTP_USER` isn't an address) |
+| `OPENFLOW_2FA_DISABLED` | *(unset)* | 🚨 Emergency switch: accounts with two-factor login sign in with their password only (e.g. while SMTP is broken). Logged as a warning at every boot; remove it again afterwards |
+| `BCRYPT_ROUNDS` | `12` | 🔑 bcrypt cost for password hashes (10–14). Lower it only on very slow hardware; older hashes are upgraded on the next login |
 | `ADMIN_EMAIL` | `admin@openflow.local` | 👤 Admin email |
 | `ADMIN_PASSWORD` | *(none — auto-generated)* | 🔑 Admin password (only on first start). If unset, a random one is generated and printed to the log once |
 | `DB_PATH` | `/app/data/openflow.db` (from `docker-compose.yml`; otherwise `backend/data/openflow.db`) | 💾 SQLite database path |
@@ -187,7 +196,7 @@ openflow/
 │   │   ├── index.js                # Server entry point, CORS, SPA fallback
 │   │   ├── models/                 # DB schema, integrations engine, delivery queue,
 │   │   │                           #   backups, API tokens, rate limiting
-│   │   ├── middleware/             # JWT + API-token auth, per-form subdomain routing
+│   │   ├── middleware/             # Session + API-token auth, security headers, per-form subdomain routing
 │   │   ├── routes/                 # auth, forms, submissions, public, integrations,
 │   │   │                           #   analytics, settings, admin
 │   │   └── utils/                  # slug/subdomain rules, CSS sanitizer, SSRF guard
@@ -589,9 +598,14 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `POST /api/public/track` — Track analytics event
 
 ### Auth
-- `POST /api/auth/login` — Log in (sets the JWT as a `token` httpOnly cookie; the body is `{ user }`)
-- `POST /api/auth/logout` — Clear the session cookie
-- `GET /api/auth/me` — Current user
+- `POST /api/auth/login` — Log in (sets the session as a `token` httpOnly cookie; the body is `{ user }`). For an account with two-factor login on, from a browser it doesn't remember, the body is `{ twoFactorRequired: true, challenge, email }` instead and a code is e-mailed. `429` with `code: "account_locked"` and `Retry-After` while the account is locked
+- `POST /api/auth/login/verify` — `{ challenge, code, remember }` → `{ user }` + session cookie
+- `POST /api/auth/logout` — End the session (server-side) and clear the cookie
+- `GET /api/auth/me` — Current user (includes `twoFactorEnabled`)
+- `GET /api/auth/account` — Own two-factor status, active sessions and remembered browsers
+- `POST /api/auth/password` — Change own password (`currentPassword`, `newPassword`); signs out every other session
+- `POST /api/auth/2fa/start` / `POST /api/auth/2fa/confirm` / `POST /api/auth/2fa/disable` — Turn two-factor login on (password → e-mailed code) or off (password)
+- `DELETE /api/auth/sessions/:id`, `POST /api/auth/sessions/revoke-others`, `DELETE /api/auth/devices/:id` — End a session, sign out everywhere else, forget a remembered browser
 
 ### Admin (auth required)
 - `GET /api/forms` — List your forms (every form query is scoped to its owner)
@@ -638,6 +652,7 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `POST /api/admin/restore` — Restore from a JSON backup
 - `GET /api/admin/backups` — List backups written by the scheduler
 - `GET /api/admin/backups/:filename` — Download a specific scheduled backup
+- `GET /api/admin/mail` / `POST /api/admin/mail/test` — System e-mail status (`SMTP_*`) and a test message to yourself
 
 ### Audit Log (admin only)
 - `GET /api/admin/audit-log?limit=200` — Recent security-relevant events (logins, user/role changes, settings changes, backup/restore), newest first. Not included in backups — it's a trail of what happened to the instance, not instance data to restore.
@@ -697,13 +712,33 @@ directly — any client could then pick its own IP.
 
 ### Secure defaults
 
-- No password or secret ships with OpenFlow. `JWT_SECRET` and
-  `ENCRYPTION_KEY` are generated on first boot when unset; the first admin
-  gets a random one-time password printed to the log.
-- A publicly known `JWT_SECRET` (e.g. the pre-0.16 compose default
-  `change-me-in-production`) makes OpenFlow **refuse to start**; a short one
-  logs a warning. A weak `ADMIN_PASSWORD` (< 10 characters or a well-known
-  default) makes the first boot refuse to create the admin.
+- No password or secret ships with OpenFlow. `ENCRYPTION_KEY` is generated
+  on first boot when unset; the first admin gets a random one-time password
+  printed to the log. A weak `ADMIN_PASSWORD` (< 10 characters, a well-known
+  default or an easily guessed pattern like `Password2026!`) makes the first
+  boot refuse to create the admin.
+- Login sessions are stored server-side (only a hash of the cookie's token),
+  last 7 days, and end immediately on logout, password change, role change or
+  an admin's "log out everywhere". `JWT_SECRET` is no longer used since 0.44
+  and can be removed.
+- Failed logins lock the account for 1, 5, 15, then 60 minutes after every 5
+  failures (persisted, so a restart doesn't reset it, and identical for
+  unknown e-mails). Browsers that signed in to the account before are not
+  locked out, so an attacker can't lock the owner out of their usual browser.
+  The owner is e-mailed once the attempts pile up.
+- **Two-factor login (opt-in, per user, Account page):** signing in from a new
+  browser also needs a 6-digit code sent by e-mail (valid 10 minutes, 5
+  tries, at most 5 codes per 15 minutes). Ticking "remember this browser"
+  skips the code there for 30 days. Needs `SMTP_*`. An admin can switch it off
+  for a user who lost their mailbox; `OPENFLOW_2FA_DISABLED=true` is the
+  server-wide emergency switch. Integrations such as lodgely should use an API
+  token, which keeps working with two-factor login on.
+- Every user can change their own password (Account page), see their active
+  sessions and remembered browsers, and sign out everywhere else.
+- Admin pages are served with a strict Content-Security-Policy (only
+  OpenFlow's own scripts), `X-Frame-Options: DENY`, `nosniff` and HSTS over
+  HTTPS. Public form pages (`/f/`, `/embed/`, form subdomains) keep working
+  with GTM, Meta Pixel and iframes.
 - Accounts that still use a well-known default password (e.g. `admin123`
   from an install older than 0.16) are logged as
   `default_admin_password_in_use` at boot, and the user sees a red "change

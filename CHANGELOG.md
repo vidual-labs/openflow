@@ -2,6 +2,71 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.44.0] - 2026-10-02
+
+Login hardening for installs whose login page is reachable from the internet.
+
+### Added
+- **Two-factor login by e-mail (opt-in, per user).** On the new **Account**
+  page every user can turn on a 6-digit code that is e-mailed when they sign
+  in from a browser it doesn't know. Turning it on needs the password and a
+  code that actually arrived. Codes are valid for 10 minutes, allow 5 tries,
+  work once (only the newest one counts) and are capped at 5 per 15 minutes.
+  The code e-mail warns that someone who isn't you knows your password.
+- **Remember this browser for 30 days.** After entering the code (checkbox,
+  on by default) that browser skips the code; the password is always needed.
+  Turning 2FA on un-trusts browsers remembered before; a password change,
+  "sign out everywhere else" or an admin's "log out everywhere" forgets them.
+- **System e-mail via `SMTP_*` environment variables** (`SMTP_HOST`,
+  `SMTP_PORT`, `SMTP_SECURE`, `SMTP_REQUIRE_TLS`, `SMTP_USER`, `SMTP_PASS`,
+  `SMTP_FROM`), checked at boot (`system_mail_ready` /
+  `system_mail_unreachable` in the log) and testable under **Settings →
+  System e-mail**. Used for login codes and security notices: password
+  changed, 2FA turned off, a sign-in from a new browser, repeated failed
+  logins.
+- **Account page for every user:** change your own password (signs out every
+  other session), two-factor login, active sessions and remembered browsers
+  with "sign out" / "forget" and **Sign out everywhere else**, and your API
+  tokens (moved here from the admin-only Settings page, so non-admins can
+  create the token an integration like lodgely needs).
+- **Admins can reset a user's 2FA** (Users page, for a lost mailbox) and see
+  who has it on. `OPENFLOW_2FA_DISABLED=true` is the server-wide emergency
+  switch when e-mail is down (warned at every boot).
+- **Security headers:** admin pages get a strict Content-Security-Policy
+  (only OpenFlow's own scripts), `X-Frame-Options: DENY` /
+  `frame-ancestors 'none'` against clickjacking; every response gets
+  `nosniff` and `Referrer-Policy`, and HSTS over HTTPS. Public form pages
+  (`/f/`, `/embed/`, form subdomains) are left without CSP or frame limits so
+  GTM, Meta Pixel and iframes keep working.
+
+### Changed
+- **Sessions are server-side.** The `token` cookie now carries a random
+  token whose hash is stored in the new `sessions` table instead of a JWT, so
+  logout, a password or role change and "log out everywhere" end a session
+  immediately (a stolen cookie used to stay valid until it expired). Sessions
+  still last 7 days. **Everyone has to sign in once after the upgrade.**
+  `JWT_SECRET` is no longer used (a set value just logs a note) and the
+  `jsonwebtoken` dependency is gone. lodgely's login fallback (cookie value as
+  `Bearer`) keeps working for accounts without 2FA; use an API token
+  otherwise.
+- **Account lockout replaces the per-minute login limit.** After every 5
+  failed logins the e-mail is locked for 1, 5, 15, then 60 minutes (about 120
+  guesses a day instead of ~14,000), stored in the DB so a restart doesn't
+  reset it, and identical for unknown e-mails. Browsers that signed in to the
+  account before are exempt, so an attacker can't lock the owner out. The
+  per-IP limit (20 failures/minute) stays.
+- **Passwords:** new hashes use bcrypt cost 12 (`BCRYPT_ROUNDS`, 10–14);
+  existing hashes are upgraded on the next login. Hashing and comparing are
+  asynchronous so a login no longer blocks other requests. New passwords must
+  also not be a common long password, a repeated character, a digit/keyboard
+  run, a `Password2026!`-style variation or the account's e-mail, and are
+  capped at 72 bytes (bcrypt's limit).
+- Login e-mails match case-insensitively, and new users can't be created
+  with an address that differs from an existing one only in case.
+- Auth responses are sent with `Cache-Control: no-store`.
+- A backup restore keeps the restoring admin's 2FA setting and signs everyone
+  else out.
+
 ## [0.43.0] - 2026-10-01
 
 ### Changed
