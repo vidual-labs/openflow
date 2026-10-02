@@ -102,7 +102,7 @@ router.post('/login', asyncHandler(async (req, res) => {
     }
     if (!isMailConfigured()) {
       logAuditEvent({ userId: user.id, action: 'login_code_unavailable', target: user.email, ip });
-      logger.error('login_code_unavailable', { hint: 'A user with two-factor login cannot sign in because SMTP_* is not configured. Configure it, or set OPENFLOW_2FA_DISABLED=true temporarily.' });
+      logger.error('login_code_unavailable', { hint: 'A user with two-factor login cannot sign in because system e-mail is not configured. Configure it under Settings → System e-mail (or SMTP_*), or set OPENFLOW_2FA_DISABLED=true temporarily.' });
       return res.status(503).json({ error: 'Your account needs an e-mailed login code, but this server can\'t send e-mail right now. Ask the administrator to check the SMTP settings.' });
     }
     const challenge = twoFactor.createChallenge(user.id, 'login', ip);
@@ -123,7 +123,7 @@ router.post('/login', asyncHandler(async (req, res) => {
     } catch (err) {
       twoFactor.discardChallenge(challenge.token);
       logger.error('login_code_send_failed', { error: err.message });
-      return res.status(503).json({ error: 'The login code e-mail could not be sent. Try again in a moment; if it keeps failing, ask the administrator to check the SMTP settings.' });
+      return res.status(503).json({ error: 'The login code e-mail could not be sent. Try again in a moment; if it keeps failing, ask an administrator to check Settings → System e-mail.' });
     }
     logAuditEvent({ userId: user.id, action: 'login_code_sent', target: user.email, ip });
     return res.json({

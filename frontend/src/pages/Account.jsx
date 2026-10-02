@@ -160,7 +160,7 @@ function TwoFactorSection({ twoFactor, onChanged }) {
         <p style={{ color: 'var(--text-light)', fontSize: 13, marginBottom: 0 }}>
           {twoFactor.disabledByOperator
             ? 'The administrator has temporarily switched two-factor login off for this server.'
-            : 'Not available yet: the server has no outgoing e-mail configured. Ask your administrator to set the SMTP_* settings.'}
+            : 'Not available yet: the server has no outgoing e-mail configured. Ask an administrator to set it up under Settings → System e-mail.'}
         </p>
       </Section>
     );

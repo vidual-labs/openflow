@@ -93,7 +93,7 @@
 - **🔁 Retrying Integration Deliveries** — Failed webhook/email/Sheets deliveries retry with backoff instead of silently dropping the lead; exhausted retries surface as a dead letter you can manually retry from the Integrations tab
 - **📋 Audit Log** — Logins (success/failure), user/role changes, settings changes, and backup/restore are recorded with actor, IP and timestamp for post-incident review (`GET /api/admin/audit-log`, admin only)
 - **🔒 Server-Side Sessions** — Logging out, changing a password or role, or **Log out everywhere** on the Users page ends the session immediately; every user sees their own sessions and remembered browsers on the **Account** page and can sign out everywhere else
-- **✉️ Two-Factor Login (opt-in)** — Each user can require a 6-digit code sent by e-mail when signing in from a new browser; "remember this browser" skips it for 30 days (needs `SMTP_*`)
+- **✉️ Two-Factor Login (opt-in)** — Each user can require a 6-digit code sent by e-mail when signing in from a new browser; "remember this browser" skips it for 30 days (needs system e-mail: Settings → System e-mail or `SMTP_*`)
 - **🧱 Brute-Force Lockout** — Repeated failed logins lock the account for escalating periods (1 → 60 min), persisted across restarts, without locking the owner out of browsers they already use
 - **🔐 Encrypted, Write-Only Integration Secrets** — SMTP passwords, Google service-account keys, OAuth client secrets/refresh tokens, Meta access tokens and webhook HMAC secrets are encrypted (AES-256-GCM) before being stored, so a leaked database file or backup JSON doesn't hand over live credentials. The API never returns them once saved — the editor only shows that one is set, and lets you replace or remove it
 - **❤️ Health Check** — `GET /api/health` reports database connectivity and uptime for uptime monitors and container orchestrators
@@ -160,7 +160,7 @@ Environment variables (in `.env` or docker-compose):
 |----------|---------|-------------|
 | `ENCRYPTION_KEY` | *(none — auto-generated)* | 🔐 64 hex chars (32 bytes). Encrypts integration secrets (SMTP passwords, Google credentials, webhook HMAC secrets) at rest. If unset, a random key is generated and persisted next to the database — set this explicitly in production **and back it up separately from the database**, since losing it makes existing encrypted integration config unrecoverable. Setting it on an install that ran on an auto-generated key is safe: the old key file is still used to read existing secrets. Backups contain secrets encrypted with this key, so restoring on another instance needs the same key |
 | `SMTP_BLOCK_PRIVATE_HOSTS` | *(unset)* | 📧 SMTP hosts resolving to link-local/cloud-metadata addresses are always refused. Set to `true` to also refuse private networks and localhost (as webhooks do) when you don't relay mail through an internal server |
-| `SMTP_HOST` | *(unset)* | ✉️ OpenFlow's own outgoing mail: two-factor login codes and security notices (new sign-in, password changed, repeated failed logins). Unset, two-factor login can't be turned on. Check it with **Settings → System e-mail → Send test e-mail** |
+| `SMTP_HOST` | *(unset)* | ✉️ OpenFlow's own outgoing mail: two-factor login codes and security notices (new sign-in, password changed, repeated failed logins). Optional: admins can instead enter it under **Settings → System e-mail** (stored encrypted). When set here, the `SMTP_*` values win and the UI shows them read-only. Check it with **Send test e-mail** there |
 | `SMTP_PORT` | `587` | ✉️ SMTP port (`465` implies `SMTP_SECURE=true`) |
 | `SMTP_SECURE` | `true` on port 465, else `false` | ✉️ `true` = implicit TLS; otherwise STARTTLS |
 | `SMTP_REQUIRE_TLS` | `true` | ✉️ Refuse to send codes over an unencrypted connection. Set `false` only for a relay on a trusted local network |
@@ -652,7 +652,10 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `POST /api/admin/restore` — Restore from a JSON backup
 - `GET /api/admin/backups` — List backups written by the scheduler
 - `GET /api/admin/backups/:filename` — Download a specific scheduled backup
-- `GET /api/admin/mail` / `POST /api/admin/mail/test` — System e-mail status (`SMTP_*`) and a test message to yourself
+- `GET /api/admin/mail` — System e-mail settings (`source`: `env` | `ui`, `locked` when `SMTP_*` is set; the password is never returned, only `passwordSet`)
+- `PUT /api/admin/mail` — Save SMTP settings after checking the connection (`422 verify_failed` otherwise; `skipVerify: true` saves anyway; an omitted `password` keeps the stored one, `""` clears it). `409` while `SMTP_*` manages it
+- `DELETE /api/admin/mail` — Remove the UI SMTP settings
+- `POST /api/admin/mail/test` — Send a test message to yourself
 
 ### Audit Log (admin only)
 - `GET /api/admin/audit-log?limit=200` — Recent security-relevant events (logins, user/role changes, settings changes, backup/restore), newest first. Not included in backups — it's a trail of what happened to the instance, not instance data to restore.
@@ -729,7 +732,8 @@ directly — any client could then pick its own IP.
 - **Two-factor login (opt-in, per user, Account page):** signing in from a new
   browser also needs a 6-digit code sent by e-mail (valid 10 minutes, 5
   tries, at most 5 codes per 15 minutes). Ticking "remember this browser"
-  skips the code there for 30 days. Needs `SMTP_*`. An admin can switch it off
+  skips the code there for 30 days. Needs system e-mail (Settings → System
+  e-mail, or `SMTP_*`). An admin can switch it off
   for a user who lost their mailbox; `OPENFLOW_2FA_DISABLED=true` is the
   server-wide emergency switch. Integrations such as lodgely should use an API
   token, which keeps working with two-factor login on.

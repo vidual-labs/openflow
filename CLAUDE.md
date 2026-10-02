@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.44.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.45.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -23,7 +23,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `models/sessions.js` — Server-side login sessions (`token` cookie, 7 days) and remembered browsers (`of_dev_<hash>` cookie, 30 days, path `/api/auth`); only SHA-256 hashes of tokens are stored
   - `models/loginGuard.js` — Persistent per-e-mail lockout after failed logins (1/5/15/60 min every 5 failures); remembered browsers are exempt
   - `models/twoFactor.js` — E-mailed one-time codes (opt-in two-factor login, confirming 2FA); `OPENFLOW_2FA_DISABLED` escape hatch
-  - `models/systemMail.js` — OpenFlow's own outgoing mail via `SMTP_*` env (login codes, security notices); separate from the per-form email integration
+  - `models/systemMail.js` — OpenFlow's own outgoing mail (login codes, security notices); separate from the per-form email integration. `SMTP_*` env wins (UI read-only); otherwise the admin UI's settings, stored encrypted as the `smtp` row of `site_settings` (password write-only; a UI host passes `integrations.js#smtpTarget`)
   - `models/passwords.js` — Async bcrypt (cost `BCRYPT_ROUNDS`, default 12), dummy-hash timing equalisation, rehash-on-login
   - `models/auditLog.js` — Security audit trail (logins, user/role changes, settings, backup/restore)
   - `models/deliveryQueue.js` — Persists each integration delivery and retries it with backoff
@@ -44,7 +44,7 @@ OpenFlow is a **full-stack application** with three main components:
 - **Technology**: React 18 + Vite + React Router
 - **Key Files**:
   - `main.jsx` — Route split: `/f/:slug`, `/embed/:slug`, everything else the admin SPA (plus per-form subdomain mode)
-  - `App.jsx` — Admin shell (sidebar, auth gate, theme toggle)
+  - `App.jsx` — Admin shell (sidebar: Forms, Analytics, an admin-only "Administration" section with Users/Settings/Backup, and the account footer — e-mail → `/account`, theme toggle, log out; auth gate)
   - `pages/FormEditor.jsx` — Form builder UI (`FIELD_TYPES` lives here; steps, end screen, design, GTM/GDPR, integrations, embed tabs)
   - `pages/FormView.jsx` — Public form page at `/f/:slug` (landing page, GTM, cookie banner)
   - `pages/EmbedView.jsx` — Iframe-optimized form page at `/embed/:slug` (posts resize messages)
@@ -53,7 +53,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `pages/Analytics.jsx` — Analytics overview: all forms vs. the previous period
   - `pages/FormAnalytics.jsx` — Per-form analytics at `/analytics/:formId`: period + comparison range (in the URL), a "changed the flow on…" before/after shortcut, per-step reach / drop-off / median time on step, daily trend. Shared bits (`Delta`, `Kpi`, UTC day helpers) in `components/AnalyticsUI.jsx`
   - `pages/Submissions.jsx` — View, delete and export submissions
-  - `pages/Users.jsx` / `pages/Settings.jsx` / `pages/Backup.jsx` — Admin-only pages (users incl. 2FA reset, branding + system e-mail status, backup/restore)
+  - `pages/Users.jsx` / `pages/Settings.jsx` / `pages/Backup.jsx` — Admin-only pages (users incl. 2FA reset, branding + system e-mail / SMTP form, backup/restore)
   - `pages/Account.jsx` — Every user's own page: change password, two-factor login, active sessions, remembered browsers, API tokens (`ApiTokensCard` lives in `Settings.jsx`)
   - `pages/Login.jsx` — Password step, then (2FA accounts on a new browser) the e-mailed-code step with "remember this browser"
   - `components/FormRenderer.jsx` — Renders forms with animations, validation, conditional logic and consent
@@ -109,8 +109,8 @@ boot generates a random one-time admin password and prints it to the log (the
 old `admin123` compose fallback was removed in 0.16). A weak or well-known
 `ADMIN_PASSWORD` (< 10 chars, `admin123`, `Password2026!`, …) makes the first
 boot refuse to seed (`models/secureDefaults.js`). Two-factor login codes need
-`SMTP_HOST`/`SMTP_FROM` (+ `SMTP_REQUIRE_TLS=false` for a local catcher such as
-Mailpit).
+system e-mail: Settings → System e-mail, or `SMTP_HOST`/`SMTP_FROM` (+
+`SMTP_REQUIRE_TLS=false` / encryption "None" for a local catcher such as Mailpit).
 
 ## Key Development Patterns
 
@@ -216,7 +216,7 @@ npm test -- --watch
 
 Tests live in `backend/tests/` and cover: authentication, authorization, API
 tokens, rate limiting, form CRUD, submission validation, slug rules, subdomain
-rules, backup/restore, sessions/lockout/2FA/password change/security headers (`loginSecurity.test.js`), calon availability/booking, analytics ranges and step drop-off, encryption, integration
+rules, backup/restore, sessions/lockout/2FA/password change/security headers (`loginSecurity.test.js`), system-mail settings (`systemMailSettings.test.js`), calon availability/booking, analytics ranges and step drop-off, encryption, integration
 secrets, Meta CAPI, the audit log, session revocation and the security
 hardening (`securityHardening.test.js`). There is no frontend test suite.
 
@@ -256,7 +256,7 @@ migrations in `models/db.js`:
 - `integration_deliveries` — One row per (submission, integration) delivery; `attempts` counts retries in place (status, `next_attempt_at`, `last_error`) backing retries and dead letters
 - `api_tokens` — Read-only API tokens (SHA-256 `token_hash`, `token_prefix`, `last_used_at`)
 - `slug_history` — Old slugs of renamed forms, so previously shared links keep resolving
-- `site_settings` — Global key/value settings (currently just `branding`)
+- `site_settings` — Global key/value settings: `branding` (public via `GET /api/settings`) and `smtp` (encrypted system-mail settings, private — `GET /api/settings` only returns the public `ALLOWED_KEYS`)
 - `audit_log` — Security events (actor, action, target, IP, details)
 
 ## API Structure
