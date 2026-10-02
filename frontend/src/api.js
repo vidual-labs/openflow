@@ -91,8 +91,12 @@ export const api = {
   getSettings: () => request('/settings'),
   updateSettings: (key, value) => request(`/settings/${key}`, { method: 'PUT', body: JSON.stringify(value) }),
 
-  // Outgoing system mail (SMTP_* env; admin only)
+  // Outgoing system mail (admin only; SMTP_* env wins over the UI)
   getMailStatus: () => request('/admin/mail'),
+  // { host, port, secure, requireTLS, user, password?, from, skipVerify? };
+  // an omitted password keeps the stored one, '' removes it.
+  saveMailSettings: (data) => request('/admin/mail', { method: 'PUT', body: JSON.stringify(data) }),
+  deleteMailSettings: () => request('/admin/mail', { method: 'DELETE' }),
   sendTestMail: () => request('/admin/mail/test', { method: 'POST' }),
 
   // Backup & restore (admin only)

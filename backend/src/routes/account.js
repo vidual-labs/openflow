@@ -124,7 +124,7 @@ router.post('/2fa/start', asyncHandler(async (req, res) => {
   const user = currentUser(req);
   if (!user) return res.status(404).json({ error: 'User not found' });
   if (!twoFactor.isTwoFactorAvailable()) {
-    return res.status(409).json({ error: 'Two-factor login needs outgoing e-mail, which the administrator has not set up on this server (SMTP_* settings).' });
+    return res.status(409).json({ error: 'Two-factor login needs outgoing e-mail, which an administrator has not set up yet (Settings → System e-mail).' });
   }
   if (user.twofa_enabled) return res.status(409).json({ error: 'Two-factor login is already on' });
   if (!(await confirmPassword(req, res, user))) return;
@@ -144,7 +144,7 @@ router.post('/2fa/start', asyncHandler(async (req, res) => {
   } catch (err) {
     twoFactor.discardChallenge(challenge.token);
     logger.error('twofa_enable_code_send_failed', { error: err.message });
-    return res.status(503).json({ error: 'The confirmation e-mail could not be sent. Try again in a moment; if it keeps failing, ask the administrator to check the SMTP settings.' });
+    return res.status(503).json({ error: 'The confirmation e-mail could not be sent. Try again in a moment; if it keeps failing, ask an administrator to check Settings → System e-mail.' });
   }
   res.json({ challenge: challenge.token, email: twoFactor.maskEmail(user.email), expiresInMinutes: challenge.expiresInMinutes });
 }));

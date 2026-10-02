@@ -2,6 +2,34 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.45.0] - 2026-10-02
+
+### Added
+- **SMTP settings in the admin UI.** Settings → System e-mail is now a form
+  (server, encryption STARTTLS / SSL/TLS / none, port, user name, password,
+  sender) instead of a status card, so two-factor login works without
+  editing `.env`. Saving first connects and logs in to the mail server and
+  only stores settings it accepts ("Save anyway" when it is briefly down).
+  The settings are stored encrypted with `ENCRYPTION_KEY`; the password is
+  write-only (never sent back, kept when left empty, removable). A host
+  entered there gets the same cloud-metadata guard as the form e-mail
+  integration. Removing them warns how many users rely on 2FA.
+- `PUT` / `DELETE /api/admin/mail`; `GET /api/admin/mail` now returns the
+  settings (without password), their `source` and `twoFactorUsers`.
+
+### Changed
+- **`SMTP_*` in the environment wins.** When `SMTP_HOST` is set, the UI shows
+  those values read-only ("managed by the server environment"), so a wrong
+  UI save can never break login codes for an env-configured install.
+- **Sidebar menu restructured:** Forms and Analytics on top, an
+  "Administration" section (admins only) with Users, Settings and Backup, and
+  the account at the bottom — your e-mail (with "2FA on" when it is) opens
+  the Account page, next to the theme toggle and Log out. Account is no
+  longer a separate menu item.
+- `GET /api/settings` only returns the public settings keys (`branding`)
+  instead of every `site_settings` row.
+- Messages about missing e-mail point to Settings → System e-mail.
+
 ## [0.44.0] - 2026-10-02
 
 Login hardening for installs whose login page is reachable from the internet.

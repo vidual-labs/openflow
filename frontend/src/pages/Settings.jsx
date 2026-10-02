@@ -99,30 +99,117 @@ export default function Settings() {
   );
 }
 
-// Outgoing mail is configured by the operator through SMTP_* environment
-// variables; this only shows whether it is set up and lets an admin send a
-// test message before anyone relies on e-mailed login codes.
+// OpenFlow's own outgoing mail: two-factor login codes and security notices.
+// Edited here unless the server sets SMTP_* in its environment, which wins
+// and turns this card read-only. Saving first checks that the mail server
+// accepts the settings; the password is write-only.
+const ENCRYPTION_OPTIONS = [
+  { value: 'starttls', label: 'STARTTLS (587)', port: 587 },
+  { value: 'ssl', label: 'SSL/TLS (465)', port: 465 },
+  { value: 'none', label: 'None (local relay)', port: 25 },
+];
+
+function encryptionOf(settings) {
+  if (settings.secure) return 'ssl';
+  return settings.requireTLS === false ? 'none' : 'starttls';
+}
+
+const EMPTY_MAIL = { host: '', port: 587, encryption: 'starttls', user: '', from: '' };
+
 function SystemMailCard() {
   const [status, setStatus] = useState(null);
+  const [form, setForm] = useState(EMPTY_MAIL);
+  const [password, setPassword] = useState('');
+  const [clearPassword, setClearPassword] = useState(false);
   const [result, setResult] = useState({ type: '', text: '' });
-  const [sending, setSending] = useState(false);
+  const [verifyFailed, setVerifyFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  function apply(d) {
+    setStatus(d);
+    const st = d.settings || {};
+    setForm(st.host ? { host: st.host, port: st.port, encryption: encryptionOf(st), user: st.user, from: st.from } : EMPTY_MAIL);
+    setPassword('');
+    setClearPassword(false);
+  }
 
   useEffect(() => {
-    api.getMailStatus().then(setStatus).catch(() => {});
+    api.getMailStatus().then(apply).catch(err => setResult({ type: 'error', text: err.message }));
   }, []);
+
+  function set(key, value) {
+    setForm(f => ({ ...f, [key]: value }));
+    setVerifyFailed(false);
+  }
+
+  function setEncryption(value) {
+    const option = ENCRYPTION_OPTIONS.find(o => o.value === value);
+    // Follow the port along with the encryption unless it was customised.
+    const standardPorts = ENCRYPTION_OPTIONS.map(o => o.port);
+    setForm(f => ({ ...f, encryption: value, port: standardPorts.includes(Number(f.port)) ? option.port : f.port }));
+    setVerifyFailed(false);
+  }
+
+  async function save(e, { skipVerify = false } = {}) {
+    if (e) e.preventDefault();
+    setResult({ type: '', text: '' });
+    setBusy(true);
+    const payload = {
+      host: form.host.trim(),
+      port: Number(form.port),
+      secure: form.encryption === 'ssl',
+      requireTLS: form.encryption !== 'none',
+      user: form.user.trim(),
+      from: form.from.trim(),
+      skipVerify,
+    };
+    if (password) payload.password = password;
+    else if (clearPassword) payload.password = '';
+    try {
+      const d = await api.saveMailSettings(payload);
+      apply(d);
+      setVerifyFailed(false);
+      setResult({ type: 'success', text: skipVerify ? 'Saved without checking the connection.' : 'Saved — the mail server accepted the login.' });
+    } catch (err) {
+      setVerifyFailed(err.code === 'verify_failed');
+      setResult({ type: 'error', text: err.message });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function handleTest() {
     setResult({ type: '', text: '' });
-    setSending(true);
+    setBusy(true);
     try {
       const d = await api.sendTestMail();
       setResult({ type: 'success', text: `Test e-mail sent to ${d.to}.` });
     } catch (err) {
       setResult({ type: 'error', text: err.message });
     } finally {
-      setSending(false);
+      setBusy(false);
     }
   }
+
+  async function handleRemove() {
+    const users = status?.twoFactorUsers || 0;
+    const warning = users > 0
+      ? `${users} user${users === 1 ? ' has' : 's have'} two-factor login on and can't sign in from a new browser without e-mail. Remove the mail settings anyway?`
+      : 'Remove the mail settings? Two-factor login can then no longer be turned on.';
+    if (!confirm(warning)) return;
+    setBusy(true);
+    try {
+      apply(await api.deleteMailSettings());
+      setResult({ type: 'success', text: 'Mail settings removed.' });
+    } catch (err) {
+      setResult({ type: 'error', text: err.message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const locked = !!status?.locked;
+  const passwordSet = !!status?.settings?.passwordSet && !clearPassword;
 
   return (
     <div className="card" style={{ marginTop: 24 }}>
@@ -131,27 +218,104 @@ function SystemMailCard() {
         <div>
           <h3 style={{ margin: 0 }}>System e-mail</h3>
           <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>
-            Sends two-factor login codes and security notices (new sign-in, password changed, repeated failed logins).
-            Configured on the server with the <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code> and <code>SMTP_FROM</code> environment variables.
+            The mailbox OpenFlow sends two-factor login codes and security notices from (new sign-in,
+            password changed, repeated failed logins). Separate from a form&apos;s own e-mail integration.
           </p>
         </div>
       </div>
-      {!status ? null : status.configured ? (
+
+      {!status ? null : (
         <>
-          <p style={{ margin: '0 0 12px', fontSize: 14 }}>
-            <span className="badge badge-published">configured</span>{' '}
-            <span style={{ color: 'var(--text-light)' }}>{status.host}:{status.port} · from {status.from}</span>
+          <p style={{ margin: '0 0 16px', fontSize: 14 }}>
+            {status.configured
+              ? <span className="badge badge-published">configured</span>
+              : <span className="badge badge-draft">not configured</span>}{' '}
+            <span style={{ color: 'var(--text-light)' }}>
+              {locked
+                ? <>Managed by the server environment (<code>SMTP_*</code> variables) — change it there.</>
+                : status.configured
+                  ? 'Set up here.'
+                  : 'Users can\'t turn on two-factor login until it is set up.'}
+            </span>
           </p>
-          <button type="button" className="btn btn-secondary" onClick={handleTest} disabled={sending}>
-            {sending ? 'Sending…' : 'Send test e-mail to me'}
-          </button>
+
+          <form onSubmit={save}>
+            <fieldset disabled={locked || busy} style={{ border: 'none', padding: 0, margin: 0 }}>
+              <div className="cols-2" style={{ display: 'grid', gap: 16 }}>
+                <div className="input-group">
+                  <label htmlFor="smtp-host">SMTP server</label>
+                  <input id="smtp-host" className="input" value={form.host} onChange={e => set('host', e.target.value)} placeholder="smtp.example.com" required autoComplete="off" />
+                </div>
+                <div className="cols-2" style={{ display: 'grid', gap: 16 }}>
+                  <div className="input-group">
+                    <label htmlFor="smtp-encryption">Encryption</label>
+                    <select id="smtp-encryption" className="input" value={form.encryption} onChange={e => setEncryption(e.target.value)}>
+                      {ENCRYPTION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label htmlFor="smtp-port">Port</label>
+                    <input id="smtp-port" className="input" type="number" min={1} max={65535} value={form.port} onChange={e => set('port', e.target.value)} required />
+                  </div>
+                </div>
+                <div className="input-group">
+                  <label htmlFor="smtp-user">User name</label>
+                  <input id="smtp-user" className="input" value={form.user} onChange={e => set('user', e.target.value)} placeholder="no-reply@example.com" autoComplete="off" />
+                </div>
+                <div className="input-group">
+                  <label htmlFor="smtp-pass">Password</label>
+                  <input
+                    id="smtp-pass"
+                    className="input"
+                    type="password"
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); setVerifyFailed(false); }}
+                    placeholder={locked ? (passwordSet ? 'Set in the environment' : '') : passwordSet ? 'Saved — leave empty to keep' : ''}
+                    autoComplete="new-password"
+                  />
+                  {!locked && passwordSet && !password && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 12, color: 'var(--text-light)' }}>
+                      <span>🔒 Stored encrypted — not shown again</span>
+                      <button type="button" className="btn btn-sm btn-secondary" onClick={() => setClearPassword(true)}>Remove</button>
+                    </div>
+                  )}
+                </div>
+                <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+                  <label htmlFor="smtp-from">Sender</label>
+                  <input id="smtp-from" className="input" value={form.from} onChange={e => set('from', e.target.value)} placeholder="OpenFlow <no-reply@example.com>" autoComplete="off" />
+                  <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>
+                    Name and address the mails come from. Most providers only accept an address of the mailbox you log in with. Left empty, the user name is used if it is an address.
+                  </span>
+                </div>
+              </div>
+            </fieldset>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+              {!locked && (
+                <button type="submit" className="btn btn-primary" disabled={busy}>
+                  {busy ? 'Checking…' : 'Save & check connection'}
+                </button>
+              )}
+              {!locked && verifyFailed && (
+                <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => save(null, { skipVerify: true })}>
+                  Save anyway
+                </button>
+              )}
+              {status.configured && (
+                <button type="button" className="btn btn-secondary" onClick={handleTest} disabled={busy}>
+                  Send test e-mail to me
+                </button>
+              )}
+              {!locked && status.source === 'ui' && (
+                <button type="button" className="btn btn-danger" onClick={handleRemove} disabled={busy} style={{ marginLeft: 'auto' }}>
+                  Remove
+                </button>
+              )}
+            </div>
+          </form>
         </>
-      ) : (
-        <p style={{ margin: 0, fontSize: 14 }}>
-          <span className="badge badge-draft">not configured</span>{' '}
-          <span style={{ color: 'var(--text-light)' }}>Users can't turn on two-factor login until it is.</span>
-        </p>
       )}
+
       {status?.twoFactorDisabledByOperator && (
         <Alert type="error" style={{ marginTop: 12 }}>
           <code>OPENFLOW_2FA_DISABLED</code> is set: accounts with two-factor login currently sign in with their password only. Remove it once e-mail works again.

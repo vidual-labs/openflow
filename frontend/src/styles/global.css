@@ -330,6 +330,113 @@ input, select, textarea {
   opacity: 0.8;
 }
 
+/* Sidebar: section label, account footer */
+.sidebar-section {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  padding: 20px 12px 8px;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  color: rgba(255,255,255,0.85);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sidebar-account:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.sidebar-account.active {
+  background: rgba(108,92,231,0.22);
+  border-left-color: var(--primary);
+}
+
+.sidebar-account-avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--primary), #00CEC9);
+}
+
+.sidebar-account-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-account-email {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-account-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+}
+
+.sidebar-account-chevron {
+  font-size: 18px;
+  color: rgba(255,255,255,0.4);
+}
+
+.sidebar-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.sidebar-footer-row .theme-toggle {
+  width: auto;
+}
+
+.sidebar-logout {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.sidebar-logout:hover {
+  color: white;
+}
+
+.sidebar-version {
+  display: block;
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
 /* Theme toggle */
 .theme-toggle {
   display: flex;

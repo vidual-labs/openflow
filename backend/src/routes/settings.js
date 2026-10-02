@@ -23,10 +23,12 @@ function getSetting(db, key) {
   return row ? JSON.parse(row.value) : null;
 }
 
-// GET /api/settings — public, returns all settings
+// GET /api/settings — public, so it returns only the publicly editable keys.
+// Other rows of site_settings (e.g. `smtp`, the encrypted system-mail
+// settings) are private and must never be listed here.
 router.get('/', (req, res) => {
   const db = getDb();
-  const rows = db.prepare('SELECT key, value FROM site_settings').all();
+  const rows = db.prepare(`SELECT key, value FROM site_settings WHERE key IN (${ALLOWED_KEYS.map(() => '?').join(', ')})`).all(...ALLOWED_KEYS);
   const settings = {};
   for (const row of rows) {
     settings[row.key] = JSON.parse(row.value);

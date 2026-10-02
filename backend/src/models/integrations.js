@@ -474,4 +474,4 @@ async function testMetaConversionApiCredentials(config) {
   }
 }
 
-module.exports = { runIntegrations, runIntegration, testGoogleAdsCredentials, testMetaConversionApiCredentials };
+module.exports = { runIntegrations, runIntegration, testGoogleAdsCredentials, testMetaConversionApiCredentials, smtpTarget };

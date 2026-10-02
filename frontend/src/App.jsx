@@ -114,22 +114,37 @@ export default function App() {
       <aside className={`admin-sidebar${menuOpen ? ' open' : ''}`}>
         <h1><LogoMark size={28} className="logo-mark" /><LogoWordmark /></h1>
         <nav>
-          <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Forms</Link>
+          <Link to="/" className={location.pathname === '/' || location.pathname.startsWith('/forms') ? 'active' : ''}>Forms</Link>
           <Link to="/analytics" className={location.pathname.startsWith('/analytics') ? 'active' : ''}>Analytics</Link>
-          {isAdmin && <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>Users</Link>}
-          {isAdmin && <Link to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>Settings</Link>}
-          {isAdmin && <Link to="/backup" className={location.pathname === '/backup' ? 'active' : ''}>Backup</Link>}
-          <Link to="/account" className={location.pathname === '/account' ? 'active' : ''}>Account</Link>
+          {isAdmin && (
+            <>
+              <div className="sidebar-section">Administration</div>
+              <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>Users</Link>
+              <Link to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>Settings</Link>
+              <Link to="/backup" className={location.pathname === '/backup' ? 'active' : ''}>Backup</Link>
+            </>
+          )}
         </nav>
-        <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-          <span style={{ fontSize: 13, opacity: 0.5, display: 'block', padding: '0 12px', marginBottom: 8 }}>{user.email}</span>
-          <button className="theme-toggle" onClick={cycleTheme}>
-            <span className="theme-toggle-icon">{themeIcon}</span> {themeLabel}
-          </button>
-          <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 13, padding: '8px 12px', cursor: 'pointer' }}>
-            Log out
-          </button>
-          <a href="https://github.com/vidual-labs/openflow" target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '8px 12px', textDecoration: 'none' }}>
+        <div className="sidebar-footer">
+          <Link
+            to="/account"
+            className={`sidebar-account${location.pathname === '/account' ? ' active' : ''}`}
+            title="Your account: password, two-factor login, sessions, API tokens"
+          >
+            <span className="sidebar-account-avatar" aria-hidden="true">{(user.email || '?').charAt(0).toUpperCase()}</span>
+            <span className="sidebar-account-text">
+              <span className="sidebar-account-email">{user.email}</span>
+              <span className="sidebar-account-sub">Account{user.twoFactorEnabled ? ' · 2FA on' : ''}</span>
+            </span>
+            <span className="sidebar-account-chevron" aria-hidden="true">›</span>
+          </Link>
+          <div className="sidebar-footer-row">
+            <button className="theme-toggle" onClick={cycleTheme}>
+              <span className="theme-toggle-icon">{themeIcon}</span> {themeLabel}
+            </button>
+            <button className="sidebar-logout" onClick={handleLogout}>Log out</button>
+          </div>
+          <a href="https://github.com/vidual-labs/openflow" target="_blank" rel="noopener noreferrer" className="sidebar-version">
             {branding.logoVisible && (
               <img
                 src={branding.logoUrl || '/vidual-logo.png'}
