@@ -34,9 +34,22 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  // Resolves to { user } or, for two-factor accounts on a new browser,
+  // { twoFactorRequired, challenge, email } — then call verifyLogin().
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  verifyLogin: (challenge, code, remember) => request('/auth/login/verify', { method: 'POST', body: JSON.stringify({ challenge, code, remember }) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
+
+  // Own account: password, two-factor login, sessions, remembered browsers
+  getAccount: () => request('/auth/account'),
+  changePassword: (currentPassword, newPassword) => request('/auth/password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
+  startTwoFactor: (password) => request('/auth/2fa/start', { method: 'POST', body: JSON.stringify({ password }) }),
+  confirmTwoFactor: (challenge, code) => request('/auth/2fa/confirm', { method: 'POST', body: JSON.stringify({ challenge, code }) }),
+  disableTwoFactor: (password) => request('/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ password }) }),
+  revokeSession: (id) => request(`/auth/sessions/${id}`, { method: 'DELETE' }),
+  revokeOtherSessions: () => request('/auth/sessions/revoke-others', { method: 'POST' }),
+  forgetDevice: (id) => request(`/auth/devices/${id}`, { method: 'DELETE' }),
 
   getForms: () => request('/forms'),
   getForm: (id) => request(`/forms/${id}`),
@@ -77,6 +90,10 @@ export const api = {
 
   getSettings: () => request('/settings'),
   updateSettings: (key, value) => request(`/settings/${key}`, { method: 'PUT', body: JSON.stringify(value) }),
+
+  // Outgoing system mail (SMTP_* env; admin only)
+  getMailStatus: () => request('/admin/mail'),
+  sendTestMail: () => request('/admin/mail/test', { method: 'POST' }),
 
   // Backup & restore (admin only)
   getBackupInfo: () => request('/admin/backup/info'),

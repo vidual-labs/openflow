@@ -10,14 +10,10 @@ services:
     environment:
       - NODE_ENV=production
       - DB_PATH=/app/data/openflow.db
-      # Leave JWT_SECRET / ADMIN_PASSWORD unset here rather than defaulting
-      # them to a known value: the app already generates and persists a
-      # random JWT secret, and a random one-time admin password printed to
-      # the log, whenever these are absent. A hardcoded fallback here would
-      # silently override that and ship every default install with a
-      # publicly-known secret and admin password. Set JWT_SECRET and
-      # ADMIN_PASSWORD explicitly (e.g. in a .env file) to control them.
-      - JWT_SECRET=${JWT_SECRET:-}
+      # Leave ADMIN_PASSWORD unset here rather than defaulting it to a known
+      # value: the app prints a random one-time admin password to the log
+      # when it is absent. (JWT_SECRET is no longer used since 0.44; login
+      # sessions are stored server-side.)
       # Encrypts integration secrets (SMTP passwords, API keys) in the DB. Left
       # empty, a key is generated into the db-data volume, i.e. next to the
       # data it protects, so set it in .env for production and back it up
@@ -28,6 +24,18 @@ services:
       # cloud metadata service is always blocked). Leave unset if you relay
       # mail through a server on your own network.
       - SMTP_BLOCK_PRIVATE_HOSTS=${SMTP_BLOCK_PRIVATE_HOSTS:-}
+      # OpenFlow's own outgoing mail: two-factor login codes and security
+      # notices. Without SMTP_HOST, users can't turn on two-factor login.
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-}
+      - SMTP_SECURE=${SMTP_SECURE:-}
+      - SMTP_REQUIRE_TLS=${SMTP_REQUIRE_TLS:-}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      # Emergency switch: set to true while e-mail is broken so accounts with
+      # two-factor login can still sign in with their password. Remove after.
+      - OPENFLOW_2FA_DISABLED=${OPENFLOW_2FA_DISABLED:-}
       # Behind a reverse proxy (Nginx, Traefik, a load balancer…) set this to
       # the number of proxies in front (usually 1), so rate limits and the
       # stored submitter IP use the visitor's address, not the proxy's.

@@ -63,8 +63,18 @@ export default function Users() {
     }
   }
 
+  async function handleResetTwoFactor(user) {
+    if (!confirm(`Turn off two-factor login for "${user.email}"? Use this when they have lost access to their mailbox. They will be notified by e-mail.`)) return;
+    try {
+      await api.updateUser(user.id, { twoFactor: false });
+      loadUsers();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   async function handleRevokeSessions(user) {
-    if (!confirm(`Log "${user.email}" out of all existing sessions?`)) return;
+    if (!confirm(`Log "${user.email}" out of all existing sessions? Their remembered browsers are forgotten too.`)) return;
     try {
       await api.revokeUserSessions(user.id);
     } catch (err) {
@@ -90,7 +100,7 @@ export default function Users() {
               </div>
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label>Password</label>
-                <input className="input" type="text" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 10 characters" required minLength={10} />
+                <input className="input" type="text" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 10 characters" required minLength={10} maxLength={72} autoComplete="new-password" />
               </div>
               <div className="input-group" style={{ marginBottom: 0 }}>
                 <label>Role</label>
@@ -113,8 +123,9 @@ export default function Users() {
             <tr>
               <th>Email</th>
               <th>Role</th>
+              <th>2FA</th>
               <th>Created</th>
-              <th style={{ width: 220 }}>Actions</th>
+              <th style={{ width: 300 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -126,6 +137,11 @@ export default function Users() {
                     {user.role || 'user'}
                   </span>
                 </td>
+                <td data-label="2FA">
+                  <span className={`badge ${user.twoFactorEnabled ? 'badge-published' : 'badge-draft'}`}>
+                    {user.twoFactorEnabled ? 'on' : 'off'}
+                  </span>
+                </td>
                 <td data-label="Created" style={{ fontSize: 13, color: 'var(--text-light)' }}>{formatServerDate(user.created_at)}</td>
                 <td className="cell-actions">
                   <div style={{ display: 'flex', gap: 4 }}>
@@ -135,6 +151,11 @@ export default function Users() {
                     <button className="btn btn-sm btn-secondary" onClick={() => handleRevokeSessions(user)} title="Invalidate this user's existing login sessions">
                       Log out everywhere
                     </button>
+                    {user.twoFactorEnabled && currentUser?.id !== user.id && (
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleResetTwoFactor(user)} title="Turn off this user's two-factor login (lost mailbox)">
+                        Reset 2FA
+                      </button>
+                    )}
                     {currentUser?.id !== user.id && (
                       <button className="btn btn-sm btn-danger" onClick={() => handleDelete(user.id)}>Delete</button>
                     )}

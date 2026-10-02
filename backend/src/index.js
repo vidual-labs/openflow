@@ -18,6 +18,10 @@ const adminRoutes = require('./routes/admin');
 const { createSubdomainMiddleware } = require('./middleware/subdomain');
 const { resolveTrustProxy, createProxyMisconfigWarning } = require('./utils/trustProxy');
 const { checkJwtSecret, scanForDefaultPasswords } = require('./models/secureDefaults');
+const { securityHeaders } = require('./middleware/securityHeaders');
+const { startSessionCleanup } = require('./models/sessions');
+const { verifyMailAtBoot } = require('./models/systemMail');
+const { isTwoFactorDisabledByOperator } = require('./models/twoFactor');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -120,6 +124,8 @@ app.get('/api/health', (req, res) => {
 // admin APIs can be blocked and the catch-all can inject the form slug
 // into index.html.
 app.use(createSubdomainMiddleware());
+// After the subdomain middleware: it decides whether this is a public form host.
+app.use(securityHeaders);
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -200,12 +206,9 @@ function warnOnUnreadableIntegrationConfigs(db) {
 }
 
 async function start() {
-  // Refuse to run with a publicly known JWT secret; warn about weak ones.
-  try {
-    for (const warning of checkJwtSecret()) logger.warn('weak_jwt_secret', { hint: warning });
-  } catch (err) {
-    logger.error('startup_refused', { error: err.message });
-    process.exit(1);
+  for (const warning of checkJwtSecret()) logger.warn('jwt_secret_unused', { hint: warning });
+  if (isTwoFactorDisabledByOperator()) {
+    logger.warn('two_factor_disabled_by_operator', { hint: 'OPENFLOW_2FA_DISABLED is set: accounts with two-factor login sign in with their password only. Remove it once e-mail works again.' });
   }
 
   try {
@@ -219,6 +222,8 @@ async function start() {
   warnOnUnreadableIntegrationConfigs(getDb());
   startBackupScheduler(getDb());
   startDeliveryWorker(getDb());
+  startSessionCleanup(getDb());
+  verifyMailAtBoot().catch(() => {});
 
   app.listen(PORT, '0.0.0.0', () => {
     logger.info('server_started', { port: PORT, version });

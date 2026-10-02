@@ -500,6 +500,86 @@ input, select, textarea {
   color: var(--primary);
 }
 
+.login-hint {
+  font-size: 14px;
+  color: var(--text-light);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.login-code-input {
+  font-size: 24px;
+  letter-spacing: 8px;
+  text-align: center;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.login-remember input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.login-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.login-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-light);
+  cursor: pointer;
+}
+
+.login-link-btn:hover:not(:disabled) {
+  color: var(--primary);
+}
+
+/* Account page: the session / remembered-browser lists */
+.account-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.account-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.account-list li .btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.account-list li:first-child {
+  border-top: none;
+}
+
+.account-list-meta {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
 /* Responsive grids — the admin's multi-column form rows. They collapse on
    narrow screens (see the max-width:768px block below). Gap and margins stay
    on the element's inline style. */

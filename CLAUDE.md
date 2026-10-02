@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.43.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.44.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -19,19 +19,25 @@ OpenFlow is a **full-stack application** with three main components:
   - `index.js` — Server entry point, CORS, route initialization, SPA fallback
   - `models/db.js` — Database schema, migrations, first-boot admin seeding
   - `models/integrations.js` — Integration engine (webhooks, email, Google Sheets, Google Ads, Meta Conversions API)
-  - `models/secureDefaults.js` — Refuses a publicly known `JWT_SECRET` / weak seed `ADMIN_PASSWORD` at boot, flags accounts still on a well-known default password (admin UI banner)
+  - `models/secureDefaults.js` — Refuses a weak seed `ADMIN_PASSWORD` at boot, the weak/guessable-password rules (`isWeakPassword`, `isAcceptableNewPassword`), flags accounts still on a weak password (admin UI banner)
+  - `models/sessions.js` — Server-side login sessions (`token` cookie, 7 days) and remembered browsers (`of_dev_<hash>` cookie, 30 days, path `/api/auth`); only SHA-256 hashes of tokens are stored
+  - `models/loginGuard.js` — Persistent per-e-mail lockout after failed logins (1/5/15/60 min every 5 failures); remembered browsers are exempt
+  - `models/twoFactor.js` — E-mailed one-time codes (opt-in two-factor login, confirming 2FA); `OPENFLOW_2FA_DISABLED` escape hatch
+  - `models/systemMail.js` — OpenFlow's own outgoing mail via `SMTP_*` env (login codes, security notices); separate from the per-form email integration
+  - `models/passwords.js` — Async bcrypt (cost `BCRYPT_ROUNDS`, default 12), dummy-hash timing equalisation, rehash-on-login
   - `models/auditLog.js` — Security audit trail (logins, user/role changes, settings, backup/restore)
   - `models/deliveryQueue.js` — Persists each integration delivery and retries it with backoff
   - `models/backup.js` / `models/backupScheduler.js` — JSON backup/restore + the rotating scheduled backup job
   - `models/apiTokens.js` — Read-only `ofw_` API tokens (hashed at rest)
   - `models/encryption.js` / `models/integrationSecrets.js` — AES-256-GCM for integration configs; which config fields are write-only secrets (redacted from every API response, merged on update)
   - `models/rateLimit.js` — In-memory rate limiter
-  - `middleware/auth.js` — JWT + API-token authentication, `requireAdmin`, `requireSession`
+  - `middleware/auth.js` — Session + API-token authentication, `requireAdmin`, `requireSession`
+  - `middleware/securityHeaders.js` — Strict CSP + `X-Frame-Options: DENY` for admin pages, none for public form pages (`/f/`, `/embed/`, subdomains — GTM/Pixel/iframes); nosniff, referrer policy, HSTS over HTTPS
   - `middleware/subdomain.js` — Resolves per-form subdomains and blocks admin paths on them
-  - `routes/` — API endpoints (auth, forms, submissions, public, integrations, analytics, settings, admin)
+  - `routes/` — API endpoints (auth, forms, submissions, public, integrations, analytics, settings, admin). `routes/account.js` (mounted inside `auth.js`) is the self-service part: own password, 2FA, sessions, remembered browsers
   - `utils/` — `steps.js` (flattens combined steps), `slug.js`, `subdomain.js`, `sanitizeCss.js`, `ssrf.js`
 - **Database**: SQLite stored in Docker volume (`db-data`) for persistence
-- **Key Features**: Rate limiting, JWT auth, read-only API tokens, HMAC-signed webhooks, SMTP email, Google Sheets/Ads integrations, retrying deliveries, analytics tracking, backup & restore
+- **Key Features**: Rate limiting, server-side sessions with opt-in e-mail 2FA and account lockout, read-only API tokens, HMAC-signed webhooks, SMTP email, Google Sheets/Ads integrations, retrying deliveries, analytics tracking, backup & restore
 
 ### Frontend (React + Vite)
 - **Location**: `frontend/src/`
@@ -47,7 +53,9 @@ OpenFlow is a **full-stack application** with three main components:
   - `pages/Analytics.jsx` — Analytics overview: all forms vs. the previous period
   - `pages/FormAnalytics.jsx` — Per-form analytics at `/analytics/:formId`: period + comparison range (in the URL), a "changed the flow on…" before/after shortcut, per-step reach / drop-off / median time on step, daily trend. Shared bits (`Delta`, `Kpi`, UTC day helpers) in `components/AnalyticsUI.jsx`
   - `pages/Submissions.jsx` — View, delete and export submissions
-  - `pages/Users.jsx` / `pages/Settings.jsx` / `pages/Backup.jsx` — Admin-only pages (users, branding + API tokens, backup/restore)
+  - `pages/Users.jsx` / `pages/Settings.jsx` / `pages/Backup.jsx` — Admin-only pages (users incl. 2FA reset, branding + system e-mail status, backup/restore)
+  - `pages/Account.jsx` — Every user's own page: change password, two-factor login, active sessions, remembered browsers, API tokens (`ApiTokensCard` lives in `Settings.jsx`)
+  - `pages/Login.jsx` — Password step, then (2FA accounts on a new browser) the e-mailed-code step with "remember this browser"
   - `components/FormRenderer.jsx` — Renders forms with animations, validation, conditional logic and consent
   - `components/IntegrationsPanel.jsx` — Configure integrations per form
   - `components/AdminUI.jsx` — Shared page header, alert, empty/loading components, plus `LogoMark` / `LogoWordmark` (the brand mark and the "OpenFlow" wordmark used in the sidebar, topbar and login page; the same mark as `public/favicon.svg` and `docs/assets/openflow-mark.svg`)
@@ -99,9 +107,10 @@ docker compose up -d --build
 There is no default password anywhere: with `ADMIN_PASSWORD` unset, the first
 boot generates a random one-time admin password and prints it to the log (the
 old `admin123` compose fallback was removed in 0.16). A weak or well-known
-`ADMIN_PASSWORD` (< 10 chars, `admin123`, …) makes the first boot refuse to
-seed, and a publicly known `JWT_SECRET` (e.g. `change-me-in-production`) makes
-every boot refuse to start (`models/secureDefaults.js`).
+`ADMIN_PASSWORD` (< 10 chars, `admin123`, `Password2026!`, …) makes the first
+boot refuse to seed (`models/secureDefaults.js`). Two-factor login codes need
+`SMTP_HOST`/`SMTP_FROM` (+ `SMTP_REQUIRE_TLS=false` for a local catcher such as
+Mailpit).
 
 ## Key Development Patterns
 
@@ -207,7 +216,7 @@ npm test -- --watch
 
 Tests live in `backend/tests/` and cover: authentication, authorization, API
 tokens, rate limiting, form CRUD, submission validation, slug rules, subdomain
-rules, backup/restore, calon availability/booking, analytics ranges and step drop-off, encryption, integration
+rules, backup/restore, sessions/lockout/2FA/password change/security headers (`loginSecurity.test.js`), calon availability/booking, analytics ranges and step drop-off, encryption, integration
 secrets, Meta CAPI, the audit log, session revocation and the security
 hardening (`securityHardening.test.js`). There is no frontend test suite.
 
@@ -238,7 +247,8 @@ version text. The WordPress plugin is versioned separately.
 Defined in one `CREATE TABLE IF NOT EXISTS` block plus additive `ALTER TABLE`
 migrations in `models/db.js`:
 
-- `users` — Users (email, bcrypt `password_hash`, `role` = `admin` | `user`, `token_version` for session revocation)
+- `users` — Users (email, bcrypt `password_hash`, `role` = `admin` | `user`, `twofa_enabled`; `token_version` is legacy, unused since 0.44)
+- `sessions` / `trusted_devices` / `auth_challenges` / `login_failures` — Login state (hashed tokens, epoch-ms timestamps, no FKs, not in backups; a restore signs out everyone but the restoring admin)
 - `forms` — Everything about a form: `steps`, `end_screen`, `theme` (JSON text columns), `slug`, `gtm_id`, `published`. Steps are **not** a separate table.
 - `submissions` — User responses (`data` + `metadata` JSON, keyed by field id)
 - `integrations` — Integration configs per form (`type`, `enabled`, `config` JSON)
@@ -252,7 +262,7 @@ migrations in `models/db.js`:
 ## API Structure
 
 - **Public** (`/api/public/`): No auth required. Load form, submit response, track analytics.
-- **Admin** (`/api/forms`, `/api/submissions`, `/api/auth`): session (JWT cookie / Bearer) or a read-only `ofw_` API token (`router.use(authMiddleware)`). Every query is scoped to the **owning user** (`user_id = req.userId`) — admins included; there is no cross-user form visibility yet.
+- **Admin** (`/api/forms`, `/api/submissions`, `/api/auth`): session (server-side `token` cookie / Bearer) or a read-only `ofw_` API token (`router.use(authMiddleware)`). Every query is scoped to the **owning user** (`user_id = req.userId`) — admins included; there is no cross-user form visibility yet.
 - **Integrations** (`/api/integrations`): Test, create, update, delete integrations; list and retry deliveries.
 - **Analytics** (`/api/analytics`): Get funnel and trend data.
 - **Settings** (`/api/settings`): `GET` is public (branding, `primaryHost` and the `landingPage` flag are needed by the logged-out screen and form editor); `PUT /:key` is admin-only and restricted to an allowlist of keys.
@@ -265,12 +275,15 @@ connector that **pulls** submissions out of an install — it is not a push
 integration configured here, but it does depend on this API's shape:
 
 - **Auth (preferred): an API token.** A logged-in user mints a read-only token
-  under **Settings → API Tokens** (`POST /api/auth/tokens`), and lodgely sends
+  under **Account → API Tokens** (`POST /api/auth/tokens`), and lodgely sends
   it as a `Bearer` token. See "API tokens" below.
 - **Auth (fallback): login.** lodgely can still log in via `POST /api/auth/login`
-  (email + password) and read the JWT from the **`token` httpOnly cookie**, then
-  send it as a `Bearer` token. **Don't remove the Set-Cookie token or stop
-  accepting the Bearer header without coordinating.**
+  (email + password) and read the session token from the **`token` httpOnly
+  cookie** (an opaque server-side session token since 0.44, no longer a JWT),
+  then send it as a `Bearer` token. This does not work for an account with
+  two-factor login on (the login answers `{ twoFactorRequired }` without a
+  cookie) — such accounts must use an API token. **Don't rename the `token`
+  cookie or stop accepting the Bearer header without coordinating.**
 - It reads `GET /api/forms` (to list forms), `GET /api/forms/:id` (to read
   `steps` for field mapping) and `GET /api/submissions/:formId` (paged, newest
   first) where each submission's `data` is keyed by field id. Changing those
@@ -285,7 +298,7 @@ hash is stored; the plaintext is shown once at creation. The auth middleware
 the owning user, and **rejects any non-GET/HEAD request** (`req.authVia ===
 'api_token'`). `requireSession` blocks token-authed callers from the
 token-management endpoints, so a token can never mint or list tokens. Tokens are
-managed in the UI under **Settings → API Tokens**.
+managed in the UI under **Account → API Tokens**.
 
 ## Common Tasks
 
@@ -324,7 +337,8 @@ docker compose up -d --build
 - **Form Slugs**: Unique URL identifier for public form access (`/f/<slug>` and `/embed/<slug>`). Renaming a slug archives the old one in `slug_history` so old links still resolve.
 - **Multi-User**: Admin can invite users and assign roles (`admin` / `user`). `requireAdmin` / `requireSession` live in `middleware/auth.js` (the one copy — don't re-implement role checks inline). Forms are private to their owner.
 - **Reverse proxy**: set `TRUST_PROXY` (e.g. `1`) behind a proxy, or every visitor shares the proxy's IP — one rate-limit bucket and a wrong `metadata.ip`. `utils/trustProxy.js` logs `trust_proxy_not_configured` once when it sees `X-Forwarded-For` without it.
-- **Secrets**: `JWT_SECRET` is auto-generated and persisted next to the DB when unset; there is no hardcoded fallback. Set it explicitly in production.
+- **Secrets**: `ENCRYPTION_KEY` is auto-generated and persisted next to the DB when unset; there is no hardcoded fallback. `JWT_SECRET` is unused since 0.44 (sessions are server-side) and only logs a "you can remove it" note.
+- **Login security**: Passwords are only ever compared with the async bcrypt API (`models/passwords.js`) — never `compareSync`, which would block the event loop for ~300 ms per login at cost 12. A new password must pass `isAcceptableNewPassword` (with the account's e-mail). Anything that should end a user's access calls `sessions.revokeUserSessions` (with `devices: true` when remembered browsers must re-verify).
 - **Untrusted input into HTML**: GTM ids, custom CSS and emailed field values all pass through validation/sanitization (`validateGtmId`, `utils/sanitizeCss.js`, `escapeHtmlAttr`). Keep it that way when touching those paths.
 
 ## Conventions
