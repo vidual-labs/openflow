@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { getDb } = require('../models/db');
+const { getDb, ensureFormFieldKeys } = require('../models/db');
 const { authMiddleware, requireAdmin } = require('../middleware/auth');
 const { createBackup, backupSummary, restoreBackup } = require('../models/backup');
 const { listScheduledBackups, readScheduledBackup } = require('../models/backupScheduler');
@@ -152,6 +152,8 @@ router.post('/restore', (req, res) => {
       .prepare('SELECT id, email, password_hash, role, created_at, token_version, twofa_enabled FROM users WHERE id = ?')
       .get(req.userId);
     const result = restoreBackup(db, req.body, { preserveUser: me });
+    // A backup taken before 0.46 carries forms without field keys.
+    ensureFormFieldKeys(db);
     // The restored users may have other passwords and roles than the ones
     // their open sessions were granted under: sign everyone else out.
     db.transaction(() => {

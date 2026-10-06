@@ -220,7 +220,7 @@ async function runGoogleSheetsAppsScript(config, formId, formTitle, data, steps)
     formId,
     formTitle,
     data,
-    fields: flattenFields(steps).map(s => ({ id: s.id, label: s.label || s.question || s.id })),
+    fields: flattenFields(steps).map(s => ({ id: s.id, key: s.key, label: s.label || s.question || s.id })),
     timestamp: new Date().toISOString(),
   };
 

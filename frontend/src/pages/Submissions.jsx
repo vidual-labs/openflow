@@ -98,7 +98,7 @@ export default function Submissions() {
               <thead>
                 <tr>
                   <th>#</th>
-                  {fields.map(s => <th key={s.id}>{s.label || s.question}</th>)}
+                  {fields.map(s => <th key={s.id} title={s.key ? `Key: ${s.key}` : undefined}>{s.label || s.question}</th>)}
                   <th>Date</th>
                   <th></th>
                 </tr>

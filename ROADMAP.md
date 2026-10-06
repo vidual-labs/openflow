@@ -18,7 +18,7 @@ Effort: **S** ≈ days, **M** ≈ 1–2 weeks, **L** ≈ several weeks.
 | Phase | Theme | OpenFlow items | lodgely items (see its ROADMAP.md) |
 |---|---|---|---|
 | 0 | Shipped: security & correctness batch | done in 0.41.0 | done in 0.55.0 |
-| 1 | Contract & speed-to-lead | OF-1, OF-2, OF-3, OF-4, OF-13 | LG-1, LG-2, LG-3 |
+| 1 | Contract & speed-to-lead | ~~OF-1~~ (0.46.0), OF-2, OF-3, OF-4, OF-13 | LG-1, LG-2, LG-3 |
 | 2 | Conversion & data at the source | OF-5, OF-6, OF-7, OF-9, OF-8 | LG-6, LG-8 |
 | 3 | Lead evaluation | *(none; lodgely's phase)* | LG-4, LG-5, LG-10, LG-7, LG-9 |
 | 4 | GDPR data lifecycle | OF-10, OF-11 | LG-11, LG-12, LG-13 |
@@ -51,7 +51,7 @@ Effort: **S** ≈ days, **M** ≈ 1–2 weeks, **L** ≈ several weeks.
 ## Phase 1 — Contract & speed-to-lead
 
 ### OF-1 · Stable field keys
-**Repo:** OpenFlow · **Status:** missing · **Effort:** M · **Depends on:** X-1
+**Repo:** OpenFlow · **Status:** **shipped in 0.46.0** (keys follow the label until edited; conditions reference keys; CSV header stays the label, the key is the column tooltip) · **Effort:** M · **Depends on:** X-1
 **Why:** lodgely maps answers by opaque `field_<timestamp>` ids today. A
 re-created question silently breaks the mapping, and rows without contact data
 are then dropped for good. Readable, stable keys make the mapping and the
@@ -118,9 +118,10 @@ its owner can make (analytics, integrations, CSV export of all forms).
 - The token list shows scope, expiry and last use.
 
 ### OF-13 · Account security follow-ups
-**Repo:** OpenFlow · **Status:** partial (0.41.0 flags weak passwords; no self-service change, no forced change, no 2FA) · **Effort:** M · **Depends on:** —
-**Why:** a non-admin can't change their own password today, and the
-weak-password banner can only tell them to ask an admin.
+**Repo:** OpenFlow · **Status:** mostly shipped in 0.44.0 (self-service password change revoking other sessions, opt-in e-mailed 2FA codes, remembered browsers, lockout); still open: forced change on first login with a generated password, admin-enforced 2FA via env switch (TOTP was swapped for e-mailed codes) · **Effort:** S · **Depends on:** —
+**Why:** every user can change their own password since 0.44.0; a generated
+one-time admin password can still be kept indefinitely, and 2FA can't be
+required for admins.
 
 **Acceptance criteria**
 - Every user can change their own password (current password required;
@@ -355,7 +356,10 @@ in exactly one place.
   version, offset-less timestamps, offset paging, webhook without submission
   id) → **X-1**.
 
-### Decisions this roadmap assumes (pending confirmation)
+### Decisions this roadmap builds on (confirmed 2026-10-06)
+
+All five were confirmed on 2026-10-06 (OpenFlow 0.46.0 / lodgely 0.55.2).
+Changing one is a roadmap change in both repos.
 
 | # | Decision | Consequence |
 |---|---|---|

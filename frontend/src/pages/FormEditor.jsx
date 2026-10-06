@@ -5,6 +5,7 @@ import IntegrationsPanel from '../components/IntegrationsPanel';
 import { toRgbTriplet } from '../components/FormRenderer';
 import AnimatedBackground, { normalizeBgAnimation } from '../components/AnimatedBackground';
 import { TEXT_AUTOFILL_OPTIONS, textAutofillLabel, suggestAutofill } from '../autofill';
+import { syncFieldKeys, normalizeTypedKey, duplicateKeys, KEY_RE } from '../utils/fieldKeys';
 import '../components/FormRenderer.css';
 
 // Field types sorted logically: question types first, then contact/data fields
@@ -126,10 +127,17 @@ export default function FormEditor() {
     }
   }
 
+  // Every change to the steps goes through here so field keys stay in step
+  // with their labels (until the operator edits a key) and conditions follow
+  // a renamed key — see utils/fieldKeys.js.
+  function commitSteps(steps) {
+    setForm({ ...form, steps: syncFieldKeys(form.steps, steps) });
+  }
+
   function updateStep(index, changes) {
     const steps = [...form.steps];
     steps[index] = { ...steps[index], ...changes };
-    setForm({ ...form, steps });
+    commitSteps(steps);
   }
 
   function changeFieldType(index, newType) {
@@ -140,6 +148,8 @@ export default function FormEditor() {
     // Keep existing id, update everything else with smart defaults
     steps[index] = {
       id: step.id,
+      key: step.key,
+      ...(step.keyCustom ? { keyCustom: true } : {}),
       type: newType,
       question: defaults.question || '',
       label: defaults.label || '',
@@ -156,7 +166,7 @@ export default function FormEditor() {
         calon: defaults.calon,
       } : {}),
     };
-    setForm({ ...form, steps });
+    commitSteps(steps);
   }
 
   function addStep() {
@@ -170,21 +180,22 @@ export default function FormEditor() {
       required: false,
       placeholder: defaultType.defaults.placeholder,
     }];
-    setForm({ ...form, steps });
+    commitSteps(steps);
     setExpandedStep(steps.length - 1);
   }
 
   function removeStep(index) {
     const removed = form.steps[index];
-    const removedIds = new Set(removed?.type === 'group' ? (removed.fields || []).map(f => f.id) : [removed?.id]);
+    const removedKeys = new Set(removed?.type === 'group' ? (removed.fields || []).map(f => f.key) : [removed?.key]);
     // A rule pointing at a deleted question would silently stay on the step
-    // (and be invisible in the editor once no other field is left to refer to).
-    const dropDangling = (s) => (s.condition && removedIds.has(s.condition.field) ? { ...s, condition: undefined } : s);
+    // (and be invisible in the editor once no other field is left to refer to);
+    // the server would refuse to save it, naming the key.
+    const dropDangling = (s) => (s.condition && removedKeys.has(s.condition.field) ? { ...s, condition: undefined } : s);
     const steps = form.steps.filter((_, i) => i !== index).map(s => {
       const cleaned = dropDangling(s);
       return cleaned.type === 'group' && Array.isArray(cleaned.fields) ? { ...cleaned, fields: cleaned.fields.map(dropDangling) } : cleaned;
     });
-    setForm({ ...form, steps });
+    commitSteps(steps);
     if (expandedStep === index) setExpandedStep(null);
     else if (expandedStep > index) setExpandedStep(expandedStep - 1);
   }
@@ -194,7 +205,7 @@ export default function FormEditor() {
     const target = index + dir;
     if (target < 0 || target >= steps.length) return;
     [steps[index], steps[target]] = [steps[target], steps[index]];
-    setForm({ ...form, steps });
+    commitSteps(steps);
     if (expandedStep === index) setExpandedStep(target);
     else if (expandedStep === target) setExpandedStep(index);
   }
@@ -213,7 +224,7 @@ export default function FormEditor() {
     if (a.condition || b.condition) group.condition = a.condition || b.condition;
     const steps = [...form.steps];
     steps.splice(topIndex, 2, group);
-    setForm({ ...form, steps });
+    commitSteps(steps);
     setExpandedStep(topIndex);
   }
 
@@ -223,7 +234,7 @@ export default function FormEditor() {
     if (!group || group.type !== 'group') return;
     const steps = [...form.steps];
     steps.splice(index, 1, ...(group.fields || []));
-    setForm({ ...form, steps });
+    commitSteps(steps);
     setExpandedStep(index);
   }
 
@@ -963,6 +974,8 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
     ? (step.fields || []).map(f => f.label || f.question || f.type).join('  +  ')
     : '';
   const hasAutofillTip = (isGroup ? (step.fields || []) : [step]).some(f => suggestAutofill(f));
+  const dupes = duplicateKeys(allSteps);
+  const headerKeys = (isGroup ? (step.fields || []) : [step]).map(f => f.key).filter(Boolean);
 
   return (
     <div className="card" style={{ position: 'relative', marginBottom: 12 }}>
@@ -980,6 +993,13 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
           )}
           <div style={{ fontSize: 14, color: 'var(--text-light)', marginTop: 2 }}>
             {isGroup ? groupSummary : (step.question || <em style={{ opacity: 0.5 }}>No question set</em>)}
+            {headerKeys.length > 0 && (
+              <span style={{ marginLeft: 10, display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+                {headerKeys.map(k => (
+                  <code key={k} title="Field key — used in CSV exports, webhooks and lodgely" style={{ fontSize: 11, padding: '1px 6px', borderRadius: 6, background: 'var(--panel-alt)', border: `1px solid ${dupes.has(k) ? 'var(--danger)' : 'var(--border)'}`, color: dupes.has(k) ? 'var(--danger)' : 'var(--text-light)' }}>{k}</code>
+                ))}
+              </span>
+            )}
           </div>
         </div>
         <div className="step-actions" onClick={e => e.stopPropagation()}>
@@ -1039,10 +1059,12 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
               <input className="input" value={step.question || ''} onChange={e => onChange({ question: e.target.value })} placeholder="Your question..." />
             </div>
             <div className="input-group">
-              <label>Label / ID</label>
+              <label>Label</label>
               <input className="input" value={step.label || ''} onChange={e => onChange({ label: e.target.value })} placeholder="e.g. Name, Email..." />
             </div>
           </div>
+
+          <FieldKeyEditor field={step} duplicate={dupes.has(step.key)} onChange={onChange} />
 
           {/* Placeholder - not for types that don't use it */}
           {!['select', 'multi-select', 'yes-no', 'rating', 'image-select', 'address', 'date-timeslot'].includes(step.type) && (
@@ -1152,6 +1174,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
                         updated[idx] = { ...field, label: e.target.value };
                         onChange({ customFields: updated });
                       }} placeholder="Label" style={{ flex: 1 }} />
+                      {field.key && <code title="Field key (follows the label)" style={{ alignSelf: 'center', fontSize: 11, color: 'var(--text-light)' }}>{field.key}</code>}
                       <button className="btn btn-sm btn-secondary" onClick={() => {
                         const updated = (step.customFields || []).filter((_, i) => i !== idx);
                         onChange({ customFields: updated });
@@ -1333,6 +1356,8 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
 function GroupFieldsEditor({ step, allSteps, onChange }) {
   const fields = step.fields || [];
 
+  const dupes = duplicateKeys(allSteps);
+
   function updateField(i, changes) {
     onChange({ fields: fields.map((f, idx) => (idx === i ? { ...f, ...changes } : f)) });
   }
@@ -1353,6 +1378,8 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
     onChange({
       fields: fields.map((f, idx) => (idx === i ? {
         id: f.id,
+        key: f.key,
+        ...(f.keyCustom ? { keyCustom: true } : {}),
         type: newType,
         question: d.question || '',
         label: d.label || '',
@@ -1381,6 +1408,7 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
           </div>
           <SubFieldEditor
             field={f}
+            duplicate={dupes.has(f.key)}
             onChange={changes => updateField(i, changes)}
             onChangeType={type => changeFieldType(i, type)}
           />
@@ -1410,6 +1438,50 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
 /* ===========================
    SubFieldEditor - compact editor for a single field inside a combined step
    =========================== */
+/* ===========================
+   FieldKeyEditor - the field's stable key (CSV, webhooks, lodgely, conditions)
+   =========================== */
+// The key follows the label until the operator types one (`keyCustom`);
+// clearing the input hands it back to the label. Conditions referencing the
+// key are rewritten on every rename (utils/fieldKeys.js#syncFieldKeys).
+function FieldKeyEditor({ field, duplicate, onChange }) {
+  const custom = !!field.keyCustom;
+  const value = field.key || '';
+  const invalid = custom && value !== '' && !KEY_RE.test(value);
+  return (
+    <div className="input-group" style={{ marginTop: 12 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        Field key
+        {custom && (
+          <button type="button" className="btn btn-sm btn-secondary" style={{ padding: '0 8px', fontSize: 11 }} onClick={() => onChange({ key: undefined, keyCustom: undefined })} title="Derive the key from the label again">
+            ↺ follow label
+          </button>
+        )}
+      </label>
+      <input
+        className="input"
+        value={value}
+        onChange={e => {
+          const typed = normalizeTypedKey(e.target.value);
+          if (typed === '') onChange({ key: undefined, keyCustom: undefined });
+          else onChange({ key: typed, keyCustom: true });
+        }}
+        spellCheck={false}
+        style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, borderColor: duplicate || invalid ? 'var(--danger)' : undefined }}
+      />
+      <p style={{ fontSize: 12, color: duplicate || invalid ? 'var(--danger)' : 'var(--text-light)', marginTop: 4 }}>
+        {duplicate
+          ? 'Another field already uses this key — the form cannot be saved until it is unique.'
+          : invalid
+            ? 'Lower-case letters, digits and underscores only, starting with a letter.'
+            : custom
+              ? 'Fixed by you. Lead tools such as lodgely map this field by its key, so keep it stable once leads are flowing.'
+              : 'Derived from the label; lead tools such as lodgely map this field by its key. Edit to fix it.'}
+      </p>
+    </div>
+  );
+}
+
 /* ===========================
    AutofillEditor - lets browsers prefill a Short Text field
    =========================== */
@@ -1462,7 +1534,7 @@ function AutofillEditor({ field, onChange }) {
   );
 }
 
-function SubFieldEditor({ field, onChange, onChangeType }) {
+function SubFieldEditor({ field, duplicate, onChange, onChangeType }) {
   return (
     <>
       <div className="input-group">
@@ -1495,10 +1567,12 @@ function SubFieldEditor({ field, onChange, onChangeType }) {
           <input className="input" value={field.question || ''} onChange={e => onChange({ question: e.target.value })} placeholder="Your question..." />
         </div>
         <div className="input-group">
-          <label>Label / ID</label>
+          <label>Label</label>
           <input className="input" value={field.label || ''} onChange={e => onChange({ label: e.target.value })} placeholder="e.g. Name, Email..." />
         </div>
       </div>
+
+      <FieldKeyEditor field={field} duplicate={duplicate} onChange={onChange} />
 
       {!['select', 'multi-select', 'yes-no', 'rating', 'image-select', 'address'].includes(field.type) && (
         <div className="input-group" style={{ marginTop: 12 }}>
@@ -1954,10 +2028,11 @@ function ConditionEditor({ condition, allSteps, currentStepId, onChange }) {
   const fieldOptions = [];
   for (const s of allSteps) {
     if (s.id === currentStepId) continue;
+    // Conditions reference fields by their stable key (see utils/fieldKeys.js).
     if (s.type === 'group' && Array.isArray(s.fields)) {
-      for (const f of s.fields) fieldOptions.push({ id: f.id, label: f.label || f.id });
-    } else {
-      fieldOptions.push({ id: s.id, label: s.label || s.id });
+      for (const f of s.fields) if (f.key) fieldOptions.push({ key: f.key, label: f.label || f.question || f.key });
+    } else if (s.key) {
+      fieldOptions.push({ key: s.key, label: s.label || s.question || s.key });
     }
   }
 
@@ -1965,7 +2040,7 @@ function ConditionEditor({ condition, allSteps, currentStepId, onChange }) {
     if (enabled) {
       onChange(null);
     } else {
-      onChange({ field: fieldOptions[0]?.id || '', op: 'equals', value: '' });
+      onChange({ field: fieldOptions[0]?.key || '', op: 'equals', value: '' });
     }
   }
 
@@ -1983,7 +2058,7 @@ function ConditionEditor({ condition, allSteps, currentStepId, onChange }) {
           <select className="input" value={condition.field || ''} onChange={e => onChange({ ...condition, field: e.target.value })} style={{ width: 'auto', minWidth: 140, padding: '6px 10px', fontSize: 13 }}>
             <option value="">-- Select field --</option>
             {fieldOptions.map(o => (
-              <option key={o.id} value={o.id}>{o.label}</option>
+              <option key={o.key} value={o.key}>{o.label} ({o.key})</option>
             ))}
           </select>
           <select className="input" value={condition.op || 'equals'} onChange={e => onChange({ ...condition, op: e.target.value })} style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }}>
