@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.45.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.46.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -35,7 +35,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `middleware/securityHeaders.js` — Strict CSP + `X-Frame-Options: DENY` for admin pages, none for public form pages (`/f/`, `/embed/`, subdomains — GTM/Pixel/iframes); nosniff, referrer policy, HSTS over HTTPS
   - `middleware/subdomain.js` — Resolves per-form subdomains and blocks admin paths on them
   - `routes/` — API endpoints (auth, forms, submissions, public, integrations, analytics, settings, admin). `routes/account.js` (mounted inside `auth.js`) is the self-service part: own password, 2FA, sessions, remembered browsers
-  - `utils/` — `steps.js` (flattens combined steps), `slug.js`, `subdomain.js`, `sanitizeCss.js`, `ssrf.js`
+  - `utils/` — `steps.js` (flattens combined steps), `fieldKeys.js` (stable field keys + key-based condition references), `conditions.js` (server mirror of the renderer's show/hide logic), `slug.js`, `subdomain.js`, `sanitizeCss.js`, `ssrf.js`
 - **Database**: SQLite stored in Docker volume (`db-data`) for persistence
 - **Key Features**: Rate limiting, server-side sessions with opt-in e-mail 2FA and account lockout, read-only API tokens, HMAC-signed webhooks, SMTP email, Google Sheets/Ads integrations, retrying deliveries, analytics tracking, backup & restore
 
@@ -117,13 +117,13 @@ system e-mail: Settings → System e-mail, or `SMTP_HOST`/`SMTP_FROM` (+
 ### Form Structure (Backend)
 A form row in `forms` holds everything as JSON columns — there is no separate
 fields table:
-- **`steps`**: Array of steps, each with field type, label, placeholder, validation, etc. A step is normally one field; two adjacent questions can be merged into a `{ type: 'group', fields: [a, b] }` step. Use `utils/steps.js#flattenFields` before touching leaf fields.
+- **`steps`**: Array of steps, each with field type, label, placeholder, validation, etc. A step is normally one field; two adjacent questions can be merged into a `{ type: 'group', fields: [a, b] }` step. Use `utils/steps.js#flattenFields` before touching leaf fields. Every leaf field (incl. group sub-fields and address `customFields`) also carries a stable, human-readable **`key`** (`[a-z][a-z0-9_]{0,39}`, unique within the form — `utils/fieldKeys.js`): the editor derives it from the label until the operator edits it (`keyCustom`), the save path fills missing keys and refuses duplicates/malformed keys with 400, and a boot migration (`db.js#ensureFormFieldKeys`, also run after a restore) keyed every pre-0.46 form. Keys are what the outside world maps on (lodgely, the submission contract); submission `data` stays keyed by `id`.
 - **`theme`**: Colors, fonts, animated backgrounds, button position, custom CSS, language
 - **`end_screen`**: Thank-you content, auto-redirect, GDPR consent settings, cookie-banner settings
 - **`gtm_id`**: GTM container id (validated as `GTM-XXXXXXX`, since it is interpolated into a raw `<script>` tag)
 - **Integrations**: Rows in the `integrations` table, keyed by `form_id`
 - **Landing Page**: Optional logo, headline, subline, footer links (in `theme`)
-- **Conditional Logic**: Show/hide rules based on previous answers (stored in step config)
+- **Conditional Logic**: Show/hide rules based on previous answers (stored in step config as `condition: { field: <key>, op, value }` — `field` is the referenced field's **key** since 0.46; a bare id still resolves via `fieldKeys.js#fieldIdResolver`)
 
 ### Form Field Types
 15 types the builder can add (`FIELD_TYPES` in `frontend/src/pages/FormEditor.jsx`):
@@ -217,8 +217,9 @@ npm test -- --watch
 Tests live in `backend/tests/` and cover: authentication, authorization, API
 tokens, rate limiting, form CRUD, submission validation, slug rules, subdomain
 rules, backup/restore, sessions/lockout/2FA/password change/security headers (`loginSecurity.test.js`), system-mail settings (`systemMailSettings.test.js`), calon availability/booking, analytics ranges and step drop-off, encryption, integration
-secrets, Meta CAPI, the audit log, session revocation and the security
-hardening (`securityHardening.test.js`). There is no frontend test suite.
+secrets, Meta CAPI, the audit log, session revocation, stable field keys
+(`fieldKeys.test.js`) and the security hardening (`securityHardening.test.js`).
+There is no frontend test suite.
 
 ## Version Management
 
@@ -345,7 +346,8 @@ docker compose up -d --build
 
 - **Form IDs / submission IDs / user IDs**: UUID v4
 - **Form slugs**: 8-char nanoid over `[a-z0-9]`, editable afterwards
-- **Field IDs**: generated in the editor as `field_<timestamp>` (`group_…` for combined steps, `custom_…` for address sub-fields). They are opaque — never parse them.
+- **Field IDs**: generated in the editor as `field_<timestamp>` (`group_…` for combined steps, `custom_…` for address sub-fields). They are opaque — never parse them. Submission `data` is keyed by id.
+- **Field keys**: `[a-z][a-z0-9_]{0,39}`, unique per form, derived from the label (umlauts transliterated: Straße → `strasse`; Email/Phone/Website/Address fields default to the type name) with `_2`, `_3` on collision. Conditions reference keys. The derivation lives twice — `backend/src/utils/fieldKeys.js` and `frontend/src/utils/fieldKeys.js` — keep them identical.
 - **Naming**: camelCase in JavaScript, snake_case in SQL/database
 - **Colors**: Hex format (e.g., `#FF5733`)
 - **Timestamps**: SQLite `datetime('now')` (UTC, `YYYY-MM-DD HH:MM:SS`) for row defaults; submission `metadata.submittedAt` is a full ISO 8601 string

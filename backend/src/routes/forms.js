@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { validateFormPayload } = require('../utils/formPayload');
+const { prepareSteps } = require('../utils/fieldKeys');
 const { getDb } = require('../models/db');
 const { authMiddleware } = require('../middleware/auth');
 const { randomUUID: uuid } = require('crypto');
@@ -73,6 +74,12 @@ router.post('/', (req, res) => {
   const gtmCheck = validateGtmId(gtm_id);
   if (!gtmCheck.ok) return res.status(400).json({ error: gtmCheck.error });
 
+  // Every leaf field gets a stable key (filled in when the client sent none),
+  // and conditions point at keys. Duplicate or malformed keys and conditions
+  // on unknown keys are refused, naming the key.
+  const prepared = prepareSteps(steps || []);
+  if (prepared.error) return res.status(400).json({ error: prepared.error });
+
   db.prepare(`
     INSERT INTO forms (id, user_id, title, slug, steps, end_screen, theme, gtm_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -80,7 +87,7 @@ router.post('/', (req, res) => {
     id, req.userId,
     title || 'Untitled Form',
     slug,
-    JSON.stringify(steps || []),
+    JSON.stringify(prepared.steps),
     JSON.stringify(end_screen || { title: 'Thank you!', message: 'We will get back to you shortly.' }),
     JSON.stringify(sanitizeTheme(theme) || {}),
     gtmCheck.value
@@ -160,6 +167,15 @@ router.put('/:id', (req, res) => {
     if (!gtmCheck.ok) return res.status(400).json({ error: gtmCheck.error });
   }
 
+  // See POST: stable field keys + key-based conditions, refused when a key
+  // is duplicated, malformed or referenced by a condition after a rename.
+  let preparedSteps = null;
+  if (steps) {
+    const prepared = prepareSteps(steps);
+    if (prepared.error) return res.status(400).json({ error: prepared.error });
+    preparedSteps = prepared.steps;
+  }
+
   // Handle subdomain change separately: validate, check uniqueness.
   // null/empty string clears it.
   if (subdomain !== undefined) {
@@ -230,7 +246,7 @@ router.put('/:id', (req, res) => {
     WHERE id = ?
   `).run(
     title ?? null,
-    steps ? JSON.stringify(steps) : null,
+    preparedSteps ? JSON.stringify(preparedSteps) : null,
     end_screen ? JSON.stringify(end_screen) : null,
     theme ? JSON.stringify(sanitizeTheme(theme)) : null,
     gtm_id ?? null,

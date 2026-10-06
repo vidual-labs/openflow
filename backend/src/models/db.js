@@ -247,6 +247,13 @@ function initDb() {
   }
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_forms_subdomain ON forms(subdomain) WHERE subdomain IS NOT NULL');
 
+  // Migrate: stable field keys inside the `steps` JSON (0.46, ROADMAP OF-1).
+  // Idempotent and cheap, so it simply runs on every boot; it also catches
+  // forms restored from a pre-0.46 backup (routes/admin.js calls it after a
+  // restore for the same reason).
+  const migratedKeys = ensureFormFieldKeys(db);
+  if (migratedKeys > 0) console.log(`Migration: added field keys to ${migratedKeys} form(s)`);
+
   // Seed admin user
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@openflow.local';
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(adminEmail);
@@ -278,4 +285,30 @@ function initDb() {
   }
 }
 
-module.exports = { getDb, initDb, resetDb };
+// Gives every leaf field of every form a key and points conditions at keys
+// (utils/fieldKeys.js). Rows already in shape are left untouched, including
+// their updated_at. Returns the number of forms rewritten.
+function ensureFormFieldKeys(db) {
+  const { prepareSteps } = require('../utils/fieldKeys');
+  const rows = db.prepare('SELECT id, steps FROM forms').all();
+  const update = db.prepare('UPDATE forms SET steps = ? WHERE id = ?');
+  let changed = 0;
+  const run = db.transaction(() => {
+    for (const row of rows) {
+      let steps;
+      try { steps = JSON.parse(row.steps); } catch { continue; }
+      if (!Array.isArray(steps)) continue;
+      const prepared = prepareSteps(steps, { strict: false });
+      if (prepared.error) continue;
+      const next = JSON.stringify(prepared.steps);
+      if (next !== row.steps) {
+        update.run(next, row.id);
+        changed += 1;
+      }
+    }
+  });
+  run();
+  return changed;
+}
+
+module.exports = { getDb, initDb, resetDb, ensureFormFieldKeys };

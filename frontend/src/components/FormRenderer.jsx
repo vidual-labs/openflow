@@ -3,6 +3,7 @@ import './FormRenderer.css';
 import AnimatedBackground from './AnimatedBackground';
 import { LOCALES } from '../locales';
 import { flattenFields } from '../utils/steps';
+import { fieldIdResolver } from '../utils/fieldKeys';
 import { isSafeUrl, safeUrl } from '../utils/safeUrl';
 import { autofillToken } from '../autofill';
 
@@ -265,12 +266,15 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   const consentAsStep = consentRequired && endScreen.consentMode === 'step';
   const consentInline = consentRequired && !consentAsStep;
 
-  // Conditional logic: filter steps based on answers
+  // Conditional logic: filter steps based on answers. `condition.field` is the
+  // referenced field's stable key (a bare id from older forms still resolves);
+  // answers are keyed by id. Mirrored by backend/src/utils/conditions.js.
+  const resolveField = fieldIdResolver(allSteps);
   const questionSteps = allSteps.filter(s => {
     if (!s.condition) return true;
     const { field, op, value } = s.condition;
     if (!field) return true;
-    const ans = answers[field];
+    const ans = answers[resolveField(field)];
     if (ans === undefined || ans === null) return true; // show if answer not given yet
     const ansStr = String(ans);
     switch (op) {

@@ -2,6 +2,42 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.46.0] - 2026-10-06
+
+Stable field keys — ROADMAP **OF-1**, the first Phase 1 item of the shared
+OpenFlow ↔ lodgely roadmap.
+
+### Added
+- **Every field has a stable, readable key.** Each question (including the
+  questions of a combined step and the custom sub-fields of an Address field)
+  carries a `key` such as `email`, `vorname` or `budget_2`: lower-case letters,
+  digits and underscores, unique within the form. The editor derives it from
+  the label (umlauts transliterated, Email/Phone/Website/Address fields default
+  to the type name) and shows it on the question card and in a **Field key**
+  input. It follows the label until you edit it; clearing the input hands it
+  back to the label. Lead tools such as lodgely map a form by its keys, so a
+  re-created question no longer silently breaks the mapping.
+- Existing forms get keys on the first boot after the update (and after
+  restoring a pre-0.46 backup). Field ids and submission `data` are untouched.
+- The Responses table shows a field's key as a tooltip on its column header;
+  the Google Sheets (Apps Script) payload's `fields` list carries `key` next
+  to `id` and `label`.
+
+### Changed
+- **Conditional logic references fields by key.** "Show this step only if …"
+  rules now store the referenced field's key instead of its id (existing rules
+  are migrated); renaming a key rewrites the rules that use it. Saving a form
+  with a duplicate or malformed key, or with a rule pointing at a key that no
+  longer exists, is refused with a 400 that names the key. Forms saved by
+  older clients without keys keep working — the server fills the keys in.
+- ROADMAP: decisions D1–D5 of the shared section are confirmed; OF-13's status
+  reflects what 0.44.0 shipped.
+- Dependency audit: `npm audit fix` (no breaking changes, `package.json`
+  untouched) in both packages — `proxy-addr` 2.0.8 (IPv4-mapped IPv6 trust
+  subnet spoofing), `braces` under Jest, `source-map-js` under Vite — so the
+  CI audit job is green again. The remaining `react-router` advisories are
+  moderate and need the v7 major; not done here.
+
 ## [0.45.0] - 2026-10-02
 
 ### Added

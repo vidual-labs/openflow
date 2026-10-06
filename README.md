@@ -350,6 +350,10 @@ beyond an account that owns the form:
 - Alternatively, lodgely can sign in with an OpenFlow login (email + password).
 - It maps each OpenFlow field to a lead field; unmapped answers are kept as
   custom answers. Re-fetches are idempotent on the submission id.
+- Every field has a stable, readable **key** (`email`, `vorname`, `budget_2`;
+  shown on the question card and editable under **Field key** in the editor).
+  Keys are what lodgely maps on, so keep them stable once leads are flowing —
+  the key follows the label until you edit it.
 - Point lodgely at your OpenFlow base URL and pick the form — leads flow into
   the chosen client automatically.
 
