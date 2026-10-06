@@ -32,6 +32,11 @@ OpenFlow ↔ lodgely roadmap.
   older clients without keys keep working — the server fills the keys in.
 - ROADMAP: decisions D1–D5 of the shared section are confirmed; OF-13's status
   reflects what 0.44.0 shipped.
+- Dependency audit: `npm audit fix` (no breaking changes, `package.json`
+  untouched) in both packages — `proxy-addr` 2.0.8 (IPv4-mapped IPv6 trust
+  subnet spoofing), `braces` under Jest, `source-map-js` under Vite — so the
+  CI audit job is green again. The remaining `react-router` advisories are
+  moderate and need the v7 major; not done here.
 
 ## [0.45.0] - 2026-10-02
 
