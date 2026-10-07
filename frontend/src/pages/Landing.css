@@ -100,6 +100,7 @@ html:has(body.lp-body) { scroll-behavior: smooth; }
   transition: color 0.2s;
 }
 .lp-nav-links a:hover { color: var(--lp-text); }
+.lp-nav-actions { display: flex; align-items: center; gap: 10px; }
 
 /* ---------- Buttons ---------- */
 .lp-btn {
@@ -936,7 +937,9 @@ html:has(body.lp-body) { scroll-behavior: smooth; }
 @media (max-width: 720px) {
   .lp-container { padding: 0 16px; }
   .lp-nav-links { display: none; }
-  .lp-nav-inner { justify-content: space-between; }
+  .lp-nav-inner { justify-content: space-between; gap: 16px; }
+  .lp-nav-actions { gap: 8px; }
+  .lp-nav-actions .lp-btn-sm { padding: 0 12px; }
   .lp-hero { padding: 120px 0 80px; }
   .lp-lead { font-size: 16px; }
   .lp-command { display: flex; }
@@ -952,6 +955,11 @@ html:has(body.lp-body) { scroll-behavior: smooth; }
   .lp-stats b { font-size: 38px; }
   .lp-cta { padding: 100px 0; }
   .lp-footer-meta { margin-left: 0; }
+}
+
+/* The hero repeats "Talk to vidual", so the nav copy can go where it no longer fits. */
+@media (max-width: 370px) {
+  .lp-nav-vidual { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
