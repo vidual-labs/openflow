@@ -2,6 +2,15 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.46.1] - 2026-10-07
+
+### Added
+- **Landing page: "Talk to vidual" button.** The marketing landing page
+  (`OPENFLOW_LANDING_PAGE=true`) links to [vidual.org](https://vidual.org) from
+  the top nav (next to "Sign in") and from the hero, next to "Get started" and
+  "Star on GitHub". It opens in a new tab. On very narrow phones (≤ 370 px) the
+  nav copy is hidden so the header keeps its gutter; the hero button stays.
+
 ## [0.46.0] - 2026-10-06
 
 Stable field keys — ROADMAP **OF-1**, the first Phase 1 item of the shared

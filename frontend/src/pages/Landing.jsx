@@ -6,6 +6,7 @@ import './Landing.css';
 
 const GITHUB_URL = 'https://github.com/vidual-labs/openflow';
 const LODGELY_URL = 'https://github.com/vidual-labs/lodgely';
+const VIDUAL_URL = 'https://vidual.org';
 const QUICK_START = [
   'git clone https://github.com/vidual-labs/openflow.git',
   'cd openflow',
@@ -352,7 +353,10 @@ export default function Landing({ version }) {
             <a href="#self-host">Self-host</a>
             <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">GitHub</a>
           </nav>
-          <Link to="/login" className="lp-btn lp-btn-ghost lp-btn-sm">Sign in</Link>
+          <div className="lp-nav-actions">
+            <a href={VIDUAL_URL} target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn-primary lp-btn-sm lp-nav-vidual">Talk to vidual</a>
+            <Link to="/login" className="lp-btn lp-btn-ghost lp-btn-sm">Sign in</Link>
+          </div>
         </div>
       </header>
 
@@ -378,6 +382,7 @@ export default function Landing({ version }) {
               <div className="lp-actions lp-reveal">
                 <a href="#self-host" className="lp-btn lp-btn-primary">Get started <Arrow /></a>
                 <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn-ghost"><GitHubIcon /> Star on GitHub</a>
+                <a href={VIDUAL_URL} target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn-ghost">Talk to vidual <Arrow /></a>
               </div>
               <a className="lp-command lp-reveal" href="#self-host">
                 <span className="lp-prompt">$</span>

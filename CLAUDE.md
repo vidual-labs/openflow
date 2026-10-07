@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.46.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.46.1 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
