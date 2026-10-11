@@ -2,6 +2,17 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.46.2] - 2026-10-11
+
+### Added
+- **Feature reel for social media.** `docs/video/` holds a ~33 s promo video in
+  the landing page's style, sized for the LinkedIn feed (4:5, 1080×1350, 60 fps,
+  silent): builder, design, the respondent view, conditional logic, booking,
+  integrations with retries, analytics, privacy and self-hosting, ending on the
+  logo. It is one HTML page whose every frame is a pure function of time
+  (open it in a browser to preview), and `node docs/video/render.mjs` renders
+  it to MP4 with Playwright + ffmpeg. The rendered MP4 is not committed.
+
 ## [0.46.1] - 2026-10-07
 
 ### Added

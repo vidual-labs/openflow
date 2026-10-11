@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.46.1 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.46.2 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -78,6 +78,7 @@ OpenFlow is a **full-stack application** with three main components:
 - **Database**: SQLite (zero-config, no external DB)
 - **Volumes**: `db-data` (the SQLite DB) and a `./backups` bind mount (scheduled backups)
 - **Deployment**: Docker Compose (one-command deployment)
+- **Promo video**: `docs/video/openflow-promo.html` (frames as a pure function of time, LinkedIn 4:5) + `render.mjs` (Playwright → ffmpeg MP4). Keep its mock UI in step with the landing page when features change
 
 ## Development Setup
 
