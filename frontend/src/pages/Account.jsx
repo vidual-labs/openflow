@@ -8,11 +8,10 @@ function formatMs(ms) {
   return ms ? new Date(ms).toLocaleString() : '—';
 }
 
-function Section({ icon, title, description, children }) {
+function Section({ title, description, children }) {
   return (
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="section-header">
-        <span style={{ fontSize: 20 }}>{icon}</span>
         <div>
           <h3 style={{ margin: 0 }}>{title}</h3>
           {description && <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>{description}</p>}
@@ -53,7 +52,7 @@ function PasswordSection({ email, onChanged }) {
   }
 
   return (
-    <Section icon="🔒" title="Password" description="Changing it signs out every other session and forgets every other remembered browser.">
+    <Section title="Password" description="Changing it signs out every other session and forgets every other remembered browser.">
       <form onSubmit={handleSubmit}>
         {/* Lets password managers file the new password under the right account. */}
         <input type="text" name="username" autoComplete="username" value={email} readOnly hidden />
@@ -136,7 +135,7 @@ function TwoFactorSection({ twoFactor, onChanged }) {
 
   if (twoFactor.enabled) {
     return (
-      <Section icon="✉️" title="Two-factor login" description={description}>
+      <Section title="Two-factor login" description={description}>
         <p style={{ margin: '0 0 12px' }}><span className="badge badge-published">On</span></p>
         {twoFactor.disabledByOperator && (
           <Alert type="error">The administrator has temporarily switched two-factor login off for this server (OPENFLOW_2FA_DISABLED). Sign-ins currently only need your password.</Alert>
@@ -155,7 +154,7 @@ function TwoFactorSection({ twoFactor, onChanged }) {
 
   if (!twoFactor.available) {
     return (
-      <Section icon="✉️" title="Two-factor login" description={description}>
+      <Section title="Two-factor login" description={description}>
         <p style={{ margin: '0 0 4px' }}><span className="badge badge-draft">Off</span></p>
         <p style={{ color: 'var(--text-light)', fontSize: 13, marginBottom: 0 }}>
           {twoFactor.disabledByOperator
@@ -167,7 +166,7 @@ function TwoFactorSection({ twoFactor, onChanged }) {
   }
 
   return (
-    <Section icon="✉️" title="Two-factor login" description={description}>
+    <Section title="Two-factor login" description={description}>
       <p style={{ margin: '0 0 12px' }}><span className="badge badge-draft">Off</span></p>
       {pending ? (
         <form onSubmit={confirmCode} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
@@ -220,7 +219,7 @@ function SessionsSection({ sessions, devices, onChanged }) {
 
   return (
     <>
-      <Section icon="💻" title="Active sessions" description="Every browser or app signed in to your account right now. Sessions end on their own after 7 days.">
+      <Section title="Active sessions" description="Every browser or app signed in to your account right now. Sessions end on their own after 7 days.">
         <ul className="account-list">
           {sessions.map(s => (
             <li key={s.id}>
@@ -247,7 +246,7 @@ function SessionsSection({ sessions, devices, onChanged }) {
         <Alert type="error" style={{ marginTop: 12 }}>{error}</Alert>
       </Section>
 
-      <Section icon="🧭" title="Remembered browsers" description={'Browsers that signed in to your account in the last 30 days. They are not held back by the lockout after failed sign-in attempts, and those marked "skips code" don\'t need the e-mailed code.'}>
+      <Section title="Remembered browsers" description={'Browsers that signed in to your account in the last 30 days. They are not held back by the lockout after failed sign-in attempts, and those marked "skips code" don\'t need the e-mailed code.'}>
         {devices.length === 0 ? (
           <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>None.</p>
         ) : (

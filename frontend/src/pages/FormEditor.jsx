@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { PageNotice } from '../components/AdminUI';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';
 import { toRgbTriplet } from '../components/FormRenderer';
@@ -8,25 +9,27 @@ import { TEXT_AUTOFILL_OPTIONS, textAutofillLabel, suggestAutofill } from '../au
 import { syncFieldKeys, normalizeTypedKey, duplicateKeys, KEY_RE } from '../utils/fieldKeys';
 import '../components/FormRenderer.css';
 
-// Field types sorted logically: question types first, then contact/data fields
+// Field types sorted logically: question types first, then contact/data fields.
+// `glyph` is the short text symbol shown in the type's tile (no emoji: it reads
+// the same on every platform and fits the admin's quiet look).
 const FIELD_TYPES = [
   // --- Question Types ---
-  { value: 'text', label: 'Short Text', icon: '📝', defaults: { question: 'What is your answer?', label: 'Answer', placeholder: 'Type your answer...' } },
-  { value: 'textarea', label: 'Long Text', icon: '📄', defaults: { question: 'Tell us more...', label: 'Details', placeholder: 'Type your answer...' } },
-  { value: 'number', label: 'Number', icon: '🔢', defaults: { question: 'Enter a number', label: 'Number', placeholder: '0' } },
-  { value: 'date', label: 'Date', icon: '📅', defaults: { question: 'Pick a date', label: 'Date', placeholder: '' } },
-  { value: 'date-timeslot', label: 'Date & Timeslot', icon: '📆', defaults: { question: 'Pick a date and time', label: 'Appointment', placeholder: '', durationMin: 30, windowStart: '09:00', windowEnd: '17:00', rangeDays: 14, calon: { enabled: false, baseUrl: '', resourceSlug: 'default' } } },
-  { value: 'select', label: 'Single Choice', icon: '☑️', defaults: { question: 'Choose one option', label: 'Choice', placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'] } },
-  { value: 'multi-select', label: 'Multiple Choice', icon: '✅', defaults: { question: 'Choose one or more options', label: 'Selection', placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'] } },
-  { value: 'yes-no', label: 'Yes / No', icon: '👍', defaults: { question: 'Is this correct?', label: 'Confirmation', placeholder: '' } },
-  { value: 'rating', label: 'Rating', icon: '⭐', defaults: { question: 'How would you rate this?', label: 'Rating', placeholder: '' } },
-  { value: 'image-select', label: 'Image / Icon Select', icon: '🖼️', defaults: { question: 'Choose an option', label: 'Selection', placeholder: '', options: [{ value: 'opt1', label: 'Option 1', icon: '🏠' }, { value: 'opt2', label: 'Option 2', icon: '🏢' }, { value: 'opt3', label: 'Option 3', icon: '🏗️' }] } },
-  { value: 'file-upload', label: 'File Upload', icon: '📎', defaults: { question: 'Upload a file', label: 'File', placeholder: '', accept: '.pdf,.jpg,.png,.doc,.docx', maxSizeMB: 10 } },
+  { value: 'text', label: 'Short Text', glyph: 'Aa', defaults: { question: 'What is your answer?', label: 'Answer', placeholder: 'Type your answer...' } },
+  { value: 'textarea', label: 'Long Text', glyph: '¶', defaults: { question: 'Tell us more...', label: 'Details', placeholder: 'Type your answer...' } },
+  { value: 'number', label: 'Number', glyph: '12', defaults: { question: 'Enter a number', label: 'Number', placeholder: '0' } },
+  { value: 'date', label: 'Date', glyph: 'D', defaults: { question: 'Pick a date', label: 'Date', placeholder: '' } },
+  { value: 'date-timeslot', label: 'Date & Timeslot', glyph: '◷', defaults: { question: 'Pick a date and time', label: 'Appointment', placeholder: '', durationMin: 30, windowStart: '09:00', windowEnd: '17:00', rangeDays: 14, calon: { enabled: false, baseUrl: '', resourceSlug: 'default' } } },
+  { value: 'select', label: 'Single Choice', glyph: '◉', defaults: { question: 'Choose one option', label: 'Choice', placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'] } },
+  { value: 'multi-select', label: 'Multiple Choice', glyph: '☑\uFE0E', defaults: { question: 'Choose one or more options', label: 'Selection', placeholder: '', options: ['Option 1', 'Option 2', 'Option 3'] } },
+  { value: 'yes-no', label: 'Yes / No', glyph: 'Y/N', defaults: { question: 'Is this correct?', label: 'Confirmation', placeholder: '' } },
+  { value: 'rating', label: 'Rating', glyph: '★', defaults: { question: 'How would you rate this?', label: 'Rating', placeholder: '' } },
+  { value: 'image-select', label: 'Image / Icon Select', glyph: '▣', defaults: { question: 'Choose an option', label: 'Selection', placeholder: '', options: [{ value: 'opt1', label: 'Option 1', icon: '🏠' }, { value: 'opt2', label: 'Option 2', icon: '🏢' }, { value: 'opt3', label: 'Option 3', icon: '🏗️' }] } },
+  { value: 'file-upload', label: 'File Upload', glyph: '↑', defaults: { question: 'Upload a file', label: 'File', placeholder: '', accept: '.pdf,.jpg,.png,.doc,.docx', maxSizeMB: 10 } },
   // --- Contact & Data Fields ---
-  { value: 'email', label: 'Email Address', icon: '📧', defaults: { question: 'What is your email address?', label: 'Email', placeholder: 'name@example.com' } },
-  { value: 'phone', label: 'Phone Number', icon: '📞', defaults: { question: 'What is your phone number?', label: 'Phone', placeholder: '+1 234 567890' } },
-  { value: 'website', label: 'Website URL', icon: '🌐', defaults: { question: 'What is your website?', label: 'Website', placeholder: 'https://example.com' } },
-  { value: 'address', label: 'Address', icon: '🏠', defaults: { question: 'What is your address?', label: 'Address', placeholder: '' } },
+  { value: 'email', label: 'Email Address', glyph: '@', defaults: { question: 'What is your email address?', label: 'Email', placeholder: 'name@example.com' } },
+  { value: 'phone', label: 'Phone Number', glyph: '☏', defaults: { question: 'What is your phone number?', label: 'Phone', placeholder: '+1 234 567890' } },
+  { value: 'website', label: 'Website URL', glyph: 'www', defaults: { question: 'What is your website?', label: 'Website', placeholder: 'https://example.com' } },
+  { value: 'address', label: 'Address', glyph: '⌂', defaults: { question: 'What is your address?', label: 'Address', placeholder: '' } },
 ];
 
 const FIELD_TYPE_MAP = Object.fromEntries(FIELD_TYPES.map(f => [f.value, f]));
@@ -244,13 +247,17 @@ export default function FormEditor() {
     <div className="editor-page">
       <div className="editor-header">
         <div className="editor-header-titles">
-          <Link
-            to="/"
-            className="back-link"
-            onClick={e => { if (isDirty && !confirm('You have unsaved changes. Leave without saving?')) e.preventDefault(); }}
-          >
-            &larr; Back
-          </Link>
+          <div className="page-crumb">
+            <Link
+              to="/"
+              className="back-link"
+              onClick={e => { if (isDirty && !confirm('You have unsaved changes. Leave without saving?')) e.preventDefault(); }}
+            >
+              &larr; Forms
+            </Link>
+            <span className="page-crumb-sep">/</span>
+            <span className="page-crumb-current">{form.title || 'Untitled form'}</span>
+          </div>
           <div className="editor-title-row">
             <input
               className="editor-title-input"
@@ -285,6 +292,7 @@ export default function FormEditor() {
           </button>
         </div>
       </div>
+      <PageNotice />
 
       {/* Tabs */}
       <div className="editor-tabs">
@@ -325,7 +333,7 @@ export default function FormEditor() {
             />
           ))}
 
-          <button className="btn btn-secondary" onClick={addStep} style={{ width: '100%', justifyContent: 'center', padding: 16 }}>
+          <button className="btn btn-secondary step-add" onClick={addStep}>
             + Add Question
           </button>
         </div>
@@ -368,7 +376,6 @@ export default function FormEditor() {
           {/* Live Preview */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 20 }}>👁️</span>
               <div>
                 <h3 style={{ margin: 0 }}>Live Preview</h3>
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Reflects unsaved changes — click <strong>Save</strong> to publish.</p>
@@ -380,7 +387,6 @@ export default function FormEditor() {
           {/* Colors */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 20 }}>🎨</span>
               <div>
                 <h3 style={{ margin: 0 }}>Colors</h3>
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Define the look and feel of your form.</p>
@@ -422,7 +428,6 @@ export default function FormEditor() {
           {/* Animated Background */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 20 }}>✨</span>
               <div>
                 <h3 style={{ margin: 0 }}>Animated Background</h3>
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Add subtle motion to make your form feel alive. Uses primary + accent colors.</p>
@@ -445,11 +450,11 @@ export default function FormEditor() {
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
                     padding: '16px 12px',
-                    border: selected ? '2px solid var(--primary, #6C5CE7)' : '2px solid var(--border, #e0e0e0)',
+                    border: selected ? '1px solid var(--primary)' : '1px solid var(--border-strong)',
                     borderRadius: 12,
-                    background: selected ? 'rgba(108,92,231,0.08)' : 'var(--card, #fafafa)',
+                    background: selected ? 'var(--select-bg)' : 'transparent',
                     cursor: 'pointer', fontSize: 13, fontWeight: 600, textAlign: 'center',
-                    color: selected ? 'var(--primary, #6C5CE7)' : 'var(--text, #333)',
+                    color: selected ? 'var(--accent-text)' : 'var(--text)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -464,7 +469,6 @@ export default function FormEditor() {
           {/* Button & Navigation */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 20 }}>🧭</span>
               <div>
                 <h3 style={{ margin: 0 }}>Button & Navigation</h3>
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Control the position of the "Next" button and keyboard hints.</p>
@@ -482,16 +486,16 @@ export default function FormEditor() {
                     onClick={() => setForm({ ...form, theme: { ...form.theme, buttonPosition: opt.value } })}
                     style={{
                       flex: 1, padding: '12px 14px', textAlign: 'left',
-                      border: (form.theme?.buttonPosition || 'footer') === opt.value ? '2px solid var(--primary, #6C5CE7)' : '2px solid var(--border, #e0e0e0)',
+                      border: (form.theme?.buttonPosition || 'footer') === opt.value ? '1px solid var(--primary)' : '1px solid var(--border-strong)',
                       borderRadius: 10,
-                      background: (form.theme?.buttonPosition || 'footer') === opt.value ? 'rgba(108,92,231,0.08)' : 'var(--card, #fafafa)',
+                      background: (form.theme?.buttonPosition || 'footer') === opt.value ? 'var(--select-bg)' : 'transparent',
                       cursor: 'pointer', transition: 'all 0.15s',
                     }}
                   >
-                    <div style={{ fontWeight: 700, fontSize: 14, color: (form.theme?.buttonPosition || 'footer') === opt.value ? 'var(--primary, #6C5CE7)' : 'var(--text, #333)' }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: (form.theme?.buttonPosition || 'footer') === opt.value ? 'var(--accent-text)' : 'var(--text)' }}>
                       {opt.label}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-light, #999)', marginTop: 2 }}>{opt.desc}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 2 }}>{opt.desc}</div>
                   </button>
                 ))}
               </div>
@@ -554,7 +558,6 @@ export default function FormEditor() {
           {/* Language & Typography */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 20 }}>🔤</span>
               <div>
                 <h3 style={{ margin: 0 }}>Language & Typography</h3>
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Set the respondent-facing language and font for your form.</p>
@@ -591,7 +594,6 @@ export default function FormEditor() {
           {/* Header / Landing Page */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 20 }}>🏷️</span>
               <div>
                 <h3 style={{ margin: 0 }}>Header / Landing Page</h3>
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Add a logo and tagline to make your form a standalone landing page.</p>
@@ -621,7 +623,7 @@ export default function FormEditor() {
             </div>
             {/* Preview */}
             {(form.theme?.logoUrl || form.theme?.headline) && (
-              <div style={{ marginTop: 12, padding: 20, background: 'rgba(0,0,0,0.03)', borderRadius: 10, textAlign: form.theme?.logoPosition === 'left' ? 'left' : 'center' }}>
+              <div style={{ marginTop: 12, padding: 20, background: 'var(--panel)', borderRadius: 10, textAlign: form.theme?.logoPosition === 'left' ? 'left' : 'center' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-light)', display: 'block', marginBottom: 8 }}>Preview:</span>
                 {form.theme?.logoUrl && <img src={form.theme.logoUrl} alt="Logo" style={{ maxHeight: 48, marginBottom: 8 }} />}
                 {form.theme?.headline && <div style={{ fontSize: 18, fontWeight: 700 }}>{form.theme.headline}</div>}
@@ -633,7 +635,6 @@ export default function FormEditor() {
           {/* Footer Links */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 20 }}>🔗</span>
               <div>
                 <h3 style={{ margin: 0 }}>Footer Links</h3>
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Add up to 3 links below the form (e.g. Privacy Policy, Imprint, Terms).</p>
@@ -648,7 +649,6 @@ export default function FormEditor() {
           {/* Custom CSS */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <span style={{ fontSize: 20 }}>💻</span>
               <div>
                 <h3 style={{ margin: 0 }}>Custom CSS</h3>
                 <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Advanced: add custom CSS to override any form styles.</p>
@@ -952,7 +952,7 @@ function CalonRequesterFields({ step, allSteps, onChange }) {
         ))}
       </div>
       {!emailField ? (
-        <p style={{ fontSize: 12, color: 'var(--danger, #e17055)', margin: '8px 0 0' }}>
+        <p style={{ fontSize: 12, color: 'var(--danger)', margin: '8px 0 0' }}>
           Add an Email Address field to this form — calon needs an email to book, so submissions can't go through without one.
         </p>
       ) : !emailField.required && (
@@ -978,33 +978,28 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
   const headerKeys = (isGroup ? (step.fields || []) : [step]).map(f => f.key).filter(Boolean);
 
   return (
-    <div className="card" style={{ position: 'relative', marginBottom: 12 }}>
+    <div className={`card step-card${expanded ? ' open' : ''}`}>
       {/* Collapsed header - always visible */}
       <div className={`step-header${expanded ? ' expanded' : ''}`} onClick={onToggle}>
-        <span className="step-header-icon">{isGroup ? '🔗' : (fieldDef?.icon || '📝')}</span>
+        <span className="step-index">{index + 1}</span>
+        <span className="glyph" aria-hidden="true">{isGroup ? '+' : (fieldDef?.glyph || 'Aa')}</span>
         <div className="step-header-main">
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            {index + 1}. {isGroup ? 'Combined Step' : (fieldDef?.label || step.type)}
+          <span className={`step-question${!isGroup && !step.question ? ' is-empty' : ''}`}>
+            {isGroup ? groupSummary : (step.question || 'No question set')}
           </span>
+          {headerKeys.map(k => (
+            <code key={k} className={`key-chip${dupes.has(k) ? ' key-chip-dupe' : ''}`} title="Field key — used in CSV exports, webhooks and lodgely">{k}</code>
+          ))}
           {hasAutofillTip && (
-            <span className="badge" style={{ marginLeft: 8, fontSize: 11, background: 'rgba(253,203,110,0.25)', color: 'var(--text)' }} title="Open this question to see how browsers could prefill it">
-              💡 Autofill tip
+            <span className="badge" style={{ fontSize: 11, borderColor: 'var(--amber)', color: 'var(--text)' }} title="Open this question to see how browsers could prefill it">
+              Autofill tip
             </span>
           )}
-          <div style={{ fontSize: 14, color: 'var(--text-light)', marginTop: 2 }}>
-            {isGroup ? groupSummary : (step.question || <em style={{ opacity: 0.5 }}>No question set</em>)}
-            {headerKeys.length > 0 && (
-              <span style={{ marginLeft: 10, display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
-                {headerKeys.map(k => (
-                  <code key={k} title="Field key — used in CSV exports, webhooks and lodgely" style={{ fontSize: 11, padding: '1px 6px', borderRadius: 6, background: 'var(--panel-alt)', border: `1px solid ${dupes.has(k) ? 'var(--danger)' : 'var(--border)'}`, color: dupes.has(k) ? 'var(--danger)' : 'var(--text-light)' }}>{k}</code>
-                ))}
-              </span>
-            )}
-          </div>
         </div>
+        <span className="step-type">{isGroup ? 'Combined step' : (fieldDef?.label || step.type)}</span>
         <div className="step-actions" onClick={e => e.stopPropagation()}>
-          <button className="btn btn-sm btn-secondary" onClick={() => onMove(-1)} disabled={index === 0} title="Move up">&uarr;</button>
-          <button className="btn btn-sm btn-secondary" onClick={() => onMove(1)} disabled={index === total - 1} title="Move down">&darr;</button>
+          <button className="btn btn-sm btn-secondary btn-icon" onClick={() => onMove(-1)} disabled={index === 0} title="Move up" aria-label="Move up">&uarr;</button>
+          <button className="btn btn-sm btn-secondary btn-icon" onClick={() => onMove(1)} disabled={index === total - 1} title="Move down" aria-label="Move down">&darr;</button>
           {canCombineAbove && (
             <button className="btn btn-sm btn-secondary" onClick={() => onCombine(-1)} title="Combine with the question above">&uarr; Combine</button>
           )}
@@ -1014,39 +1009,30 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
           {isGroup && (
             <button className="btn btn-sm btn-secondary" onClick={onSplit} title="Split back into separate questions">Split</button>
           )}
-          <button className="btn btn-sm btn-danger" onClick={onRemove}>Remove</button>
+          <button className="btn btn-sm btn-danger btn-icon" onClick={onRemove} title="Remove question" aria-label="Remove question">&#x2715;</button>
         </div>
-        <span className="step-chevron">{expanded ? '▲' : '▼'}</span>
+        <span className="step-chevron" aria-hidden="true">{expanded ? '\u2303' : '\u2304'}</span>
       </div>
 
       {/* Expanded content */}
       {expanded && (
-        <div style={{ paddingTop: 16 }}>
+        <div className="step-body">
           {isGroup ? (
             <GroupFieldsEditor step={step} allSteps={allSteps} onChange={onChange} />
           ) : (<>
           {/* Field Type Selector - visual grid */}
           <div className="input-group">
             <label>Field Type</label>
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginTop: 4,
-            }}>
+            <div className="type-pick-grid">
               {FIELD_TYPES.map(ft => (
                 <button
                   key={ft.value}
+                  type="button"
                   onClick={() => onChangeType(ft.value)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '10px 12px',
-                    border: step.type === ft.value ? '2px solid var(--primary)' : '2px solid var(--border)',
-                    borderRadius: 10,
-                    background: step.type === ft.value ? 'rgba(108,92,231,0.08)' : 'transparent',
-                    cursor: 'pointer', fontSize: 13, fontWeight: step.type === ft.value ? 700 : 500,
-                    color: step.type === ft.value ? 'var(--primary)' : 'var(--text)',
-                    transition: 'all 0.15s',
-                  }}
+                  className={`type-pick${step.type === ft.value ? ' active' : ''}`}
+                  aria-pressed={step.type === ft.value}
                 >
-                  <span style={{ fontSize: 18 }}>{ft.icon}</span>
+                  <span className="glyph" aria-hidden="true">{ft.glyph}</span>
                   {ft.label}
                 </button>
               ))}
@@ -1398,8 +1384,8 @@ function GroupFieldsEditor({ step, allSteps, onChange }) {
       {fields.map((f, i) => (
         <div key={f.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Question {i + 1}{i === 0 && <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0, color: 'var(--text-light)' }}> · gets the cursor first</span>}
+            <div style={{ fontSize: 13, fontWeight: 600 }}>
+              Question {i + 1}{i === 0 && <span style={{ fontWeight: 400, color: 'var(--text-light)' }}> · gets the cursor first</span>}
             </div>
             <div style={{ display: 'flex', gap: 4 }}>
               <button className="btn btn-sm btn-secondary" onClick={() => moveField(i, -1)} disabled={i === 0} title="Move this question up">&uarr;</button>
@@ -1539,22 +1525,16 @@ function SubFieldEditor({ field, duplicate, onChange, onChangeType }) {
     <>
       <div className="input-group">
         <label>Field Type</label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginTop: 4 }}>
+        <div className="type-pick-grid">
           {FIELD_TYPES.map(ft => (
             <button
               key={ft.value}
+              type="button"
               onClick={() => onChangeType(ft.value)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-                border: field.type === ft.value ? '2px solid var(--primary)' : '2px solid var(--border)',
-                borderRadius: 10,
-                background: field.type === ft.value ? 'rgba(108,92,231,0.08)' : 'transparent',
-                cursor: 'pointer', fontSize: 13, fontWeight: field.type === ft.value ? 700 : 500,
-                color: field.type === ft.value ? 'var(--primary)' : 'var(--text)',
-                transition: 'all 0.15s',
-              }}
+              className={`type-pick${field.type === ft.value ? ' active' : ''}`}
+              aria-pressed={field.type === ft.value}
             >
-              <span style={{ fontSize: 18 }}>{ft.icon}</span>
+              <span className="glyph" aria-hidden="true">{ft.glyph}</span>
               {ft.label}
             </button>
           ))}
@@ -1803,7 +1783,7 @@ function SubdomainEditor({ form, primaryHost, onUpdated }) {
           </span>
         ) : current ? (
           <span style={{ color: 'var(--text-light)' }}>
-            Live at <a href={`https://${current}.${primaryHost}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
+            Live at <a href={`https://${current}.${primaryHost}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-text)' }}>
               https://{current}.{primaryHost}
             </a>. Publish the form for it to be reachable.
           </span>
@@ -1946,7 +1926,7 @@ function ImageSelectEditor({ options, onChange }) {
                   width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 24, border: '2px dashed var(--border)', borderRadius: 10, background: 'var(--panel-alt)', cursor: 'pointer',
                   transition: 'all 0.15s',
-                  ...(showEmojiPicker === i ? { borderColor: 'var(--primary, #6C5CE7)', background: 'rgba(108,92,231,0.05)' } : {}),
+                  ...(showEmojiPicker === i ? { borderColor: 'var(--primary)', background: 'var(--select-bg)' } : {}),
                 }}
                 title="Pick icon"
               >
@@ -2260,8 +2240,8 @@ function EmojiPicker({ activeCategory, onCategoryChange, onSelect, onClose }) {
             onClick={() => onCategoryChange(cat)}
             style={{
               padding: '8px 12px', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              background: activeCategory === cat ? 'var(--primary, #6C5CE7)' : 'transparent',
-              color: activeCategory === cat ? 'white' : '#888',
+              background: activeCategory === cat ? 'var(--primary)' : 'transparent',
+              color: activeCategory === cat ? 'white' : 'var(--text-light)',
               borderRadius: '6px 6px 0 0', whiteSpace: 'nowrap', transition: 'all 0.15s',
             }}
           >
@@ -2283,7 +2263,7 @@ function EmojiPicker({ activeCategory, onCategoryChange, onSelect, onClose }) {
               fontSize: 22, border: 'none', borderRadius: 8, background: 'transparent', cursor: 'pointer',
               transition: 'background 0.1s',
             }}
-            onMouseEnter={e => e.target.style.background = '#f0f0f0'}
+            onMouseEnter={e => e.target.style.background = 'var(--hover)'}
             onMouseLeave={e => e.target.style.background = 'transparent'}
           >
             {emoji}

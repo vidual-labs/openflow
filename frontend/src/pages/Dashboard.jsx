@@ -72,7 +72,10 @@ export default function Dashboard() {
 
   return (
     <div>
-      <PageHeader title="Forms">
+      <PageHeader
+        title="Forms"
+        eyebrow={forms.length > 0 ? `${forms.length} ${forms.length === 1 ? 'form' : 'forms'} · ${forms.filter(f => f.published).length} live` : null}
+      >
         <button className="btn btn-primary" onClick={createForm}>+ New Form</button>
       </PageHeader>
 
@@ -108,8 +111,8 @@ export default function Dashboard() {
                         {form.published ? 'Live' : 'Draft'}
                       </span>
                     </td>
-                    <td data-label="Responses">{form.submission_count}</td>
-                    <td data-label="Created" style={{ fontSize: 13, color: 'var(--text-light)' }}>{formatServerDate(form.created_at)}</td>
+                    <td data-label="Responses" className="cell-mono">{form.submission_count}</td>
+                    <td data-label="Created" className="cell-mono muted">{formatServerDate(form.created_at)}</td>
                     <td className="cell-actions">
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <Link to={`/forms/${form.id}/submissions`} className="btn btn-sm btn-secondary" style={{ textDecoration: 'none' }}>

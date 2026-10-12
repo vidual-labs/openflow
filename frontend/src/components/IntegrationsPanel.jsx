@@ -3,12 +3,12 @@ import { api } from '../api';
 import { flattenFields } from '../utils/steps';
 
 const INTEGRATION_TYPES = [
-  { value: 'webhook', label: 'Webhook', icon: '🔗', description: 'Send submission data to any URL' },
-  { value: 'email', label: 'Email Notification', icon: '📧', description: 'Send email on each submission' },
-  { value: 'google_sheets', label: 'Google Sheets (Simple)', icon: '📊', description: 'Via Google Apps Script — no JSON key needed' },
-  { value: 'google_sheets_sa', label: 'Google Sheets (Service Account)', icon: '📊', description: 'Via service account JSON key' },
-  { value: 'google_ads_conversion', label: 'Google Ads (Server-Side Conversion)', icon: '🎯', description: 'Upload leads as offline conversions via the Data Manager API' },
-  { value: 'meta_conversion_api', label: 'Meta Conversions API', icon: '📣', description: 'Send leads to Facebook/Instagram Ads server-side' },
+  { value: 'webhook', label: 'Webhook', glyph: '{ }', description: 'Send submission data to any URL' },
+  { value: 'email', label: 'Email Notification', glyph: '@', description: 'Send email on each submission' },
+  { value: 'google_sheets', label: 'Google Sheets (Simple)', glyph: '▦', description: 'Via Google Apps Script — no JSON key needed' },
+  { value: 'google_sheets_sa', label: 'Google Sheets (Service Account)', glyph: '▦', description: 'Via service account JSON key' },
+  { value: 'google_ads_conversion', label: 'Google Ads (Server-Side Conversion)', glyph: 'Ad', description: 'Upload leads as offline conversions via the Data Manager API' },
+  { value: 'meta_conversion_api', label: 'Meta Conversions API', glyph: 'M', description: 'Send leads to Facebook/Instagram Ads server-side' },
 ];
 
 export default function IntegrationsPanel({ formId, steps = [] }) {
@@ -231,7 +231,7 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
             onClick={() => addIntegration(t.value)}
             disabled={adding !== null}
           >
-            <span>{t.icon}</span> {adding === t.value ? 'Adding...' : `Add ${t.label}`}
+            <span className="glyph" aria-hidden="true" style={{ width: 22, height: 22, fontSize: 10 }}>{t.glyph}</span> {adding === t.value ? 'Adding...' : `Add ${t.label}`}
           </button>
         ))}
       </div>
@@ -247,7 +247,7 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
         <div key={integration.id} className="card" style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 20 }}>{typeInfo(integration)?.icon}</span>
+              <span className="glyph" aria-hidden="true">{typeInfo(integration)?.glyph}</span>
               <div>
                 <strong>{typeInfo(integration)?.label}</strong>
                 <span className={`badge ${integration.enabled ? 'badge-published' : 'badge-draft'}`} style={{ marginLeft: 8 }}>
@@ -276,8 +276,8 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
           {testResult && testResult.id === integration.id && (
             <div style={{
               padding: '8px 12px', marginBottom: 16, borderRadius: 8, fontSize: 13,
-              background: testResult.ok ? '#E8F8F5' : '#FDEDEC',
-              color: testResult.ok ? '#00B894' : '#E17055',
+              background: `color-mix(in srgb, var(${testResult.ok ? '--success' : '--danger'}) 10%, transparent)`,
+              color: testResult.ok ? 'var(--success)' : 'var(--danger)',
             }}>
               {testResult.ok ? 'Test successful!' : `Test failed: ${testResult.error || 'Unknown error'}`}
             </div>
@@ -451,7 +451,7 @@ function GoogleSheetsConfig({ config, secrets, onChange }) {
           </ol>
           <details style={{ marginTop: 12 }}>
             <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Show Apps Script code</summary>
-            <pre style={{ background: '#1a1a2e', color: '#e0e0e0', padding: 12, borderRadius: 6, marginTop: 8, fontSize: 11, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{`function doPost(e) {
+            <pre style={{ background: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--border)', padding: 12, borderRadius: 6, marginTop: 8, fontSize: 11, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{`function doPost(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = JSON.parse(e.postData.contents);
 

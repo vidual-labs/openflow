@@ -98,7 +98,7 @@ export default function FormAnalytics() {
   if (!detail) {
     return (
       <div>
-        <PageHeader title="Analytics" backTo="/analytics" backLabel="← All forms" />
+        <PageHeader title="Analytics" backTo="/analytics" backLabel="← Analytics" />
         <Alert type="error">{error}</Alert>
       </div>
     );
@@ -109,9 +109,9 @@ export default function FormAnalytics() {
 
   return (
     <div className={loading ? 'analytics-loading' : undefined}>
-      <PageHeader title={detail.title} subtitle="Form analytics" backTo="/analytics" backLabel="← All forms">
-        <Link to={`/forms/${formId}`} className="btn btn-sm btn-secondary" style={{ textDecoration: 'none' }}>Edit form</Link>
-        <Link to={`/forms/${formId}/submissions`} className="btn btn-sm btn-secondary" style={{ textDecoration: 'none' }}>Responses</Link>
+      <PageHeader title={detail.title} subtitle="Form analytics" backTo="/analytics" backLabel="← Analytics">
+        <Link to={`/forms/${formId}`} className="btn btn-secondary" style={{ textDecoration: 'none' }}>Edit form</Link>
+        <Link to={`/forms/${formId}/submissions`} className="btn btn-secondary" style={{ textDecoration: 'none' }}>Responses</Link>
       </PageHeader>
 
       <Alert type="error">{error}</Alert>
@@ -253,7 +253,7 @@ function StepTable({ current, compare, compareEntered }) {
                 const s = row.a;
                 const p = hasCompare ? row.b : null;
                 return (
-                  <tr key={row.key} className={!s ? 'step-row-missing' : undefined}>
+                  <tr key={row.key} className={!s ? 'step-row-missing' : (leak && s.key === leak.key ? 'step-row-leak' : undefined)}>
                     <td className="cell-primary step-cell">
                       <div className="step-title">
                         <span className="step-num">{i + 1}</span>

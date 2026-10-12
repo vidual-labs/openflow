@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.46.2 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.47.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -58,8 +58,9 @@ OpenFlow is a **full-stack application** with three main components:
   - `pages/Login.jsx` — Password step, then (2FA accounts on a new browser) the e-mailed-code step with "remember this browser"
   - `components/FormRenderer.jsx` — Renders forms with animations, validation, conditional logic and consent
   - `components/IntegrationsPanel.jsx` — Configure integrations per form
-  - `components/AdminUI.jsx` — Shared page header, alert, empty/loading components, plus `LogoMark` / `LogoWordmark` (the brand mark and the "OpenFlow" wordmark used in the sidebar, topbar and login page; the same mark as `public/favicon.svg` and `docs/assets/openflow-mark.svg`)
+  - `components/AdminUI.jsx` — Shared page header (breadcrumb row via `backTo`/`crumb`/`eyebrow`, then the title; it also renders the account-wide notice from `PageNoticeContext`, e.g. the weak-password warning, under the title), alert, empty/loading components, plus `LogoMark` / `LogoWordmark` (the brand mark and the "OpenFlow" wordmark used in the sidebar, topbar and login page; the same mark as `public/favicon.svg` and `docs/assets/openflow-mark.svg`)
   - `components/AnimatedBackground.jsx` — The form's animated backgrounds (CSS Waves/Aurora; canvas Gradient Wave, Gateway Flow, Flow). Legacy `bubbles`/`particles` values map to `gradientWave`/`gatewayFlow` via `normalizeBgAnimation`
+  - `styles/global.css` — The admin look (since 0.47: a toned-down take on the promo video). Colour tokens for light/dark/auto at the top (`--bg`, `--card`, `--text`, `--text-light`, `--border`, `--border-strong`, `--accent-text`, …; inline styles across the pages use them, so restyle via tokens, not literals). System UI font (`--font`) and system mono (`--mono`, data only: numbers, keys, column heads); Space Grotesk (bundled via `@fontsource/space-grotesk` in `main.jsx`, no Google Fonts) only for the logo wordmark. Purple only for the main button, active tab, focus, links and the purple-tinted sidebar (same in both themes). The sidebar and the page header share a vertical grid so the first menu item and the page title sit in the same 36px band — keep `.admin-sidebar`/`.admin-main` paddings, the 32px logo row and the 20px `.page-crumb` row in step
   - `locales.js` — Built-in respondent-facing UI strings (EN / DE)
   - `autofill.js` — Browser-autofill (`autocomplete`) tokens per field + the editor's "Autofill tip" heuristic for Short Text fields
   - `clickIds.js` — Ad click-ID capture for FormView/EmbedView (gclid/gbraid/wbraid, `fbclid` → `fbc`, Meta Pixel `_fbp`/`_fbc` cookies), used only after cookie consent
@@ -305,7 +306,7 @@ managed in the UI under **Account → API Tokens**.
 ## Common Tasks
 
 ### Add a New Field Type
-1. Add an entry to `FIELD_TYPES` in `frontend/src/pages/FormEditor.jsx` (value, label, icon, smart defaults) plus any type-specific config UI
+1. Add an entry to `FIELD_TYPES` in `frontend/src/pages/FormEditor.jsx` (value, label, `glyph` — a short text symbol, no emoji — smart defaults) plus any type-specific config UI
 2. Add a renderer + client-side validation in `frontend/src/components/FormRenderer.jsx` (`FIELD_TYPES` map and `validateField`), and add it to `AUTO_ADVANCE_FIELDS` if it should advance on click
 3. Add respondent-facing strings to `frontend/src/locales.js` for every language
 4. If the server needs to enforce more than "required and non-empty", extend the validation loop in `backend/src/routes/public.js` (`POST /form/:slug/submit`)

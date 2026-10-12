@@ -8,16 +8,41 @@ import { Link } from 'react-router-dom';
  * look and a single place to restyle.
  */
 
-export function PageHeader({ title, subtitle, backTo, backLabel = '← Back', children }) {
+/**
+ * Account-wide notice (the weak-password warning) that App provides and every
+ * page header renders right below itself — under the title rather than above
+ * it, so it never pushes the title out of line with the sidebar.
+ */
+export const PageNoticeContext = React.createContext(null);
+
+export function PageNotice() {
+  return React.useContext(PageNoticeContext);
+}
+
+/**
+ * Page header: a 20px breadcrumb row (always present, so every title lines up
+ * with the first sidebar item), the title, an optional subtitle and the
+ * actions. `backTo`/`backLabel` render the breadcrumb's link, `crumb` the
+ * current page after it; `eyebrow` is plain text for pages without a parent.
+ */
+export function PageHeader({ title, subtitle, backTo, backLabel = '← Back', crumb, eyebrow, children }) {
   return (
-    <div className="page-header">
-      <div className="page-header-titles">
-        {backTo && <Link to={backTo} className="back-link">{backLabel}</Link>}
-        <h2>{title}</h2>
-        {subtitle && <p className="page-subtitle">{subtitle}</p>}
+    <>
+      <div className="page-header">
+        <div className="page-header-titles">
+          <div className="page-crumb">
+            {backTo && <Link to={backTo} className="back-link">{backLabel}</Link>}
+            {backTo && crumb && <span className="page-crumb-sep">/</span>}
+            {crumb && <span className="page-crumb-current">{crumb}</span>}
+            {!backTo && !crumb && eyebrow}
+          </div>
+          <h2>{title}</h2>
+          {subtitle && <p className="page-subtitle">{subtitle}</p>}
+        </div>
+        {children && <div className="page-header-actions">{children}</div>}
       </div>
-      {children && <div className="page-header-actions">{children}</div>}
-    </div>
+      <PageNotice />
+    </>
   );
 }
 

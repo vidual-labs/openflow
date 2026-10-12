@@ -4,58 +4,93 @@
   box-sizing: border-box;
 }
 
+/* Admin look (0.47): a calm, toned-down take on the promo video's UI.
+   Near-black (dark) / off-white (light) surfaces, hairline borders instead of
+   shadows, the operating system's own UI font, a mono face only for data
+   (numbers, keys, ids, table column heads), and purple reserved for the main
+   button, the active tab, focus rings, links and the sidebar. Space Grotesk
+   (bundled via @fontsource, see main.jsx) is used for the logo wordmark only. */
 :root {
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   --primary: #6C5CE7;
   --primary-hover: #5A4BD1;
-  --bg: #F8F9FA;
-  --card: #FFFFFF;
-  --text: #2D3436;
-  --text-light: #636E72;
-  --border: #DFE6E9;
-  --success: #00B894;
-  --danger: #E17055;
-  --warning: #E67E22;
+  --accent-text: #5A4BD1;
+  --bg: #f6f6f9;
+  --card: #ffffff;
+  --text: #0c0c14;
+  --text-light: #66667a;
+  --border: rgba(16, 16, 40, 0.09);
+  --border-strong: rgba(16, 16, 40, 0.16);
+  --hover: rgba(16, 16, 40, 0.03);
+  --track: rgba(16, 16, 40, 0.06);
+  --select-bg: rgba(108, 92, 231, 0.10);
+  --success: #0f9d63;
+  --danger: #d4462f;
+  --warning: #a86a00;
+  --amber: #fdcb6e;
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow: 0 1px 2px rgba(45,52,54,0.04), 0 4px 16px rgba(45,52,54,0.06);
-  --sidebar-bg: #2D3436;
-  --input-bg: transparent;
+  --shadow: 0 1px 2px rgba(16, 16, 40, 0.04);
+  /* The sidebar is the same purple-tinted dark in both themes. */
+  --sidebar-bg: #110d22;
+  --sidebar-line: rgba(162, 155, 254, 0.14);
+  --sidebar-text: #f4f4f6;
+  --sidebar-muted: #9d97c4;
+  --input-bg: #ffffff;
   /* Nested surfaces inside a --card: --panel for a grouped block, --panel-alt for a
      card nested one level deeper inside that block. */
-  --panel: #F8F9FA;
-  --panel-alt: #FFFFFF;
+  --panel: #f6f6f9;
+  --panel-alt: #ffffff;
 }
 
 [data-theme="dark"] {
-  --bg: #1a1a2e;
-  --card: #232342;
-  --text: #E0E0E0;
-  --text-light: #A0A0B0;
-  --border: #3a3a5c;
-  --shadow: 0 2px 12px rgba(0,0,0,0.3);
-  --sidebar-bg: #16162a;
-  --input-bg: #2a2a4a;
-  --panel: #2a2a4a;
-  --panel-alt: #323258;
+  --accent-text: #A29BFE;
+  --bg: #050508;
+  --card: #0b0b11;
+  --text: #f4f4f6;
+  --text-light: #8b8b9a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --hover: rgba(255, 255, 255, 0.035);
+  --track: rgba(255, 255, 255, 0.06);
+  --select-bg: rgba(108, 92, 231, 0.16);
+  --success: #3ddc97;
+  --danger: #ff7a6b;
+  --warning: #fdcb6e;
+  --shadow: none;
+  --input-bg: rgba(255, 255, 255, 0.03);
+  --panel: #12121a;
+  --panel-alt: #1a1a24;
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1a1a2e;
-    --card: #232342;
-    --text: #E0E0E0;
-    --text-light: #A0A0B0;
-    --border: #3a3a5c;
-    --shadow: 0 2px 12px rgba(0,0,0,0.3);
-    --sidebar-bg: #16162a;
-    --input-bg: #2a2a4a;
-    --panel: #2a2a4a;
-    --panel-alt: #323258;
+    --accent-text: #A29BFE;
+    --bg: #050508;
+    --card: #0b0b11;
+    --text: #f4f4f6;
+    --text-light: #8b8b9a;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --hover: rgba(255, 255, 255, 0.035);
+    --track: rgba(255, 255, 255, 0.06);
+    --select-bg: rgba(108, 92, 231, 0.16);
+    --success: #3ddc97;
+    --danger: #ff7a6b;
+    --warning: #fdcb6e;
+    --shadow: none;
+    --input-bg: rgba(255, 255, 255, 0.03);
+    --panel: #12121a;
+    --panel-alt: #1a1a24;
+    color-scheme: dark;
   }
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font);
+  font-size: 14px;
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
@@ -72,18 +107,32 @@ input, select, textarea {
   font-size: inherit;
 }
 
+code, kbd, samp {
+  font-family: var(--mono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 /* Admin Layout */
 .admin-layout {
   display: flex;
   min-height: 100vh;
 }
 
+/* Vertical rhythm shared by the sidebar and the page header, so the first
+   menu item and the page title sit in the same 36px band (top 76px):
+   sidebar  22 padding + 32 logo row + 22 gap      = 76
+   main     48 padding + 20 breadcrumb row + 8 gap = 76 */
 .admin-sidebar {
-  width: 240px;
+  width: 236px;
   flex-shrink: 0;
   background: var(--sidebar-bg);
-  color: white;
-  padding: 32px 16px;
+  border-right: 1px solid rgba(108, 92, 231, 0.28);
+  color: var(--sidebar-text);
+  padding: 22px 14px 18px;
   display: flex;
   flex-direction: column;
   /* Pin to the viewport so the dark background always fills the full height,
@@ -97,11 +146,12 @@ input, select, textarea {
 }
 
 .admin-sidebar h1 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  margin-bottom: 32px;
+  font-family: 'Space Grotesk', var(--font);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  height: 32px;
+  margin-bottom: 22px;
   padding: 0 8px;
   display: flex;
   align-items: center;
@@ -118,6 +168,7 @@ input, select, textarea {
    lighter gradient stops. */
 .logo-word {
   white-space: nowrap;
+  font-family: 'Space Grotesk', var(--font);
 }
 .logo-word-flow {
   background: linear-gradient(90deg, #6C5CE7, #A29BFE);
@@ -131,8 +182,9 @@ input, select, textarea {
 }
 
 .login-box h1 {
-  font-family: 'Space Grotesk', sans-serif;
-  letter-spacing: -0.5px;
+  font-family: 'Space Grotesk', var(--font);
+  font-weight: 600;
+  letter-spacing: -0.03em;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -140,26 +192,47 @@ input, select, textarea {
 }
 
 .admin-sidebar nav a {
-  display: block;
-  color: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  margin-bottom: 3px;
+  border-radius: 7px;
+  color: rgba(244, 244, 246, 0.68);
   text-decoration: none;
-  padding: 10px 12px;
-  border-radius: 8px;
-  margin-bottom: 4px;
-  font-size: 14px;
-  border-left: 3px solid transparent;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  font-size: 13.5px;
+  transition: background 0.15s, color 0.15s;
 }
 
 .admin-sidebar nav a:hover {
-  background: rgba(255,255,255,0.08);
-  color: white;
+  background: rgba(162, 155, 254, 0.08);
+  color: #fff;
 }
 
 .admin-sidebar nav a.active {
-  background: rgba(108,92,231,0.22);
-  color: white;
-  border-left-color: var(--primary);
+  background: rgba(108, 92, 231, 0.26);
+  color: #fff;
+}
+
+/* The small glyph square in front of each menu item */
+.nav-glyph {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 5px;
+  background: rgba(162, 155, 254, 0.10);
+  color: var(--sidebar-muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.admin-sidebar nav a.active .nav-glyph {
+  background: var(--primary);
+  color: #fff;
 }
 
 .admin-main {
@@ -168,8 +241,8 @@ input, select, textarea {
      buttons, a fixed-column grid) would stretch the whole page past the
      viewport instead of wrapping. */
   min-width: 0;
-  padding: 32px;
-  max-width: 1200px;
+  padding: 48px 36px 36px;
+  max-width: 1236px;
   min-height: 100vh;
 }
 
@@ -196,26 +269,57 @@ input, select, textarea {
   margin-bottom: 16px;
 }
 
-/* Page header — shared across all admin pages */
+/* Page header — shared across all admin pages. A 20px breadcrumb row (always
+   present, so titles line up with the first menu item), then a 36px title row;
+   the actions sit level with the title row. */
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+  align-items: flex-start;
+  gap: 8px 16px;
   margin-bottom: 24px;
   flex-wrap: wrap;
+}
+
+.page-header-titles {
+  min-width: 0;
+}
+
+.page-crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-light);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.page-crumb-sep {
+  opacity: 0.6;
+}
+
+.page-crumb-current {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .page-header-titles h2 {
   font-size: 26px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.01em;
+  line-height: 36px;
+  min-height: 36px;
 }
 
 .page-subtitle {
   color: var(--text-light);
-  font-size: 14px;
-  margin-top: 4px;
+  font-size: 13.5px;
+  margin-top: 2px;
 }
 
 .page-header-actions {
@@ -223,18 +327,17 @@ input, select, textarea {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  min-height: 36px;
+  margin-top: 28px;
 }
 
 .back-link {
-  display: inline-block;
   color: var(--text-light);
   text-decoration: none;
-  font-size: 13px;
-  margin-bottom: 8px;
 }
 
 .back-link:hover {
-  color: var(--primary);
+  color: var(--accent-text);
 }
 
 /* Section header inside cards (icon + title + optional hint) */
@@ -247,29 +350,45 @@ input, select, textarea {
 
 .section-header h3 {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0;
 }
 
 /* Alerts / banners */
 .alert {
-  padding: 10px 16px;
+  padding: 10px 14px;
   margin-bottom: 16px;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
+  border-radius: 9px;
+  font-size: 13.5px;
   border: 1px solid transparent;
 }
 
+.alert a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
 .alert-error {
-  background: rgba(225,112,85,0.12);
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
   color: var(--danger);
-  border-color: rgba(225,112,85,0.25);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 .alert-success {
-  background: rgba(0,184,148,0.12);
+  background: color-mix(in srgb, var(--success) 9%, transparent);
   color: var(--success);
-  border-color: rgba(0,184,148,0.25);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+}
+
+/* The account-wide notice (weak password) shown under the page header */
+.alert-warning {
+  background: color-mix(in srgb, var(--amber) 9%, transparent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--amber) 50%, transparent);
+}
+
+.alert-warning strong {
+  color: var(--warning);
 }
 
 /* Loading & empty states */
@@ -298,36 +417,48 @@ input, select, textarea {
   overflow-x: auto;
 }
 
-/* Buttons */
+/* Buttons: one solid purple main button, everything else outlined. */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border: none;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  font-size: 14px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13.5px;
   font-weight: 600;
-  transition: all 0.2s;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .btn-primary {
   background: var(--primary);
-  color: white;
+  border-color: var(--primary);
+  color: #fff;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
+  border-color: var(--primary-hover);
 }
 
 .btn-secondary {
-  background: var(--border);
+  background: transparent;
   color: var(--text);
 }
 
-.btn-secondary:hover {
-  background: var(--border);
-  opacity: 0.8;
+.btn-secondary:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: var(--text-light);
 }
 
 /* Sidebar: section label, account footer */
@@ -336,35 +467,36 @@ input, select, textarea {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.4);
-  padding: 20px 12px 8px;
+  color: rgba(162, 155, 254, 0.6);
+  padding: 22px 10px 8px;
 }
 
 .sidebar-footer {
   margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 14px;
+  border-top: 1px solid var(--sidebar-line);
+  display: grid;
+  gap: 12px;
 }
 
 .sidebar-account {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 7px 8px;
   border-radius: 8px;
-  border-left: 3px solid transparent;
-  color: rgba(255,255,255,0.85);
+  border: 1px solid var(--sidebar-line);
+  color: rgba(244, 244, 246, 0.9);
   text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s;
 }
 
 .sidebar-account:hover {
-  background: rgba(255,255,255,0.08);
+  background: rgba(162, 155, 254, 0.08);
 }
 
 .sidebar-account.active {
-  background: rgba(108,92,231,0.22);
-  border-left-color: var(--primary);
+  background: rgba(108, 92, 231, 0.26);
 }
 
 .sidebar-account-avatar {
@@ -376,7 +508,7 @@ input, select, textarea {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: white;
   background: linear-gradient(135deg, var(--primary), #00CEC9);
 }
@@ -389,7 +521,8 @@ input, select, textarea {
 }
 
 .sidebar-account-email {
-  font-size: 13px;
+  font-size: 12.5px;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -397,31 +530,27 @@ input, select, textarea {
 
 .sidebar-account-sub {
   font-size: 11px;
-  color: rgba(255,255,255,0.45);
+  color: var(--sidebar-muted);
 }
 
 .sidebar-account-chevron {
-  font-size: 18px;
-  color: rgba(255,255,255,0.4);
+  font-size: 16px;
+  color: var(--sidebar-muted);
 }
 
 .sidebar-footer-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 8px;
-}
-
-.sidebar-footer-row .theme-toggle {
-  width: auto;
+  gap: 8px;
 }
 
 .sidebar-logout {
   background: none;
   border: none;
-  color: rgba(255,255,255,0.5);
-  font-size: 13px;
-  padding: 6px 12px;
+  color: var(--sidebar-muted);
+  font-size: 12.5px;
+  padding: 4px 6px;
   cursor: pointer;
 }
 
@@ -431,55 +560,77 @@ input, select, textarea {
 
 .sidebar-version {
   display: block;
-  font-size: 12px;
-  color: rgba(255,255,255,0.3);
-  padding: 8px 12px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: rgba(157, 151, 196, 0.75);
+  padding: 0 4px;
   text-decoration: none;
 }
 
-/* Theme toggle */
-.theme-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
-  color: rgba(255,255,255,0.5);
-  cursor: pointer;
+.sidebar-version:hover {
+  color: var(--sidebar-text);
+}
+
+/* Theme switch: Auto / Dark / Light */
+.theme-switch {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--sidebar-line);
+  border-radius: 7px;
+}
+
+.theme-switch button {
   background: none;
   border: none;
-  width: 100%;
-  text-align: left;
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--sidebar-muted);
 }
 
-.theme-toggle:hover {
-  color: rgba(255,255,255,0.8);
+.theme-switch button:hover {
+  color: var(--sidebar-text);
 }
 
-.theme-toggle-icon {
-  font-size: 16px;
-  width: 20px;
-  text-align: center;
+.theme-switch button[aria-pressed="true"] {
+  background: rgba(108, 92, 231, 0.35);
+  color: #fff;
 }
 
 .btn-danger {
-  background: var(--danger);
-  color: white;
+  background: transparent;
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+  border-color: var(--danger);
 }
 
 .btn-sm {
-  padding: 6px 12px;
-  font-size: 13px;
+  min-height: 30px;
+  padding: 0 11px;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* Square icon-only button (↑ ↓ ✕ in the question rows) */
+.btn-icon {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
 }
 
 /* Inputs */
 .input {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid var(--border);
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 0.2s;
+  font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
   background: var(--input-bg);
   color: var(--text);
@@ -487,6 +638,7 @@ input, select, textarea {
 
 .input:focus {
   border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.25);
 }
 
 .input-group {
@@ -495,15 +647,13 @@ input, select, textarea {
 
 .input-group label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 500;
   color: var(--text-light);
   margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-/* Table */
+/* Table: mono uppercase column heads, mono numbers */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -511,15 +661,31 @@ input, select, textarea {
 
 .table th, .table td {
   text-align: left;
-  padding: 12px 16px;
+  padding: 13px 18px;
   border-bottom: 1px solid var(--border);
 }
 
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 .table th {
-  font-size: 12px;
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 10.5px;
   text-transform: uppercase;
   color: var(--text-light);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.09em;
+}
+
+.table tbody tr:hover td {
+  background: var(--hover);
+}
+
+.cell-mono {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Settings → API tokens list */
@@ -536,8 +702,12 @@ input, select, textarea {
 }
 
 .token-table th {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
   color: var(--text-light);
-  font-size: 12px;
 }
 
 .token-table tbody tr {
@@ -556,23 +726,57 @@ input, select, textarea {
   max-width: 320px;
 }
 
-/* Status badge */
+/* Status badge: a quiet pill with a flat dot */
 .badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.badge-published,
+.badge-draft {
+  background: transparent;
+}
+
+.badge-published::before,
+.badge-draft::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .badge-published {
-  background: #E8F8F5;
   color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
 }
 
 .badge-draft {
-  background: #FDF2E9;
-  color: var(--warning);
+  color: var(--text-light);
+}
+
+/* A stable field key, shown as a small mono chip */
+.key-chip {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.key-chip-dupe {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* Login */
@@ -581,6 +785,7 @@ input, select, textarea {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  padding: 16px;
 }
 
 .login-box {
@@ -591,7 +796,12 @@ input, select, textarea {
 
 .login-box h1 {
   text-align: center;
-  margin-bottom: 32px;
+  font-size: 26px;
+  margin-bottom: 28px;
+}
+
+.login-box .btn {
+  min-height: 40px;
 }
 
 .login-back {
@@ -604,7 +814,7 @@ input, select, textarea {
 }
 
 .login-back:hover {
-  color: var(--primary);
+  color: var(--accent-text);
 }
 
 .login-hint {
@@ -618,7 +828,7 @@ input, select, textarea {
   font-size: 24px;
   letter-spacing: 8px;
   text-align: center;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-family: var(--mono);
 }
 
 .login-remember {
@@ -653,7 +863,7 @@ input, select, textarea {
 }
 
 .login-link-btn:hover:not(:disabled) {
-  color: var(--primary);
+  color: var(--accent-text);
 }
 
 /* Account page: the session / remembered-browser lists */
@@ -704,9 +914,9 @@ input, select, textarea {
 .editor-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  align-items: flex-start;
+  gap: 8px 16px;
+  margin-bottom: 20px;
 }
 
 .editor-header-titles {
@@ -717,20 +927,32 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 8px;
+  height: 36px;
 }
 
 .editor-title-input {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 36px;
+  height: 36px;
+  border-radius: 6px;
+  /* Grow with the title so the Live/Draft badge sits right after it
+     (browsers without field-sizing keep the max-width below). */
+  field-sizing: content;
   border: none;
   background: none;
   padding: 0;
   outline: none;
-  flex: 1;
-  min-width: 0;
-  max-width: 480px;
+  flex: 0 1 auto;
+  min-width: 4ch;
+  max-width: 100%;
   color: var(--text);
+}
+
+.editor-title-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.25);
 }
 
 .editor-actions {
@@ -738,19 +960,21 @@ input, select, textarea {
   gap: 8px;
   align-items: center;
   flex-shrink: 0;
+  min-height: 36px;
+  margin-top: 28px;
 }
 
 .editor-save-status {
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 /* Form editor tabs — a single row that swipes sideways when it doesn't fit
    (phones, and tablets where the sidebar is still showing). */
 .editor-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  border-bottom: 2px solid var(--border);
+  gap: 2px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -761,42 +985,104 @@ input, select, textarea {
 }
 
 .editor-tab {
-  padding: 10px 20px;
+  padding: 8px 12px 11px;
+  margin-bottom: -1px;
   border: none;
+  border-bottom: 2px solid transparent;
   background: transparent;
   color: var(--text-light);
-  border-radius: 8px 8px 0 0;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 500;
+  font-size: 13.5px;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.editor-tab.active {
-  background: var(--primary);
-  color: white;
+.editor-tab:hover {
+  color: var(--text);
 }
 
-/* Question card header in the form editor */
+.editor-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--primary);
+}
+
+/* Question rows in the form editor: number, glyph, question + keys, type,
+   then the move / combine / remove buttons. */
+.card.step-card {
+  position: relative;
+  padding: 0;
+  margin-bottom: 8px;
+  border-color: var(--border-strong);
+  box-shadow: none;
+}
+
+.step-card.open {
+  background: var(--card);
+}
+
 .step-header {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 54px;
+  padding: 8px 12px 8px 14px;
   cursor: pointer;
 }
 
 .step-header.expanded {
-  padding-bottom: 16px;
   border-bottom: 1px solid var(--border);
 }
 
-.step-header-icon {
-  font-size: 20px;
+.step-index {
+  width: 16px;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Field-type glyph tile (Aa, ¶, @ …) — also used in the type picker */
+.glyph {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--track);
+  color: var(--text-light);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .step-header-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.step-question {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.step-question.is-empty {
+  color: var(--text-light);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.step-type {
+  font-size: 12px;
+  color: var(--text-light);
+  white-space: nowrap;
 }
 
 .step-actions {
@@ -807,9 +1093,66 @@ input, select, textarea {
 }
 
 .step-chevron {
-  font-size: 18px;
+  width: 30px;
+  min-height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  font-size: 12px;
   color: var(--text-light);
-  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.step-body {
+  padding: 18px 18px 4px;
+}
+
+.step-add {
+  width: 100%;
+  justify-content: center;
+  min-height: 46px;
+  border-style: dashed;
+  color: var(--text-light);
+}
+
+/* Field-type picker (grid of buttons) */
+.type-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.type-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.type-pick:hover {
+  border-color: var(--border-strong);
+  background: var(--hover);
+}
+
+.type-pick.active {
+  border-color: var(--primary);
+  background: var(--select-bg);
+}
+
+.type-pick.active .glyph {
+  background: var(--primary);
+  color: #fff;
 }
 
 /* Image / Icon Select option row in the form editor */
@@ -846,8 +1189,8 @@ input, select, textarea {
   display: flex;
   align-items: center;
   padding: 0 12px;
-  background: rgba(0,0,0,0.04);
-  border: 1px solid var(--border);
+  background: var(--track);
+  border: 1px solid var(--border-strong);
   color: var(--text-light);
   font-size: 14px;
   white-space: nowrap;
@@ -882,6 +1225,7 @@ input, select, textarea {
     gap: 12px;
     padding: 12px 16px;
     background: var(--sidebar-bg);
+    border-bottom: 1px solid rgba(108, 92, 231, 0.28);
     color: white;
     position: sticky;
     top: 0;
@@ -892,10 +1236,9 @@ input, select, textarea {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 17px;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.03em;
   }
 
   .admin-menu-toggle {
@@ -949,12 +1292,20 @@ input, select, textarea {
     padding: 16px;
   }
 
+  /* No sidebar beside the content on phones, so the header needn't line up */
+  .page-header-actions,
+  .editor-actions {
+    margin-top: 0;
+  }
+
   .card {
     padding: 16px;
   }
 
   .page-header-titles h2 {
     font-size: 22px;
+    line-height: 30px;
+    min-height: 30px;
   }
 
   .cols-2,
@@ -1006,7 +1357,7 @@ input, select, textarea {
   }
 
   .editor-title-input {
-    font-size: 20px;
+    font-size: 21px;
   }
 
   .editor-actions {
@@ -1045,7 +1396,7 @@ input, select, textarea {
   }
 
   .editor-tab {
-    padding: 10px 14px;
+    padding: 8px 10px 11px;
   }
 
   /* Question card header: icon + question + chevron on top, the move /
@@ -1059,6 +1410,11 @@ input, select, textarea {
     order: 3;
     flex-basis: 100%;
     justify-content: flex-start;
+  }
+
+  /* The glyph already says what kind of question it is */
+  .step-type {
+    display: none;
   }
 
   /* Icon + label/value on the first line, image URL + controls on the second */
@@ -1132,10 +1488,11 @@ input, select, textarea {
   .table-cards td[data-label]::before {
     content: attr(data-label);
     flex-shrink: 0;
-    font-size: 12px;
-    font-weight: 600;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 400;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.09em;
     color: var(--text-light);
   }
 
@@ -1173,12 +1530,17 @@ input, select, textarea {
   white-space: nowrap;
 }
 
+.table td.num {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
 .row-link {
   cursor: pointer;
 }
 
 .row-link:hover td {
-  background: var(--panel);
+  background: var(--hover);
 }
 
 .kpi-grid {
@@ -1193,17 +1555,16 @@ input, select, textarea {
 }
 
 .kpi-label {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 12.5px;
+  font-weight: 500;
   color: var(--text-light);
 }
 
 .kpi-value {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
-  margin: 4px 0 2px;
+  letter-spacing: -0.01em;
+  margin: 2px 0 2px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1216,8 +1577,9 @@ input, select, textarea {
 }
 
 .delta {
-  font-size: 12px;
-  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 500;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -1242,12 +1604,10 @@ input, select, textarea {
 
 .analytics-control label {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 500;
   color: var(--text-light);
   margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .analytics-control-row {
@@ -1259,8 +1619,8 @@ input, select, textarea {
 
 .analytics-control .input {
   width: auto;
-  padding: 8px 12px;
-  font-size: 14px;
+  padding: 6px 10px;
+  font-size: 13.5px;
 }
 
 .analytics-split {
@@ -1313,6 +1673,8 @@ input, select, textarea {
 
 .analytics-card-head h4 {
   margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .analytics-card-head .muted {
@@ -1346,11 +1708,13 @@ input, select, textarea {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .step-num {
   color: var(--text-light);
+  font-family: var(--mono);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   min-width: 18px;
 }
@@ -1365,10 +1729,19 @@ input, select, textarea {
   border: 1px solid var(--border);
 }
 
+/* "Biggest drop-off": the one amber marker on the step table */
 .tag-bad {
-  color: var(--danger);
-  border-color: currentColor;
-  background: transparent;
+  color: #1a1300;
+  border-color: transparent;
+  background: var(--amber);
+}
+
+.step-row-leak .step-title {
+  color: var(--warning);
+}
+
+.step-row-leak .reach-bar-cur {
+  opacity: 0.55;
 }
 
 .step-row-missing .step-title > span:nth-child(2) {
@@ -1377,10 +1750,10 @@ input, select, textarea {
 
 .reach-bar {
   position: relative;
-  height: 6px;
+  height: 10px;
   margin-top: 8px;
-  border-radius: 3px;
-  background: var(--panel);
+  border-radius: 4px;
+  background: var(--track);
   overflow: hidden;
 }
 
@@ -1413,12 +1786,13 @@ input, select, textarea {
 }
 
 .metric-value {
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .metric-sub {
-  font-size: 12px;
+  font-family: var(--font);
+  font-size: 11.5px;
   color: var(--text-light);
 }
 
@@ -1436,7 +1810,8 @@ input, select, textarea {
   position: absolute;
   left: 0;
   top: -6px;
-  font-size: 11px;
+  font-family: var(--mono);
+  font-size: 10.5px;
   color: var(--text-light);
   font-variant-numeric: tabular-nums;
 }
@@ -1458,7 +1833,7 @@ input, select, textarea {
 }
 
 .trend-slot:hover {
-  background: var(--panel);
+  background: var(--hover);
 }
 
 .trend-bar {
@@ -1483,7 +1858,8 @@ input, select, textarea {
   justify-content: space-between;
   padding-left: 36px;
   margin-top: 6px;
-  font-size: 11px;
+  font-family: var(--mono);
+  font-size: 10.5px;
   color: var(--text-light);
 }
 

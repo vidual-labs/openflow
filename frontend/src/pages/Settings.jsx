@@ -38,7 +38,6 @@ export default function Settings() {
       <form onSubmit={handleSave}>
         <div className="card" style={{ marginBottom: 16 }}>
           <div className="section-header">
-            <span style={{ fontSize: 20 }}>🎨</span>
             <div>
               <h3 style={{ margin: 0 }}>Branding</h3>
               <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>Customise the logo shown at the bottom of the admin sidebar.</p>
@@ -214,7 +213,6 @@ function SystemMailCard() {
   return (
     <div className="card" style={{ marginTop: 24 }}>
       <div className="section-header">
-        <span style={{ fontSize: 20 }}>✉️</span>
         <div>
           <h3 style={{ margin: 0 }}>System e-mail</h3>
           <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>
@@ -382,7 +380,6 @@ export function ApiTokensCard() {
   return (
     <div className="card" style={{ marginTop: 24 }}>
       <div className="section-header">
-        <span style={{ fontSize: 20 }}>🔑</span>
         <div>
           <h3 style={{ margin: 0 }}>API Tokens</h3>
           <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>
@@ -400,9 +397,9 @@ export function ApiTokensCard() {
             ⚠️ Copy this token now — it will not be shown again.
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <code style={{ flex: 1, color: '#fff', fontSize: 13, wordBreak: 'break-all', fontFamily: 'monospace' }}>{revealed}</code>
+            <code style={{ flex: 1, color: '#fff', fontSize: 13, wordBreak: 'break-all' }}>{revealed}</code>
             <button type="button" className="btn btn-primary" onClick={copyToken}>{copied ? 'Copied!' : 'Copy'}</button>
-            <button type="button" className="btn" onClick={() => setRevealed(null)}>Done</button>
+            <button type="button" className="btn" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }} onClick={() => setRevealed(null)}>Done</button>
           </div>
         </div>
       )}

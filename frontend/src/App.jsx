@@ -11,7 +11,7 @@ import FormAnalytics from './pages/FormAnalytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
 import Account from './pages/Account';
-import { LogoMark, LogoWordmark, Loading, EmptyState, Alert } from './components/AdminUI';
+import { LogoMark, LogoWordmark, Loading, EmptyState, Alert, PageNoticeContext } from './components/AdminUI';
 import { version as APP_VERSION } from '../package.json';
 
 // Only fetched when OPENFLOW_LANDING_PAGE is on, so the admin bundle doesn't
@@ -20,6 +20,19 @@ const Landing = lazy(() => import('./pages/Landing'));
 
 function getInitialTheme() {
   return localStorage.getItem('of_theme') || 'auto';
+}
+
+const THEMES = [['auto', 'Auto'], ['dark', 'Dark'], ['light', 'Light']];
+
+// Menu items: path, label, glyph, and whether a path counts as "this item".
+// The glyphs carry U+FE0E so platforms that would draw an emoji draw text.
+function NavItem({ to, label, glyph, active }) {
+  return (
+    <Link to={to} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined}>
+      <span className="nav-glyph" aria-hidden="true">{glyph}</span>
+      {label}
+    </Link>
+  );
 }
 
 function NotFound() {
@@ -72,13 +85,6 @@ export default function App() {
     localStorage.setItem('of_theme', theme);
   }, [theme]);
 
-  function cycleTheme() {
-    setTheme(prev => prev === 'auto' ? 'dark' : prev === 'dark' ? 'light' : 'auto');
-  }
-
-  const themeIcon = theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '🖥️';
-  const themeLabel = theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'Auto';
-
   if (loading) return <Loading />;
 
   if (!user) {
@@ -96,6 +102,15 @@ export default function App() {
   }
 
   const isAdmin = user.role === 'admin';
+  const path = location.pathname;
+
+  // Rendered by each page right under its header (see PageHeader).
+  const pageNotice = user.weakPassword ? (
+    <Alert type="warning">
+      <strong>Weak password.</strong> Your account uses a weak or easily guessed password (such as the old default <code>admin123</code>).{' '}
+      <Link to="/account">Change it on your Account page</Link> — anyone who finds this install could otherwise log in as you.
+    </Alert>
+  ) : null;
 
   return (
     <div className="admin-layout">
@@ -114,14 +129,14 @@ export default function App() {
       <aside className={`admin-sidebar${menuOpen ? ' open' : ''}`}>
         <h1><LogoMark size={28} className="logo-mark" /><LogoWordmark /></h1>
         <nav>
-          <Link to="/" className={location.pathname === '/' || location.pathname.startsWith('/forms') ? 'active' : ''}>Forms</Link>
-          <Link to="/analytics" className={location.pathname.startsWith('/analytics') ? 'active' : ''}>Analytics</Link>
+          <NavItem to="/" label="Forms" glyph={'\u25A4\uFE0E'} active={path === '/' || path.startsWith('/forms')} />
+          <NavItem to="/analytics" label="Analytics" glyph={'\u2197\uFE0E'} active={path.startsWith('/analytics')} />
           {isAdmin && (
             <>
               <div className="sidebar-section">Administration</div>
-              <Link to="/users" className={location.pathname === '/users' ? 'active' : ''}>Users</Link>
-              <Link to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>Settings</Link>
-              <Link to="/backup" className={location.pathname === '/backup' ? 'active' : ''}>Backup</Link>
+              <NavItem to="/users" label="Users" glyph={'\u25CE\uFE0E'} active={path === '/users'} />
+              <NavItem to="/settings" label="Settings" glyph={'\u2699\uFE0E'} active={path === '/settings'} />
+              <NavItem to="/backup" label="Backup" glyph={'\u2913\uFE0E'} active={path === '/backup'} />
             </>
           )}
         </nav>
@@ -139,9 +154,11 @@ export default function App() {
             <span className="sidebar-account-chevron" aria-hidden="true">›</span>
           </Link>
           <div className="sidebar-footer-row">
-            <button className="theme-toggle" onClick={cycleTheme}>
-              <span className="theme-toggle-icon">{themeIcon}</span> {themeLabel}
-            </button>
+            <div className="theme-switch" role="group" aria-label="Colour theme">
+              {THEMES.map(([value, label]) => (
+                <button key={value} type="button" aria-pressed={theme === value} onClick={() => setTheme(value)}>{label}</button>
+              ))}
+            </div>
             <button className="sidebar-logout" onClick={handleLogout}>Log out</button>
           </div>
           <a href="https://github.com/vidual-labs/openflow" target="_blank" rel="noopener noreferrer" className="sidebar-version">
@@ -149,7 +166,7 @@ export default function App() {
               <img
                 src={branding.logoUrl || '/vidual-logo.png'}
                 alt="Logo"
-                style={{ height: 18, opacity: 0.4, display: 'block', marginBottom: 4, maxWidth: 120, objectFit: 'contain' }}
+                style={{ height: 18, opacity: 0.45, display: 'block', marginBottom: 6, maxWidth: 120, objectFit: 'contain' }}
               />
             )}
             v{APP_VERSION} &middot; GitHub
@@ -157,25 +174,21 @@ export default function App() {
         </div>
       </aside>
       <main className="admin-main">
-        {user.weakPassword && (
-          <Alert type="error" style={{ marginBottom: 16 }}>
-            Your account uses a weak or easily guessed password (such as the old default <code>admin123</code>).{' '}
-            <Link to="/account">Change it now on your Account page</Link> — anyone who finds this install could otherwise log in as you.
-          </Alert>
-        )}
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="/forms/:id" element={<FormEditor />} />
-          <Route path="/forms/:id/submissions" element={<Submissions />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/analytics/:formId" element={<FormAnalytics />} />
-          <Route path="/users" element={isAdmin ? <Users /> : <Forbidden />} />
-          <Route path="/settings" element={isAdmin ? <Settings /> : <Forbidden />} />
-          <Route path="/backup" element={isAdmin ? <Backup /> : <Forbidden />} />
-          <Route path="/account" element={<Account user={user} onUserChange={setUser} />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <PageNoticeContext.Provider value={pageNotice}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/forms/:id" element={<FormEditor />} />
+            <Route path="/forms/:id/submissions" element={<Submissions />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/analytics/:formId" element={<FormAnalytics />} />
+            <Route path="/users" element={isAdmin ? <Users /> : <Forbidden />} />
+            <Route path="/settings" element={isAdmin ? <Settings /> : <Forbidden />} />
+            <Route path="/backup" element={isAdmin ? <Backup /> : <Forbidden />} />
+            <Route path="/account" element={<Account user={user} onUserChange={setUser} />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </PageNoticeContext.Provider>
       </main>
     </div>
   );
