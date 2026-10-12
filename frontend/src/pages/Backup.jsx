@@ -103,7 +103,6 @@ export default function Backup() {
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="section-header">
-          <span style={{ fontSize: 20 }}>💾</span>
           <div>
             <h3 style={{ margin: 0 }}>Download Backup</h3>
             <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>
@@ -129,7 +128,6 @@ export default function Backup() {
 
       <div className="card" style={{ borderLeft: '4px solid var(--danger)' }}>
         <div className="section-header">
-          <span style={{ fontSize: 20 }}>♻️</span>
           <div>
             <h3 style={{ margin: 0 }}>Restore from Backup</h3>
             <p style={{ color: 'var(--text-light)', fontSize: 13, margin: 0 }}>

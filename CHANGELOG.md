@@ -2,6 +2,37 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.0] - 2026-10-12
+
+### Changed
+- **Admin restyle in the promo video's look, toned down.** The admin keeps its
+  menu, routes and page structure; only the visual layer changes. Near-black
+  (dark) and off-white (light) surfaces with thin borders instead of shadows,
+  the operating system's own UI font, and a mono face only for data (numbers,
+  field keys, ids, table column heads). Purple is kept for the main button, the
+  active tab, focus rings, links and the sidebar. Auto / Dark / Light stays;
+  the default is still Auto.
+- **Sidebar.** A purple-tinted dark background in both themes, a small glyph
+  in front of each menu item and a purple fill on the active one. The theme
+  switch is a small Auto / Dark / Light control instead of an emoji button.
+- **Page header.** Every page has a breadcrumb row above the title, and the
+  title lines up with the first sidebar item on every page. The weak-password
+  warning moved below the title (`PageNoticeContext` in `AdminUI.jsx`).
+- **Buttons, badges, inputs, tables, tabs.** Secondary and Delete buttons are
+  outlined (Delete in red text, no solid fill); Live/Draft badges are quiet
+  pills with a small dot; inputs get a purple focus ring; editor tabs are
+  underlined instead of filled.
+- **Form editor.** Question rows show number, field-type glyph, question,
+  key chip and type in one line, with icon buttons for move and remove. The
+  15 field types and the integration types use short text glyphs (Aa, ¶, @,
+  { } …) instead of emoji, and the decorative emoji in card headings are gone.
+- **Analytics.** KPI tiles and reach bars in the new style; the step with the
+  biggest drop-off is marked with an amber label.
+- **Fonts ship with the app.** Space Grotesk (logo wordmark, landing page,
+  and the "Space Grotesk" choice in a form's Design tab) is bundled via
+  `@fontsource/space-grotesk` instead of loaded from Google Fonts, so no page
+  contacts Google for fonts any more.
+
 ## [0.46.2] - 2026-10-11
 
 ### Added
