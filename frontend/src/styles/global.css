@@ -62,7 +62,6 @@
   --input-bg: rgba(255, 255, 255, 0.03);
   --panel: #12121a;
   --panel-alt: #1a1a24;
-  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -84,17 +83,52 @@
     --input-bg: rgba(255, 255, 255, 0.03);
     --panel: #12121a;
     --panel-alt: #1a1a24;
-    color-scheme: dark;
   }
 }
 
+/* This stylesheet is also loaded on the public form pages (/f/, /embed/,
+   per-form subdomains), and a form's text inherits the page's base font when
+   the operator picked none. So the page-wide base below is the one forms have
+   always had (pre-0.47 values, literal on purpose), and everything the admin
+   restyle changes about the page as a whole is scoped to html.of-admin, which
+   App sets while the admin SPA is mounted. Never restyle forms from here. */
 body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #F8F9FA;
+  color: #2D3436;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #1a1a2e;
+    color: #E0E0E0;
+  }
+}
+
+html.of-admin body {
   font-family: var(--font);
   font-size: 14px;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+}
+
+html.of-admin[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  html.of-admin:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+/* The editor's Design-tab preview stands in for a public form: give it the
+   forms' base font and light native controls, not the admin's. */
+.form-preview {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: normal;
 }
 
 button {
@@ -107,13 +141,17 @@ input, select, textarea {
   font-size: inherit;
 }
 
-code, kbd, samp {
+html.of-admin :is(code, kbd, samp) {
   font-family: var(--mono);
 }
 
-:focus-visible {
+html.of-admin :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+html.of-admin .form-preview :focus-visible {
+  outline: revert;
 }
 
 /* Admin Layout */
@@ -1067,13 +1105,13 @@ code, kbd, samp {
   gap: 4px 10px;
 }
 
-.step-question {
+.step-row-question {
   font-weight: 500;
   font-size: 14px;
   color: var(--text);
 }
 
-.step-question.is-empty {
+.step-row-question.is-empty {
   color: var(--text-light);
   font-style: italic;
   font-weight: 400;
