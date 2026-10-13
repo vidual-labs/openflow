@@ -2,6 +2,21 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.2] - 2026-10-13
+
+### Changed
+- **Admin dark mode is lighter and easier to read.** The page and cards move
+  up from near-black (page `#0f0f16`, cards `#17171f`, nested panels
+  `#1d1d27`), grey text is brighter (`#a3a3b4`) and borders a little stronger
+  (10% / 18%). The sidebar keeps its dark purple; light mode keeps its colours.
+- **Slightly larger text in the admin (both themes).** About +1 px across the
+  board: body text and tables 15 px, page titles 28 px, menu items 14.5 px,
+  inputs 15 px (40 px tall), field labels 13.5 px, buttons 14 px, table column
+  heads and field keys 11.5 px, KPI numbers 28 px, editor questions 15 px. The
+  field-type picker has wider tiles (two per row on phones). The first menu
+  item and the page title still line up on every page.
+- Public forms are unchanged (pixel-checked against 0.46.2).
+
 ## [0.47.1] - 2026-10-13
 
 ### Fixed

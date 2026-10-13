@@ -46,43 +46,43 @@
 
 [data-theme="dark"] {
   --accent-text: #A29BFE;
-  --bg: #050508;
-  --card: #0b0b11;
+  --bg: #0f0f16;
+  --card: #17171f;
   --text: #f4f4f6;
-  --text-light: #8b8b9a;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --hover: rgba(255, 255, 255, 0.035);
-  --track: rgba(255, 255, 255, 0.06);
+  --text-light: #a3a3b4;
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --hover: rgba(255, 255, 255, 0.04);
+  --track: rgba(255, 255, 255, 0.08);
   --select-bg: rgba(108, 92, 231, 0.16);
   --success: #3ddc97;
   --danger: #ff7a6b;
   --warning: #fdcb6e;
   --shadow: none;
-  --input-bg: rgba(255, 255, 255, 0.03);
-  --panel: #12121a;
-  --panel-alt: #1a1a24;
+  --input-bg: rgba(255, 255, 255, 0.045);
+  --panel: #1d1d27;
+  --panel-alt: #23232e;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --accent-text: #A29BFE;
-    --bg: #050508;
-    --card: #0b0b11;
+    --bg: #0f0f16;
+    --card: #17171f;
     --text: #f4f4f6;
-    --text-light: #8b8b9a;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.16);
-    --hover: rgba(255, 255, 255, 0.035);
-    --track: rgba(255, 255, 255, 0.06);
+    --text-light: #a3a3b4;
+    --border: rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --hover: rgba(255, 255, 255, 0.04);
+    --track: rgba(255, 255, 255, 0.08);
     --select-bg: rgba(108, 92, 231, 0.16);
     --success: #3ddc97;
     --danger: #ff7a6b;
     --warning: #fdcb6e;
     --shadow: none;
-    --input-bg: rgba(255, 255, 255, 0.03);
-    --panel: #12121a;
-    --panel-alt: #1a1a24;
+    --input-bg: rgba(255, 255, 255, 0.045);
+    --panel: #1d1d27;
+    --panel-alt: #23232e;
   }
 }
 
@@ -109,7 +109,7 @@ body {
 
 html.of-admin body {
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 15px;
   background: var(--bg);
   color: var(--text);
 }
@@ -239,7 +239,7 @@ html.of-admin .form-preview :focus-visible {
   border-radius: 7px;
   color: rgba(244, 244, 246, 0.68);
   text-decoration: none;
-  font-size: 13.5px;
+  font-size: 14.5px;
   transition: background 0.15s, color 0.15s;
 }
 
@@ -329,7 +329,7 @@ html.of-admin .form-preview :focus-visible {
   gap: 6px;
   height: 20px;
   margin-bottom: 8px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 20px;
   color: var(--text-light);
   white-space: nowrap;
@@ -347,7 +347,7 @@ html.of-admin .form-preview :focus-visible {
 }
 
 .page-header-titles h2 {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 36px;
@@ -356,7 +356,7 @@ html.of-admin .form-preview :focus-visible {
 
 .page-subtitle {
   color: var(--text-light);
-  font-size: 13.5px;
+  font-size: 14.5px;
   margin-top: 2px;
 }
 
@@ -387,7 +387,7 @@ html.of-admin .form-preview :focus-visible {
 }
 
 .section-header h3 {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   margin: 0;
 }
@@ -397,7 +397,7 @@ html.of-admin .form-preview :focus-visible {
   padding: 10px 14px;
   margin-bottom: 16px;
   border-radius: 9px;
-  font-size: 13.5px;
+  font-size: 14.5px;
   border: 1px solid transparent;
 }
 
@@ -466,7 +466,7 @@ html.of-admin .form-preview :focus-visible {
   border-radius: 8px;
   background: transparent;
   color: var(--text);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
@@ -501,7 +501,7 @@ html.of-admin .form-preview :focus-visible {
 
 /* Sidebar: section label, account footer */
 .sidebar-section {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -647,15 +647,15 @@ html.of-admin .form-preview :focus-visible {
 }
 
 .btn-sm {
-  min-height: 30px;
+  min-height: 32px;
   padding: 0 11px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 /* Square icon-only button (↑ ↓ ✕ in the question rows) */
 .btn-icon {
-  width: 30px;
+  width: 32px;
   padding: 0;
   justify-content: center;
 }
@@ -663,11 +663,11 @@ html.of-admin .form-preview :focus-visible {
 /* Inputs */
 .input {
   width: 100%;
-  min-height: 38px;
+  min-height: 40px;
   padding: 8px 12px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15px;
   transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
   background: var(--input-bg);
@@ -685,7 +685,7 @@ html.of-admin .form-preview :focus-visible {
 
 .input-group label {
   display: block;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--text-light);
   margin-bottom: 6px;
@@ -710,7 +710,7 @@ html.of-admin .form-preview :focus-visible {
 .table th {
   font-family: var(--mono);
   font-weight: 400;
-  font-size: 10.5px;
+  font-size: 11.5px;
   text-transform: uppercase;
   color: var(--text-light);
   letter-spacing: 0.09em;
@@ -722,7 +722,7 @@ html.of-admin .form-preview :focus-visible {
 
 .cell-mono {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -742,7 +742,7 @@ html.of-admin .form-preview :focus-visible {
 .token-table th {
   font-family: var(--mono);
   font-weight: 400;
-  font-size: 10.5px;
+  font-size: 11.5px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: var(--text-light);
@@ -772,7 +772,7 @@ html.of-admin .form-preview :focus-visible {
   padding: 2px 9px;
   border-radius: 999px;
   border: 1px solid var(--border-strong);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text-light);
   white-space: nowrap;
@@ -804,7 +804,7 @@ html.of-admin .form-preview :focus-visible {
 /* A stable field key, shown as a small mono chip */
 .key-chip {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11.5px;
   padding: 1px 6px;
   border-radius: 4px;
   border: 1px solid var(--border);
@@ -969,7 +969,7 @@ html.of-admin .form-preview :focus-visible {
 }
 
 .editor-title-input {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 36px;
@@ -1030,7 +1030,7 @@ html.of-admin .form-preview :focus-visible {
   background: transparent;
   color: var(--text-light);
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: 14.5px;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -1062,7 +1062,7 @@ html.of-admin .form-preview :focus-visible {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 54px;
+  min-height: 58px;
   padding: 8px 12px 8px 14px;
   cursor: pointer;
 }
@@ -1075,7 +1075,7 @@ html.of-admin .form-preview :focus-visible {
   width: 16px;
   flex-shrink: 0;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-light);
   font-variant-numeric: tabular-nums;
 }
@@ -1084,14 +1084,14 @@ html.of-admin .form-preview :focus-visible {
 .glyph {
   display: inline-grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   border-radius: 6px;
   background: var(--track);
   color: var(--text-light);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1;
 }
@@ -1107,7 +1107,7 @@ html.of-admin .form-preview :focus-visible {
 
 .step-row-question {
   font-weight: 500;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text);
 }
 
@@ -1118,7 +1118,7 @@ html.of-admin .form-preview :focus-visible {
 }
 
 .step-type {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-light);
   white-space: nowrap;
 }
@@ -1131,8 +1131,8 @@ html.of-admin .form-preview :focus-visible {
 }
 
 .step-chevron {
-  width: 30px;
-  min-height: 30px;
+  width: 32px;
+  min-height: 32px;
   display: inline-grid;
   place-items: center;
   border-radius: 8px;
@@ -1157,7 +1157,7 @@ html.of-admin .form-preview :focus-visible {
 /* Field-type picker (grid of buttons) */
 .type-pick-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
   gap: 6px;
   margin-top: 4px;
 }
@@ -1166,13 +1166,13 @@ html.of-admin .form-preview :focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
+  min-height: 40px;
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: transparent;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
@@ -1455,6 +1455,11 @@ html.of-admin .form-preview :focus-visible {
     display: none;
   }
 
+  /* Two field-type tiles per row instead of one long column */
+  .type-pick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   /* Icon + label/value on the first line, image URL + controls on the second */
   .image-option-row {
     flex-wrap: wrap;
@@ -1570,7 +1575,7 @@ html.of-admin .form-preview :focus-visible {
 
 .table td.num {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .row-link {
@@ -1593,13 +1598,13 @@ html.of-admin .form-preview :focus-visible {
 }
 
 .kpi-label {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--text-light);
 }
 
 .kpi-value {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 2px 0 2px;
@@ -1616,7 +1621,7 @@ html.of-admin .form-preview :focus-visible {
 
 .delta {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 500;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -1711,7 +1716,7 @@ html.of-admin .form-preview :focus-visible {
 
 .analytics-card-head h4 {
   margin: 0 0 4px;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
 }
 
