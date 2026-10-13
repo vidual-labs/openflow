@@ -984,7 +984,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
         <span className="step-index">{index + 1}</span>
         <span className="glyph" aria-hidden="true">{isGroup ? '+' : (fieldDef?.glyph || 'Aa')}</span>
         <div className="step-header-main">
-          <span className={`step-question${!isGroup && !step.question ? ' is-empty' : ''}`}>
+          <span className={`step-row-question${!isGroup && !step.question ? ' is-empty' : ''}`}>
             {isGroup ? groupSummary : (step.question || 'No question set')}
           </span>
           {headerKeys.map(k => (
@@ -2293,7 +2293,7 @@ function ThemePreview({ theme }) {
   };
 
   return (
-    <div style={{
+    <div className="form-preview" style={{
       position: 'relative',
       height: 200,
       borderRadius: 12,

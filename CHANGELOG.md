@@ -2,6 +2,27 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.1] - 2026-10-13
+
+### Fixed
+- **Public forms look exactly as before 0.47.0 again.** The admin restyle
+  leaked into the respondent-facing pages (`/f/`, `/embed/`, subdomains),
+  because `global.css` is loaded there too:
+  - every question heading shrank to 14px — an editor rule for
+    `.step-question` also matched the form renderer's heading (the editor's
+    class is now `.step-row-question`);
+  - forms without their own font inherited the admin's new base font, size
+    (14px instead of 16px), page background and, on dark OS settings, dark
+    native controls. Those page-wide rules now apply only inside the admin
+    (`html.of-admin`, set by `App.jsx`); the editor's Design-tab preview keeps
+    the forms' base;
+  - Space Grotesk is loaded from Google Fonts again (the bundled
+    `@fontsource` copy rendered slightly differently for forms set to that
+    font). This also applies to the admin logo, as before 0.47.0.
+  Checked by pixel-diffing published forms against 0.46.2 (default font and
+  Space Grotesk, `/f/` and `/embed/`, light and dark, desktop and phone,
+  first and second step): identical.
+
 ## [0.47.0] - 2026-10-12
 
 ### Changed

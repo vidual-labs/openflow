@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { api } from './api';
 import Login from './pages/Login';
@@ -74,6 +74,14 @@ export default function App() {
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
+
+  // Admin-only page-wide styles (font, background, colour-scheme) hang off
+  // html.of-admin, so the public form pages keep the base forms were built on
+  // (see the note above `body` in global.css).
+  useLayoutEffect(() => {
+    document.documentElement.classList.add('of-admin');
+    return () => document.documentElement.classList.remove('of-admin');
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
