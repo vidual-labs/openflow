@@ -2,6 +2,20 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.3] - 2026-11-02
+
+### Fixed
+- **Multiple Choice "Other" answers arrived as a chain of fragments.** Typing
+  into the "Other" box left the text typed so far behind as an extra answer at
+  every space, so "Wir wollen gern" was stored (and sent to e-mail, webhooks,
+  Sheets and lodgely) as "Wir, Wir wollen, Wir wollen gern". The visitor saw
+  nothing wrong on screen. A leading space was worse (one fragment per
+  keystroke), and typing text that starts with a ticked option's label
+  ("Kochen" → "Kochen mit Kindern") did the same. The answer now holds exactly
+  the ticked options plus the one free-text entry. Present since the "Other"
+  box was added in 0.21.0; submissions stored before this release keep their
+  fragments (the full text is always the last one).
+
 ## [0.47.2] - 2026-10-13
 
 ### Changed

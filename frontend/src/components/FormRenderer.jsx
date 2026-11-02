@@ -1364,18 +1364,27 @@ function MultiSelectInput({ step, value, onChange }) {
   const initialOther = step.allowOther ? (selected.find(v => !optionValues.includes(v)) || '') : '';
   const [otherText, setOtherText] = useState(initialOther);
   const [otherOpen, setOtherOpen] = useState(!!initialOther);
+  // The entry emit() last appended to the answer for the free text ('' when it
+  // appended none). Kept apart from otherText because the box holds raw input
+  // ("Wir ", " Grillen") while the answer holds it trimmed: splitting the answer
+  // by the raw text left the previous entry behind as a ticked choice at every
+  // space, so "Wir wollen gern" arrived as "Wir, Wir wollen, Wir wollen gern".
+  const [otherValue, setOtherValue] = useState(initialOther);
 
-  // Ticked checkboxes come from the answer; the free text is held locally, so
-  // typing an option's own label doesn't make the box appear to clear itself.
-  // Only the current free text is split off — a value the pricing filter has
-  // since hidden stays in the answer instead of being silently dropped.
-  const chosen = otherText ? selected.filter(v => v !== otherText) : selected;
+  // Ticked checkboxes are the answer minus the free-text entry. Only that one
+  // entry is split off — a ticked option whose label the visitor is typing
+  // ("Kochen" → "Kochen mit Kindern") stays ticked, and a value the pricing
+  // filter has since hidden stays in the answer instead of being dropped.
+  const chosen = otherValue ? selected.filter(v => v !== otherValue) : selected;
 
   function emit(nextChosen, nextOther) {
     const text = nextOther.trim();
     // An empty box means "Other" is ticked but unanswered: keep the input open,
-    // just don't put a blank entry into the answer.
-    onChange(text && !nextChosen.includes(text) ? [...nextChosen, text] : nextChosen);
+    // just don't put a blank entry into the answer. Text equal to a ticked
+    // option adds nothing — the option already carries it.
+    const appended = text && !nextChosen.includes(text) ? text : '';
+    setOtherValue(appended);
+    onChange(appended ? [...nextChosen, appended] : nextChosen);
   }
 
   function toggle(optValue) {
