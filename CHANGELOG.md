@@ -2,6 +2,19 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.9] - 2026-11-05
+
+### Fixed
+- **Conditions on Yes/No, Image Select and Rating answers were easy to get
+  wrong.** The editor asked for the value as free text, but a Yes/No answer
+  is stored as `yes` / `no` and an image option as its value (`opt1`), so a
+  rule like "Garden equals Yes" — what the respondent sees — never matched and
+  the step stayed hidden. For a field with a fixed set of answers (Single and
+  Multiple Choice, Image Select, Yes/No, Rating) the editor now offers those
+  answers in a list for "equals" / "does not equal" (and for "contains" on a
+  Multiple Choice). Existing rules are unchanged; a value that isn't one of
+  the field's answers is still shown, marked as such, so it can be fixed.
+
 ## [0.47.8] - 2026-11-05
 
 ### Fixed
