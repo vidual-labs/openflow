@@ -28,9 +28,12 @@ const ADMIN_PATH_PREFIXES = [
   '/api/admin',
 ];
 
+// Case-insensitive, like Express's own routing: /API/forms reaches the
+// /api/forms router, so it must be blocked here too.
 function isAdminPath(p) {
+  const path = String(p || '').toLowerCase();
   for (const prefix of ADMIN_PATH_PREFIXES) {
-    if (p === prefix || p.startsWith(prefix + '/')) return true;
+    if (path === prefix || path.startsWith(prefix + '/')) return true;
   }
   return false;
 }
@@ -75,7 +78,7 @@ function createSubdomainMiddleware() {
 
     req.subdomainForm = form;
 
-    if (req.path.startsWith('/api/') && isAdminPath(req.path)) {
+    if (isAdminPath(req.path)) {
       // Admin APIs don't exist on per-form subdomains.
       return res.status(404).json({ error: 'Not available on this hostname' });
     }

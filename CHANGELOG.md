@@ -2,6 +2,20 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.6] - 2026-11-05
+
+### Fixed
+- **Form subdomains blocked admin APIs only in lower case.** Express routes
+  `/API/forms` to the same handler as `/api/forms`, but the per-form subdomain
+  only refused the lower-case spelling, so admin and auth endpoints stayed
+  reachable on a form's subdomain under any other casing. The check is
+  case-insensitive now.
+- **The analytics beacon (`POST /api/public/track`) answered 500 for a
+  malformed request.** A `formId` that wasn't a string reached the database
+  and failed there; it is a 400 now. A malformed session id, step index or
+  step id no longer drops the whole event either: that part is left out and
+  the event is stored.
+
 ## [0.47.5] - 2026-11-05
 
 ### Fixed

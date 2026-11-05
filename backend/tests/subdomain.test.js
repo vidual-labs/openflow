@@ -288,6 +288,21 @@ describe('Subdomain middleware (integration)', () => {
     expect(res.body.error).toBe('Not available on this hostname');
   });
 
+  // Express routes case-insensitively (/API/forms reaches the /api/forms
+  // router), so the block has to match the same way.
+  it.each(['/API/forms', '/Api/Forms', '/api/FORMS'])('blocks admin APIs on a subdomain regardless of case (%s)', async (path) => {
+    const res = await request(app).get(path).set('Host', 'acme.forms.example.com');
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Not available on this hostname');
+  });
+
+  it('isAdminPath matches case-insensitively', () => {
+    const { isAdminPath } = require('../src/middleware/subdomain');
+    expect(isAdminPath('/API/ADMIN/backup')).toBe(true);
+    expect(isAdminPath('/api/Auth')).toBe(true);
+    expect(isAdminPath('/API/public/form/x')).toBe(false);
+  });
+
   it('allows public APIs on a subdomain', async () => {
     const res = await request(app).get(`/api/public/form/${formSlug}`).set('Host', 'acme.forms.example.com');
     expect(res.status).toBe(200);
