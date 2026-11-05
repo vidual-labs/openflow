@@ -49,7 +49,11 @@ async function fetchCalonAvailability({ baseUrl, resourceSlug, from, to, duratio
     throw new Error('calon responded with a redirect, which is not followed for security reasons');
   }
   if (!res.ok) {
-    throw new Error(`calon returned ${res.status}`);
+    // The status rides along: a 404 is calon saying the resource isn't there,
+    // which the booking code must not retry like an outage (calonBooking.js).
+    const err = new Error(`calon returned ${res.status}`);
+    err.status = res.status;
+    throw err;
   }
 
   const body = await res.json();

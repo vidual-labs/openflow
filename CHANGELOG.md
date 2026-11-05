@@ -2,6 +2,17 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.48.4] - 2026-11-05
+
+### Fixed
+- **A booking for a calon resource that doesn't exist was retried for hours.**
+  With a misspelt or deactivated resource slug on a Date & Timeslot field,
+  calon's "no such resource" answer was treated like calon being down: the
+  booking stayed *pending* and was retried for about eight hours before it
+  was given up. It is marked *failed* (code `RESOURCE_UNKNOWN`) right away
+  now, the response is kept as before, and calon being unreachable is still
+  retried.
+
 ## [0.48.3] - 2026-11-05
 
 ### Fixed

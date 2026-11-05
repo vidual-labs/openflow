@@ -30,6 +30,15 @@ const RETRY_DELAYS_MINUTES = [1, 5, 30, 120, 360];
 
 class BookingInputError extends Error {}
 
+// calon answered, and the answer was about the request rather than the slot
+// (see REQUEST_LEVEL_CODES): recorded as `failed`, never retried.
+class BookingRefusedError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+  }
+}
+
 // The Date & Timeslot fields of a form that book into calon.
 function calonBookingFields(steps) {
   return flattenFields(steps).filter(
@@ -77,12 +86,20 @@ async function startInstant(field, answer) {
   let timeZone = zone;
   if (!timeZone) {
     const today = new Date().toISOString().slice(0, 10);
-    ({ timezone: timeZone } = await fetchCalonAvailability({
-      baseUrl: field.calon.baseUrl,
-      resourceSlug: field.calon.resourceSlug,
-      from: `${today}T00:00:00Z`,
-      to: `${today}T00:00:01Z`,
-    }));
+    try {
+      ({ timezone: timeZone } = await fetchCalonAvailability({
+        baseUrl: field.calon.baseUrl,
+        resourceSlug: field.calon.resourceSlug,
+        from: `${today}T00:00:00Z`,
+        to: `${today}T00:00:01Z`,
+      }));
+    } catch (err) {
+      // calon's 404 here means the resource isn't there (a misspelt or
+      // deactivated slug — also why the step fell back to the standalone
+      // times). That is calon's RESOURCE_UNKNOWN, not an outage to retry.
+      if (err.status === 404) throw new BookingRefusedError('RESOURCE_UNKNOWN', err.message);
+      throw err;
+    }
     if (!timeZone) throw new Error('calon did not report a timezone');
   }
   try {
@@ -181,6 +198,11 @@ async function bookSubmission({ form, steps, data, submissionId }) {
       if (err instanceof BookingInputError) {
         return { rejected: { fieldId: field.id, code: 'INVALID_INPUT', message: err.message } };
       }
+      if (err instanceof BookingRefusedError) {
+        logger.error('calon_booking_request_refused', { formId: form.id, fieldId: field.id, error: err.message });
+        bookings[field.id] = refusedEntry(err);
+        continue;
+      }
       logger.error('calon_booking_deferred', { formId: form.id, fieldId: field.id, error: err.message });
       bookings[field.id] = pendingEntry(1, err);
     }
@@ -228,6 +250,11 @@ async function processDueCalonBookings(db) {
           logger.error('calon_booking_rejected_on_retry', { formId: form.id, submissionId: row.id, code: result.code });
         }
       } catch (err) {
+        if (err instanceof BookingRefusedError) {
+          bookings[fieldId] = refusedEntry(err);
+          logger.error('calon_booking_request_refused', { formId: form.id, submissionId: row.id, error: err.message });
+          continue;
+        }
         const attempts = (entry.attempts || 0) + 1;
         if (err instanceof BookingInputError || attempts > RETRY_DELAYS_MINUTES.length) {
           bookings[fieldId] = { status: 'failed', attempts, lastError: String(err.message || err).slice(0, 500) };

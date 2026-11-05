@@ -60,6 +60,15 @@ describe('fetchCalonAvailability', () => {
     ).rejects.toThrow(/500/);
   });
 
+  // calon's 404 means the resource isn't there — an answer, not an outage —
+  // so the error carries the status for the booking code to tell them apart.
+  it('carries the HTTP status on the error of a non-ok response', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ status: 404, ok: false });
+    await expect(
+      fetchCalonAvailability({ baseUrl: 'https://calon.example.com', resourceSlug: 'gone', from: 'a', to: 'b' })
+    ).rejects.toMatchObject({ message: 'calon returned 404', status: 404 });
+  });
+
   it('rejects a response whose body has no slots array', async () => {
     global.fetch = jest.fn().mockResolvedValue({ status: 200, ok: true, json: async () => ({ timezone: 'UTC' }) });
     await expect(
