@@ -100,6 +100,19 @@ describe('submitCalonBooking', () => {
     expect(result).toEqual({ accepted: false, code: 'SLOT_TAKEN', message: 'Taken' });
   });
 
+  // calon's DecisionOut (src/calon/schemas.py) explains a rejection in
+  // `reason`; it has no `message` field, so the reason used to be dropped.
+  it("keeps calon's rejection reason, which calon sends as decision.reason", async () => {
+    respond(200, {
+      intent_id: 'int_1',
+      status: 'rejected',
+      decision: { outcome: 'rejected', code: 'SLOT_CONFLICT', reason: 'That time overlaps an existing booking.', violations: [], suggestions: [] },
+      booking: null,
+    });
+    const result = await submitCalonBooking({ baseUrl: 'https://calon.example.com', booking });
+    expect(result).toEqual({ accepted: false, code: 'SLOT_CONFLICT', message: 'That time overlaps an existing booking.' });
+  });
+
   it('treats a 422 as a rejection, not a retryable failure', async () => {
     respond(422, {});
     const result = await submitCalonBooking({ baseUrl: 'https://calon.example.com', booking });

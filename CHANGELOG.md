@@ -2,6 +2,15 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.4] - 2026-11-05
+
+### Fixed
+- **calon's reason for turning a booking down was lost.** calon explains a
+  rejection in `decision.reason`, but OpenFlow read a `decision.message` that
+  calon never sends, so `metadata.calonBookings[…].message` of a booking calon
+  refused on a background retry was always empty. The reason is kept now
+  (`message` is still read for anything that sends one).
+
 ## [0.47.3] - 2026-11-02
 
 ### Fixed

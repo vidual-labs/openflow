@@ -81,7 +81,9 @@ async function submitCalonBooking({ baseUrl, booking }) {
     const body = await res.json();
     const decision = body.decision || {};
     if (res.status === 201) return { accepted: true, bookingId: body.booking?.id || null, code: decision.code };
-    return { accepted: false, code: decision.code || 'REJECTED', message: decision.message || '' };
+    // calon explains a rejection in `decision.reason` (its DecisionOut has no
+    // `message`); `message` is still read for anything that sends one.
+    return { accepted: false, code: decision.code || 'REJECTED', message: decision.reason || decision.message || '' };
   }
   // calon refused the request's shape (e.g. an implausible email): asking again
   // won't change the answer, so this is a rejection, not a retryable failure.
