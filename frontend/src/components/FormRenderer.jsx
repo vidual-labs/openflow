@@ -1202,6 +1202,14 @@ function DateInput({ step, value, onChange }) {
 // "2026-09-02T09:30:00+02:00") into { "2026-09-02": ["09:30", ...] }. calon
 // already expressed them in the resource's own timezone, so this is just
 // slicing the ISO string — no timezone math needed on this side at all.
+function viewerTimeZone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  } catch {
+    return '';
+  }
+}
+
 function groupCalonSlotsByDate(slots) {
   const byDate = {};
   for (const slot of slots || []) {
@@ -1270,6 +1278,10 @@ function DateTimeslotInput({ step, value, onChange, formSlug }) {
   }, [calonEnabled, formSlug, step.id]);
 
   const timezone = remote?.timezone || '';
+  // calon's times are wall-clock times in its resource's zone. A visitor whose
+  // browser is in another zone would read "10:00" as their own 10:00, so the
+  // zone is named then (and only then — a same-zone form looks as before).
+  const zoneHint = timezone && timezone !== viewerTimeZone() ? timezone.replace(/_/g, ' ') : '';
   const slotsByDate = React.useMemo(
     () => (remote ? groupCalonSlotsByDate(remote.slots) : generateStandaloneSlots(step)),
     [remote, step]
@@ -1311,6 +1323,7 @@ function DateTimeslotInput({ step, value, onChange, formSlug }) {
   return (
     <div className="form-calendar" role="group" aria-label={locale.dateTimeslotPickDate}>
       {!step.description && <div className="form-calendar-hint">{locale.dateTimeslotPickDate}</div>}
+      {zoneHint && <div className="form-calendar-hint">{locale.dateTimeslotZone(zoneHint)}</div>}
       {/* Calendly-style: the day's times sit in a column beside the month and scroll
           inside it, so a day with dozens of slots never makes the step taller than the
           calendar itself. Narrow frames stack the column under the month instead. */}

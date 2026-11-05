@@ -2,6 +2,18 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.48.5] - 2026-11-05
+
+### Fixed
+- **A visitor in another timezone couldn't tell which time a calon slot
+  meant.** A calon-connected Date & Timeslot field lists calon's times in the
+  booked resource's timezone, with nothing saying so, so someone in New York
+  picking "10:00" on a Berlin calendar booked 04:00 their time. When the
+  visitor's timezone differs from calon's, the step now says which timezone
+  the times are in ("Times are in Europe/Berlin time." / "Alle Uhrzeiten in
+  der Zeitzone Europe/Berlin."). Forms seen from calon's own timezone look
+  exactly as before.
+
 ## [0.48.4] - 2026-11-05
 
 ### Fixed

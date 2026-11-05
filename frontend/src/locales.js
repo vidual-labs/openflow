@@ -69,6 +69,8 @@ export const LOCALES = {
     // Heading over the time column, e.g. "Thu, September 24".
     dateTimeslotDayHeading: (weekday, day, monthName) => `${weekday}, ${monthName} ${day}`,
     dateTimeslotNoSlots: 'No times available on this day.',
+    // Shown when the times come from calon in a zone other than the visitor's.
+    dateTimeslotZone: (zone) => `Times are in ${zone} time.`,
     dateTimeslotLoading: 'Loading availability…',
     errorDateTimeslotTime: 'Please also pick a time.',
     // Accessibility: not shown visually, only exposed to assistive tech.
@@ -148,6 +150,7 @@ export const LOCALES = {
     dateTimeslotPickTime: 'Uhrzeit wählen',
     dateTimeslotDayHeading: (weekday, day, monthName) => `${weekday}, ${day}. ${monthName}`,
     dateTimeslotNoSlots: 'An diesem Tag sind keine Zeiten verfügbar.',
+    dateTimeslotZone: (zone) => `Alle Uhrzeiten in der Zeitzone ${zone}.`,
     dateTimeslotLoading: 'Verfügbarkeit wird geladen…',
     errorDateTimeslotTime: 'Bitte wähle auch eine Uhrzeit.',
     previousStep: 'Vorherige Frage',
