@@ -2,6 +2,16 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.5] - 2026-11-05
+
+### Fixed
+- **Meta Conversions API sent a value of 0 when the value field was left
+  empty.** With a "value from field" configured, an empty answer (an optional
+  number field left blank) was read as `0` and replaced the default value, so
+  the lead was reported to Meta as worth nothing. An empty answer now falls
+  back to the default value, like the Google Ads integration already did; an
+  unset default sends no value at all.
+
 ## [0.47.4] - 2026-11-05
 
 ### Fixed

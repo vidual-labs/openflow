@@ -53,6 +53,33 @@ describe('Meta Conversions API', () => {
     });
   });
 
+  describe('conversion value', () => {
+    const valueIntegration = (config) => ({
+      ...integration,
+      config: JSON.stringify({ pixel_id: '123', access_token: 'tok', ...config }),
+    });
+
+    it('uses the value field when it holds a number', async () => {
+      const calls = mockFetch();
+      await runIntegration(valueIntegration({ default_value: '25', value_field_id: 'f_budget' }), 'form-1', 'Form', { f_budget: '120' }, steps, { submissionId: 's' });
+      expect(calls[0].body.data[0].custom_data).toEqual({ value: 120, currency: 'USD' });
+    });
+
+    // An optional value field left empty used to send value 0 (Number('') === 0),
+    // overriding the configured default; Google Ads already fell back here.
+    it.each([[''], ['   '], [null]])('falls back to the default value when the value field is %p', async (empty) => {
+      const calls = mockFetch();
+      await runIntegration(valueIntegration({ default_value: '25', value_field_id: 'f_budget' }), 'form-1', 'Form', { f_budget: empty }, steps, { submissionId: 's' });
+      expect(calls[0].body.data[0].custom_data).toEqual({ value: 25, currency: 'USD' });
+    });
+
+    it('sends no value at all when neither a default nor an answer is set', async () => {
+      const calls = mockFetch();
+      await runIntegration(valueIntegration({ default_value: null, value_field_id: 'f_budget' }), 'form-1', 'Form', { f_budget: '' }, steps, { submissionId: 's' });
+      expect(calls[0].body.data[0]).not.toHaveProperty('custom_data');
+    });
+  });
+
   describe('delivery queue', () => {
     it('passes the submission id through as event_id', async () => {
       const calls = mockFetch();
