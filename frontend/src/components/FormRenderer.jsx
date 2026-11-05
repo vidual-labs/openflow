@@ -6,6 +6,7 @@ import { flattenFields } from '../utils/steps';
 import { fieldIdResolver } from '../utils/fieldKeys';
 import { isSafeUrl, safeUrl } from '../utils/safeUrl';
 import { autofillToken } from '../autofill';
+import { readStorage, writeStorage } from '../utils/storage';
 
 const LocaleContext = createContext(LOCALES.en);
 function useLocale() { return useContext(LocaleContext); }
@@ -173,13 +174,17 @@ function GroupInput({ step, answers, setFieldAnswer, formSlug }) {
   );
 }
 
-// Generate a unique session ID for analytics
+// Generate a unique session ID for analytics. Kept in sessionStorage so a
+// reload stays one session; where the browser blocks storage, it lives for
+// this page view only (it used to throw, and no event was sent at all).
+let pageSessionId = null;
 function getSessionId() {
-  let sid = sessionStorage.getItem('of_sid');
+  let sid = readStorage('session', 'of_sid') || pageSessionId;
   if (!sid) {
     sid = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    sessionStorage.setItem('of_sid', sid);
+    writeStorage('session', 'of_sid', sid);
   }
+  pageSessionId = sid;
   return sid;
 }
 

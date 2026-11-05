@@ -2,6 +2,18 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.7] - 2026-11-05
+
+### Fixed
+- **A form with the cookie banner showed a blank page when the browser
+  blocks site data.** Reading `localStorage` throws when the visitor blocks
+  cookies for the page — typically a form embedded on another site while
+  third-party cookies are blocked — and that error took the whole form down.
+  Blocked storage now just means the banner's choice isn't remembered: the
+  form, the banner and the submission work as usual. The visit is also still
+  counted in analytics (it used to send no events at all), and the admin's
+  theme choice no longer breaks the admin app in such a browser.
+
 ## [0.47.6] - 2026-11-05
 
 ### Fixed

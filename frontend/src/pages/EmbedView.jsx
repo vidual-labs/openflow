@@ -4,6 +4,7 @@ import FormRenderer from '../components/FormRenderer';
 import { api } from '../api';
 import { LOCALES } from '../locales';
 import { captureClickIds, withMetaCookies } from '../clickIds';
+import { readStorage, writeStorage } from '../utils/storage';
 
 function CookieBanner({ form, onAccept, onDecline }) {
   const es = form.end_screen || {};
@@ -104,7 +105,7 @@ export default function EmbedView() {
   useEffect(() => {
     if (!form) return;
     if (!form.end_screen?.cookieConsentEnabled) { setCookieConsent(true); return; }
-    const stored = localStorage.getItem(`of_cc_${form.id}`);
+    const stored = readStorage('local', `of_cc_${form.id}`);
     if (stored === 'accepted') { setCookieConsent(true); }
     else if (stored === 'declined') { setCookieConsent(false); }
     else { setCookieConsent('pending'); }
@@ -136,11 +137,11 @@ export default function EmbedView() {
   }, [form?.gtm_id, cookieConsent]);
 
   function handleAccept() {
-    localStorage.setItem(`of_cc_${form.id}`, 'accepted');
+    writeStorage('local', `of_cc_${form.id}`, 'accepted');
     setCookieConsent(true);
   }
   function handleDecline() {
-    localStorage.setItem(`of_cc_${form.id}`, 'declined');
+    writeStorage('local', `of_cc_${form.id}`, 'declined');
     setCookieConsent(false);
   }
 
