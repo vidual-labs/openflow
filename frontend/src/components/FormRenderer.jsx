@@ -174,6 +174,27 @@ function GroupInput({ step, answers, setFieldAnswer, formSlug }) {
   );
 }
 
+// The submission travels as JSON with uploads base64-encoded (4 bytes per 3),
+// and the server takes at most 50 MB per submission (backend/src/index.js). A
+// file larger than this cap can't fit, whatever the field allows: it used to be
+// accepted here and then fail at the very end with "Request body too large".
+export const MAX_UPLOAD_MB = 37;
+
+export function effectiveMaxUploadMB(maxSizeMB) {
+  const configured = Number(maxSizeMB) > 0 ? Number(maxSizeMB) : 10;
+  return Math.min(configured, MAX_UPLOAD_MB);
+}
+
+// What to tell the respondent when sending failed. The server's own 4xx answer
+// is meant for them; a lost connection or a proxy's error page only offers the
+// browser's English "Failed to fetch" / "Invalid JSON response".
+function submitErrorMessage(err, locale) {
+  if (err?.status === 429) return locale.errorTooManySubmissions;
+  if (err?.status === 413) return locale.errorSubmitTooLarge;
+  if (err?.status >= 400 && err.status < 500 && err.message) return err.message;
+  return locale.errorSubmitFailed;
+}
+
 // Generate a unique session ID for analytics. Kept in sessionStorage so a
 // reload stays one session; where the browser blocks storage, it lives for
 // this page view only (it used to throw, and no event was sent at all).
@@ -491,7 +512,7 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
           return;
         }
       }
-      setError(err.message || locale.errorSubmitFailed);
+      setError(submitErrorMessage(err, locale));
     }
   }
 
@@ -1573,7 +1594,8 @@ function ConsentInput({ step, value, onChange }) {
 function FileUploadInput({ step, value, onChange }) {
   const locale = useLocale();
   const fileRef = useRef();
-  const maxSize = (step.maxSizeMB || 10) * 1024 * 1024;
+  const maxMB = effectiveMaxUploadMB(step.maxSizeMB);
+  const maxSize = maxMB * 1024 * 1024;
   const [fileName, setFileName] = useState(value?.name || '');
   const [error, setError] = useState('');
 
@@ -1582,7 +1604,7 @@ function FileUploadInput({ step, value, onChange }) {
     if (!file) return;
     setError('');
     if (file.size > maxSize) {
-      setError(locale.fileTooLarge(step.maxSizeMB || 10));
+      setError(locale.fileTooLarge(maxMB));
       return;
     }
     setFileName(file.name);
@@ -1624,7 +1646,7 @@ function FileUploadInput({ step, value, onChange }) {
           <>
             <span className="file-icon">&#128193;</span>
             <span>{locale.fileUploadPrompt}</span>
-            <span className="file-hint">{step.accept || '.pdf,.jpg,.png'} &middot; {locale.fileMaxSize(step.maxSizeMB || 10)}</span>
+            <span className="file-hint">{step.accept || '.pdf,.jpg,.png'} &middot; {locale.fileMaxSize(maxMB)}</span>
           </>
         )}
       </div>

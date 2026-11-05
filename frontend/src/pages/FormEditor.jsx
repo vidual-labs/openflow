@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { PageNotice } from '../components/AdminUI';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';
-import { toRgbTriplet } from '../components/FormRenderer';
+import { toRgbTriplet, MAX_UPLOAD_MB } from '../components/FormRenderer';
 import AnimatedBackground, { normalizeBgAnimation } from '../components/AnimatedBackground';
 import { TEXT_AUTOFILL_OPTIONS, textAutofillLabel, suggestAutofill } from '../autofill';
 import { syncFieldKeys, normalizeTypedKey, duplicateKeys, KEY_RE } from '../utils/fieldKeys';
@@ -1112,7 +1112,12 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
               </div>
               <div className="input-group">
                 <label>Max File Size (MB)</label>
-                <input className="input" type="number" min={1} max={50} value={step.maxSizeMB || 10} onChange={e => onChange({ maxSizeMB: parseInt(e.target.value) || 10 })} style={{ width: 100 }} />
+                <input className="input" type="number" min={1} max={MAX_UPLOAD_MB} value={step.maxSizeMB || 10} onChange={e => onChange({ maxSizeMB: parseInt(e.target.value) || 10 })} style={{ width: 100 }} />
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>
+                  {Number(step.maxSizeMB) > MAX_UPLOAD_MB
+                    ? `Files over ${MAX_UPLOAD_MB} MB can't be sent with a submission, so ${MAX_UPLOAD_MB} MB is the limit that applies.`
+                    : `Up to ${MAX_UPLOAD_MB} MB`}
+                </span>
               </div>
             </div>
           )}

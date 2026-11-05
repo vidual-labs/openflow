@@ -2,6 +2,24 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.8] - 2026-11-05
+
+### Fixed
+- **Files over 37 MB were accepted and then failed at the very end.** The
+  editor allowed a file size limit of up to 50 MB, but a submission carries
+  its upload base64-encoded and the server takes 50 MB per submission, so any
+  file above roughly 37 MB was accepted when picked and then refused on
+  submit with an English "Request body too large". 37 MB is now the most a
+  File Upload field accepts: a larger file is turned down right when it is
+  picked, in the form's language, and the field's hint shows the limit that
+  really applies. Forms set to more than 37 MB keep their setting; the editor
+  says that 37 MB applies.
+- **Sending errors on public forms are in the form's language.** A dropped
+  connection showed the browser's English "Failed to fetch", a proxy's error
+  page "Invalid JSON response", and the per-network submission limit and an
+  oversized upload the server's English text, also on German forms. These now
+  show a translated message that says what to do.
+
 ## [0.47.7] - 2026-11-05
 
 ### Fixed

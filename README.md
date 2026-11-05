@@ -239,7 +239,7 @@ openflow/
 | 👍 Yes / No | Binary choice | ✓ |
 | ⭐ Rating | Star rating (configurable 3-10) | ✓ |
 | 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | ✓ |
-| 📎 File Upload | Drag & drop with configurable types and size limit | |
+| 📎 File Upload | Drag & drop with configurable types and size limit (up to 37 MB per file — a submission carries the file base64-encoded and the server takes 50 MB per submission) | |
 
 **Contact & Data Fields:**
 
