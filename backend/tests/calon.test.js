@@ -67,6 +67,23 @@ describe('fetchCalonAvailability', () => {
     ).rejects.toThrow(/Unexpected response/);
   });
 
+  it('passes CALON_ALLOWED_HOSTS to the SSRF guard (and nothing when unset)', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ status: 200, ok: true, json: async () => ({ timezone: 'UTC', slots: [] }) });
+    await fetchCalonAvailability({ baseUrl: 'http://calon:8000', from: 'a', to: 'b' });
+    expect(assertSafeUrl).toHaveBeenLastCalledWith(expect.stringContaining('http://calon:8000/api/v1/availability'), { allowHosts: '' });
+
+    process.env.CALON_ALLOWED_HOSTS = 'calon:8000';
+    try {
+      await fetchCalonAvailability({ baseUrl: 'http://calon:8000', from: 'a', to: 'b' });
+      expect(assertSafeUrl).toHaveBeenLastCalledWith(expect.any(String), { allowHosts: 'calon:8000' });
+      global.fetch = jest.fn().mockResolvedValue({ status: 201, ok: true, json: async () => ({ decision: { code: 'ACCEPTED' }, booking: { id: 'b' } }) });
+      await submitCalonBooking({ baseUrl: 'http://calon:8000', booking: {} });
+      expect(assertSafeUrl).toHaveBeenLastCalledWith('http://calon:8000/api/v1/bookings', { allowHosts: 'calon:8000' });
+    } finally {
+      delete process.env.CALON_ALLOWED_HOSTS;
+    }
+  });
+
   it('propagates the SSRF guard rejection for an unsafe base URL, without ever fetching', async () => {
     assertSafeUrl.mockRejectedValueOnce(new Error('This URL resolves to a private/internal address and cannot be used'));
     global.fetch = jest.fn();

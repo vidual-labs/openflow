@@ -40,12 +40,53 @@ function isPrivateIp(ip) {
   return true; // unknown format — fail closed
 }
 
+// An operator's opt-in list of hosts that may be reached even though they are
+// on a private network or localhost — e.g. CALON_ALLOWED_HOSTS for a calon
+// instance on the same Docker network. "calon:8000, localhost:8000,
+// [::1]:8000, calon.lan" → [{ host, port }], port null meaning any port.
+// Malformed entries are ignored.
+function parseHostList(value) {
+  const out = [];
+  for (const raw of String(value || '').split(',')) {
+    const entry = raw.trim().toLowerCase();
+    if (!entry) continue;
+    let host = entry;
+    let port = null;
+    const bracketed = /^\[([^\]]+)\](?::(\d+))?$/.exec(entry);
+    if (bracketed) {
+      host = bracketed[1];
+      port = bracketed[2] === undefined ? null : Number(bracketed[2]);
+    } else if ((entry.match(/:/g) || []).length === 1) {
+      const [h, p] = entry.split(':');
+      if (!/^\d+$/.test(p)) continue;
+      host = h;
+      port = Number(p);
+    }
+    if (!host || (port !== null && (port < 1 || port > 65535))) continue;
+    out.push({ host, port });
+  }
+  return out;
+}
+
+function isListedHost(url, allowHosts) {
+  const list = Array.isArray(allowHosts) ? allowHosts : parseHostList(allowHosts);
+  if (list.length === 0) return false;
+  const host = url.hostname.replace(/^\[(.*)\]$/, '$1').toLowerCase();
+  const port = url.port ? Number(url.port) : (url.protocol === 'https:' ? 443 : 80);
+  return list.some(e => e.host === host && (e.port === null || e.port === port));
+}
+
 /**
  * Throws if `urlString` is not a safe destination for a server-initiated
  * outbound request: must be http(s), and must not resolve to a private,
  * loopback, link-local, or otherwise internal IP address.
+ *
+ * `allowHosts` (a parseHostList() string or result) names hosts the operator
+ * explicitly opted in to although they are private or localhost. Those still
+ * have to resolve, and never to a link-local / cloud-metadata or unspecified
+ * address.
  */
-async function assertSafeUrl(urlString) {
+async function assertSafeUrl(urlString, { allowHosts } = {}) {
   let url;
   try {
     url = new URL(urlString);
@@ -55,7 +96,24 @@ async function assertSafeUrl(urlString) {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new Error('Only http/https URLs are allowed');
   }
+  if (isListedHost(url, allowHosts)) {
+    await assertNotLinkLocal(url.hostname);
+    return;
+  }
   await resolveSafeHost(url.hostname);
+}
+
+async function assertNotLinkLocal(hostname) {
+  const host = String(hostname || '').replace(/^\[(.*)\]$/, '$1');
+  let addresses;
+  try {
+    addresses = await dns.lookup(host, { all: true, verbatim: true });
+  } catch {
+    throw new Error('Could not resolve host');
+  }
+  if (addresses.length === 0 || addresses.some(a => isLinkLocalOrUnspecified(a.address))) {
+    throw new Error('This host resolves to a link-local/metadata address and cannot be used');
+  }
 }
 
 /**
@@ -104,4 +162,4 @@ function isLinkLocalOrUnspecified(ip) {
   return true; // unknown format — fail closed
 }
 
-module.exports = { assertSafeUrl, resolveSafeHost, isPrivateIp, isLinkLocalOrUnspecified };
+module.exports = { assertSafeUrl, resolveSafeHost, isPrivateIp, isLinkLocalOrUnspecified, parseHostList };

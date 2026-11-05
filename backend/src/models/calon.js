@@ -9,6 +9,17 @@
 
 const { assertSafeUrl } = require('../utils/ssrf');
 
+// CALON_ALLOWED_HOSTS: comma-separated host[:port] entries (e.g.
+// "calon:8000,localhost:8000") that the calon calls may reach although they
+// are on a private network or localhost. Unset, every calon URL gets the full
+// public-address check. Only these two calon requests use it (fixed paths,
+// /api/v1/availability and /api/v1/bookings) — webhooks and every other
+// outbound call stay as strict as before — and link-local / cloud-metadata
+// addresses are refused even when listed.
+function calonGuardOptions() {
+  return { allowHosts: process.env.CALON_ALLOWED_HOSTS || '' };
+}
+
 async function fetchCalonAvailability({ baseUrl, resourceSlug, from, to, durationMin }) {
   let url;
   try {
@@ -23,8 +34,9 @@ async function fetchCalonAvailability({ baseUrl, resourceSlug, from, to, duratio
 
   // Same SSRF guard as every other operator-supplied URL this server fetches
   // (webhooks, Apps Script) — a calon base URL is just as capable of pointing
-  // at an internal address.
-  await assertSafeUrl(url.toString());
+  // at an internal address. calon usually runs next to OpenFlow, though (same
+  // Docker network or LAN), so the operator can opt specific hosts in.
+  await assertSafeUrl(url.toString(), calonGuardOptions());
 
   const res = await fetch(url.toString(), {
     signal: AbortSignal.timeout(8000),
@@ -63,7 +75,7 @@ async function submitCalonBooking({ baseUrl, booking }) {
   } catch {
     throw new Error('Invalid calon URL');
   }
-  await assertSafeUrl(url.toString());
+  await assertSafeUrl(url.toString(), calonGuardOptions());
 
   const res = await fetch(url.toString(), {
     method: 'POST',

@@ -2,6 +2,20 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.48.0] - 2026-11-05
+
+### Added
+- **`CALON_ALLOWED_HOSTS` lets a calon instance next to OpenFlow be
+  connected.** A calon base URL had to resolve to a public address, so the
+  usual self-hosted setup — calon on the same Docker network or LAN, e.g.
+  `http://calon:8000` — was refused ("Requests to localhost are not allowed" /
+  "…resolves to a private/internal address"). List such hosts as
+  comma-separated `host[:port]` entries (`CALON_ALLOWED_HOSTS=calon:8000`).
+  Only OpenFlow's two calon requests (availability and booking) use the list;
+  webhooks and every other integration stay as strict as before, and
+  link-local / cloud-metadata addresses are refused even when listed. Unset,
+  nothing changes.
+
 ## [0.47.10] - 2026-11-05
 
 ### Fixed

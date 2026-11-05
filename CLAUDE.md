@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.47.10 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.48.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -143,11 +143,16 @@ enough for a simple lead form. It can optionally be pointed at a self-hosted
 `resourceSlug`), in which case the times shown are calon's own real availability instead.
 The backend proxies that read (`GET /api/public/form/:slug/availability`,
 `backend/src/models/calon.js`) — the browser never talks to calon directly — through the
-same `utils/ssrf.js#assertSafeUrl` guard as any other operator-supplied URL. On submit, the
+same `utils/ssrf.js#assertSafeUrl` guard as any other operator-supplied URL (with one opt-in:
+`CALON_ALLOWED_HOSTS` lists `host[:port]` entries the two calon requests may reach on a private
+network or localhost — never link-local/metadata, and webhooks never use it). On submit, the
 picked slot is **booked** in calon before the submission is stored
 (`models/calonBooking.js`, via calon's public `POST /api/v1/bookings` — no secret, no
-calon-side config): a rejection returns `409 { code: 'slot_unavailable', fieldId }`
-and the renderer sends the respondent back to that step; calon being unreachable
+calon-side config), with `end` = start + `durationMin` (the same length the availability was
+read with; without one, calon's default on both sides): a rejection of the slot returns
+`409 { code: 'slot_unavailable', fieldId }` and the renderer sends the respondent back to that
+step; a request calon refuses outright (400/422, or a gating code such as `RESOURCE_UNKNOWN`)
+stores the submission with the booking `failed` instead; calon being unreachable
 stores the submission with `metadata.calonBookings[fieldId].status = 'pending'` (plus
 `metadata.calonPending`) and the delivery worker's sweep retries it. The requester's
 name/email/phone come from `step.calon.nameFieldId`/`emailFieldId`/`phoneFieldId`, or
@@ -220,7 +225,8 @@ Tests live in `backend/tests/` and cover: authentication, authorization, API
 tokens, rate limiting, form CRUD, submission validation, slug rules, subdomain
 rules, backup/restore, sessions/lockout/2FA/password change/security headers (`loginSecurity.test.js`), system-mail settings (`systemMailSettings.test.js`), calon availability/booking, analytics ranges and step drop-off, encryption, integration
 secrets, Meta CAPI, the audit log, session revocation, stable field keys
-(`fieldKeys.test.js`) and the security hardening (`securityHardening.test.js`).
+(`fieldKeys.test.js`), the SSRF guard incl. the `CALON_ALLOWED_HOSTS` opt-in (`ssrf.test.js`)
+and the security hardening (`securityHardening.test.js`).
 There is no frontend test suite.
 
 ## Version Management
