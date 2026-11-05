@@ -2,6 +2,14 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.48.2] - 2026-11-05
+
+### Fixed
+- **Deleting the last response on a later page showed "No responses yet".**
+  The page stayed empty although other responses were left, and deleting on
+  any page didn't move the next page's first response up. The page is
+  reloaded after a delete now, and one that ends up empty steps back.
+
 ## [0.48.1] - 2026-11-05
 
 ### Fixed

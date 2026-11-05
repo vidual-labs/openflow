@@ -38,6 +38,9 @@ export default function Submissions() {
   const [page, setPage] = useState(1);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(null);
+  // Bumped after a delete so the page is fetched again: the next page's first
+  // response moves up, and a page left empty steps back one.
+  const [reloadKey, setReloadKey] = useState(0);
 
   async function handleDelete(subId) {
     if (!confirm('Delete this response? This cannot be undone.')) return;
@@ -46,6 +49,7 @@ export default function Submissions() {
       await api.deleteSubmission(id, subId);
       setSubmissions(prev => prev.filter(s => s.id !== subId));
       setTotal(t => Math.max(0, t - 1));
+      setReloadKey(k => k + 1);
     } catch (err) {
       setError(err.message || 'Failed to delete response');
     } finally {
@@ -62,11 +66,17 @@ export default function Submissions() {
   useEffect(() => {
     api.getSubmissions(id, page)
       .then(d => {
+        // Deleting the last response on a later page left it empty, showing
+        // "No responses yet" while there still were some.
+        if (d.submissions.length === 0 && d.total > 0 && page > 1) {
+          setPage(Math.max(1, Math.ceil(d.total / 20)));
+          return;
+        }
         setSubmissions(d.submissions);
         setTotal(d.total);
       })
       .catch(err => setError(err.message || 'Failed to load submissions'));
-  }, [id, page]);
+  }, [id, page, reloadKey]);
 
   if (!form && !error) return <Loading />;
 
