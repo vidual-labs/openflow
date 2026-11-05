@@ -385,15 +385,21 @@ Once connected (field editor → **Connect to calon**), OpenFlow:
   fields those are is picked under **Book under** in the same panel (automatic by
   default: the first Email and Phone fields, and a Short Text field with the
   *Full name* autofill). calon needs an email, so the form needs an Email field.
+- **Books exactly the slot that was shown** — the field's **Slot length** is the
+  length OpenFlow asks calon's availability for, and the booking carries the
+  matching end time, so calon books that length rather than its own default.
 - **Sends the respondent back if the slot is gone** — when calon turns the slot
   down (taken in the meantime, or against its rules), the respondent lands back on
   the Date & Timeslot step with fresh times and a note to pick another; nothing is
   stored until the booking succeeds.
 - **Never loses a lead to a calon outage** — if calon can't be reached at submit,
   the submission is stored anyway and the booking is retried in the background
-  (1, 5, 30, 120, 360 minutes). The outcome is kept in the submission's metadata
-  (`calonBookings`: `booked` with calon's booking id, `pending`, `rejected` or
-  `failed`).
+  (1, 5, 30, 120, 360 minutes). A request calon refuses outright rather than the
+  slot (it answers `400`/`422`, or the resource is unknown — usually a
+  configuration problem) also keeps the submission, with the booking marked
+  `failed` and calon's reason in `lastError`. The outcome is kept in the
+  submission's metadata (`calonBookings`: `booked` with calon's booking id,
+  `pending`, `rejected` or `failed`).
 
 #### How the two sides talk
 

@@ -2,6 +2,32 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.47.10] - 2026-11-05
+
+### Fixed
+- **calon booked its own default length instead of the slot that was
+  shown.** A Date & Timeslot field asks calon for free slots of its **Slot
+  length**, but the booking was sent without an end time, so calon booked its
+  resource's default length. Whenever the two differed, the booked
+  appointment was longer or shorter than the one picked, and a slot shown as
+  free could be refused as taken. The booking now carries the matching end.
+- **A request calon refused outright sent the respondent back to pick
+  another time.** When calon answered that the request itself was unusable —
+  a `400`/`422`, or a decision such as an unknown resource — OpenFlow treated
+  it like a taken slot, so the respondent was sent back to the timeslot step
+  again and again and the lead was never stored. Such a submission is now
+  stored with the booking marked `failed` and calon's reason in `lastError`
+  (also when it happens on a background retry); only a refused *slot* still
+  goes back to the respondent.
+- **On the night clocks go back, a booking for 02:00–02:59 could land an
+  hour late.** That hour happens twice; in time zones east of UTC (e.g.
+  Europe/Berlin) the second occurrence was booked although calon lists the
+  first one first. The first occurrence is booked now.
+
+### Changed
+- The Date & Timeslot editor's hint now says that the slot length is also
+  what calon is asked for and books.
+
 ## [0.47.9] - 2026-11-05
 
 ### Fixed

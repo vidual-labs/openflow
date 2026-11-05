@@ -88,9 +88,25 @@ async function submitCalonBooking({ baseUrl, booking }) {
   // calon refused the request's shape (e.g. an implausible email): asking again
   // won't change the answer, so this is a rejection, not a retryable failure.
   if (res.status === 400 || res.status === 422) {
-    return { accepted: false, code: 'INVALID_REQUEST', message: `calon returned ${res.status}` };
+    const detail = await res.json().then(describeErrorDetail).catch(() => '');
+    return { accepted: false, code: 'INVALID_REQUEST', message: `calon returned ${res.status}${detail ? `: ${detail}` : ''}`.slice(0, 500) };
   }
   throw new Error(`calon returned ${res.status}`);
+}
+
+// FastAPI's error body: { detail: "text" } or, for a validation error,
+// { detail: [{ loc: ['body', 'requester', 'email'], msg }] }.
+function describeErrorDetail(body) {
+  const detail = body && body.detail;
+  if (typeof detail === 'string') return detail;
+  if (!Array.isArray(detail)) return '';
+  return detail
+    .map(d => {
+      const loc = Array.isArray(d?.loc) ? d.loc.filter(part => part !== 'body').join('.') : '';
+      return [loc, d?.msg].filter(Boolean).join(': ');
+    })
+    .filter(Boolean)
+    .join('; ');
 }
 
 // The UTC offset, in minutes, that `timeZone` has at the instant `utcMs`.
@@ -103,6 +119,20 @@ function zoneOffsetMinutes(timeZone, utcMs) {
   return Math.round((Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - utcMs) / 60000);
 }
 
+function formatOffset(offset) {
+  const abs = Math.abs(offset);
+  const pad = n => String(n).padStart(2, '0');
+  return `${offset >= 0 ? '+' : '-'}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+}
+
+// The instant `utcMs` as local time in `timeZone`, with that zone's offset at
+// that instant: "2026-10-25T02:00:00+01:00".
+function instantToIso(utcMs, timeZone) {
+  const offset = zoneOffsetMinutes(timeZone, utcMs);
+  const local = new Date(utcMs + offset * 60000).toISOString().slice(0, 19);
+  return `${local}${formatOffset(offset)}`;
+}
+
 // A wall-clock "2026-09-02" + "09:30" in `timeZone` → "2026-09-02T09:30:00+02:00",
 // the offset-carrying instant calon's booking API requires. Throws on malformed
 // input or an unknown IANA zone.
@@ -111,13 +141,24 @@ function localSlotToIso(date, time, timeZone) {
   const t = /^(\d{2}):(\d{2})$/.exec(time || '');
   if (!d || !t) throw new Error(`Invalid date/time "${date} ${time}"`);
   const wall = Date.UTC(+d[1], +d[2] - 1, +d[3], +t[1], +t[2]);
-  // Two passes: the offset at the wall time read as UTC can differ from the offset
-  // at the real instant when a DST change falls in between.
-  let offset = zoneOffsetMinutes(timeZone, wall);
-  offset = zoneOffsetMinutes(timeZone, wall - offset * 60000);
-  const abs = Math.abs(offset);
-  const pad = n => String(n).padStart(2, '0');
-  return `${date}T${time}:00${offset >= 0 ? '+' : '-'}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+  // The offsets in force half a day either side cover any DST change near this
+  // time. An offset is right if the zone really has it at the instant it gives.
+  // On a fall-back night both are (the hour happens twice): take the earlier
+  // instant, the first occurrence — the one calon lists first.
+  const candidates = [...new Set([
+    zoneOffsetMinutes(timeZone, wall - 12 * 3600000),
+    zoneOffsetMinutes(timeZone, wall + 12 * 3600000),
+  ])].filter(offset => zoneOffsetMinutes(timeZone, wall - offset * 60000) === offset);
+  let offset;
+  if (candidates.length) {
+    offset = Math.max(...candidates);
+  } else {
+    // A wall time skipped by a spring-forward gap has no instant; keep the
+    // previous behaviour (read with the offset in force just after the gap).
+    offset = zoneOffsetMinutes(timeZone, wall);
+    offset = zoneOffsetMinutes(timeZone, wall - offset * 60000);
+  }
+  return `${date}T${time}:00${formatOffset(offset)}`;
 }
 
-module.exports = { fetchCalonAvailability, submitCalonBooking, localSlotToIso };
+module.exports = { fetchCalonAvailability, submitCalonBooking, localSlotToIso, instantToIso };

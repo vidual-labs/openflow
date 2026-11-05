@@ -1280,7 +1280,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
                 </div>
               </div>
               <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>
-                Used to generate the selectable times. Ignored for any day calon (below) reports real availability for — calon's own scheduling rules decide those.
+                Used to generate the selectable times. With calon connected (below), calon's own scheduling rules decide which times are offered; the slot length is still the length asked for and booked there.
               </span>
 
               <div style={{ marginTop: 16, padding: 16, background: 'var(--panel)', borderRadius: 10 }}>

@@ -120,6 +120,18 @@ describe('submitCalonBooking', () => {
     expect(result.code).toBe('INVALID_REQUEST');
   });
 
+  it("keeps what calon's 422 says was wrong (FastAPI validation detail)", async () => {
+    respond(422, { detail: [{ type: 'value_error', loc: ['body', 'requester', 'email'], msg: 'Value error, must be an email address' }] });
+    const result = await submitCalonBooking({ baseUrl: 'https://calon.example.com', booking });
+    expect(result).toEqual({ accepted: false, code: 'INVALID_REQUEST', message: 'calon returned 422: requester.email: Value error, must be an email address' });
+  });
+
+  it("keeps a 422's plain-text detail too", async () => {
+    respond(422, { detail: 'start is out of range' });
+    const result = await submitCalonBooking({ baseUrl: 'https://calon.example.com', booking });
+    expect(result.message).toBe('calon returned 422: start is out of range');
+  });
+
   it('throws on a 5xx so the caller can retry', async () => {
     respond(503, {});
     await expect(submitCalonBooking({ baseUrl: 'https://calon.example.com', booking })).rejects.toThrow('503');
@@ -135,6 +147,18 @@ describe('localSlotToIso', () => {
     ['2026-09-02', '09:30', 'Asia/Kolkata', '2026-09-02T09:30:00+05:30'],
     ['2026-09-02', '09:30', 'UTC', '2026-09-02T09:30:00+00:00'],
   ])('%s %s in %s is %s', (date, time, zone, expected) => {
+    expect(localSlotToIso(date, time, zone)).toBe(expected);
+  });
+
+  // On a fall-back night 02:00–02:59 happens twice. The answer only keeps the
+  // wall time, so take the first occurrence — the one listed first — rather
+  // than landing an hour later than the slot calon offered first.
+  it.each([
+    ['2026-10-25', '02:30', 'Europe/Berlin', '2026-10-25T02:30:00+02:00'],
+    ['2026-10-25', '02:00', 'Europe/Berlin', '2026-10-25T02:00:00+02:00'],
+    ['2026-11-01', '01:30', 'America/New_York', '2026-11-01T01:30:00-04:00'],
+    ['2026-10-25', '03:00', 'Europe/Berlin', '2026-10-25T03:00:00+01:00'],
+  ])('resolves the ambiguous %s %s in %s to its first occurrence (%s)', (date, time, zone, expected) => {
     expect(localSlotToIso(date, time, zone)).toBe(expected);
   });
 
