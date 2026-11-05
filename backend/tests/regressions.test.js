@@ -360,3 +360,33 @@ describe('typed field validation on submit', () => {
     expect((await post({ n: 0 })).status).toBe(400);
   });
 });
+
+// Submissions made within the same second (created_at has second precision)
+// came back oldest-first among themselves, so the list, the CSV and the
+// lodgely pull were not strictly newest-first.
+describe('submission order', () => {
+  let app;
+  beforeAll(() => { app = createTestApp(); });
+
+  it('lists and exports same-second submissions newest first', async () => {
+    const userId = seedUser();
+    const formId = seedForm(userId, [{ id: 'n', type: 'text', label: 'Name' }]);
+    const insert = getDb().prepare("INSERT INTO submissions (id, form_id, data, created_at) VALUES (?, ?, ?, '2026-11-05 10:00:00')");
+    for (const name of ['first', 'second', 'third']) insert.run(uuid(), formId, JSON.stringify({ n: name }));
+    const cookie = await login(app);
+
+    const list = await request(app).get(`/api/submissions/${formId}`).set('Cookie', cookie);
+    expect(list.body.submissions.map(s => s.data.n)).toEqual(['third', 'second', 'first']);
+
+    const paged = await request(app).get(`/api/submissions/${formId}?limit=1&page=2`).set('Cookie', cookie);
+    expect(paged.body.submissions.map(s => s.data.n)).toEqual(['second']);
+
+    const csv = await request(app).get(`/api/submissions/${formId}/export`).set('Cookie', cookie);
+    expect(csv.text.split('\n').slice(1).map(line => line.split(',')[1])).toEqual(['"third"', '"second"', '"first"']);
+  });
+
+  it('has an index for listing a form\'s submissions', () => {
+    const indexes = getDb().prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'submissions'").all().map(r => r.name);
+    expect(indexes).toContain('idx_submissions_form');
+  });
+});

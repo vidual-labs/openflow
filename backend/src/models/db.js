@@ -56,6 +56,10 @@ function initDb() {
       FOREIGN KEY (form_id) REFERENCES forms(id)
     );
 
+    -- Listing, counting and exporting a form's submissions (the admin UI,
+    -- the dashboard's counts, the lodgely pull) all filter on form_id.
+    CREATE INDEX IF NOT EXISTS idx_submissions_form ON submissions(form_id, created_at);
+
     CREATE TABLE IF NOT EXISTS integrations (
       id TEXT PRIMARY KEY,
       form_id TEXT NOT NULL,

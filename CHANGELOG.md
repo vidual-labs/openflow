@@ -2,6 +2,20 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.48.3] - 2026-11-05
+
+### Fixed
+- **Responses from the same second were listed oldest-first.** The
+  responses page, the CSV export and the submissions API (which the lodgely
+  connector pages through) sort by submission time, which only has
+  second precision; responses within one second came back in the opposite
+  order. They are strictly newest-first now.
+
+### Changed
+- Listing, counting and exporting a form's responses use a new database
+  index on the form (created automatically on the next start; nothing else
+  changes).
+
 ## [0.48.2] - 2026-11-05
 
 ### Fixed
