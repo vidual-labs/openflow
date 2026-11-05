@@ -653,12 +653,17 @@ export default function FormRenderer({ form, onSubmit, embedded = false }) {
   // Enter would only re-pick it. Handing focus to the consent box once the answer
   // is in makes the hint below it true: Enter agrees, Space ticks. Text steps are
   // left alone — stealing the caret mid-word would be worse than a dead key.
+  // A step that is ready from the outset (nothing required) never changes its
+  // readiness on the click, so the answer itself re-triggers the hand-over —
+  // otherwise focus stayed on the clicked option and Enter only re-picked it.
+  // Not for multiple choice, whose every tick would yank focus from the options.
   const consentBoxRef = useRef(null);
+  const answerForConsentFocus = step && step.type !== 'multi-select' ? answers[step.id] : undefined;
   useEffect(() => {
     if (inlineConsentReady && clickAnswered && !consentGiven) {
       consentBoxRef.current?.focus();
     }
-  }, [inlineConsentReady, clickAnswered, consentGiven]);
+  }, [inlineConsentReady, clickAnswered, consentGiven, answerForConsentFocus]);
 
   const redirectUrl = safeUrl(endScreen.redirectUrl);
 

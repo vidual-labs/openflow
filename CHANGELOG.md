@@ -2,6 +2,17 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.48.1] - 2026-11-05
+
+### Fixed
+- **Enter did nothing useful after clicking an answer on an optional last
+  step with inline consent.** When the last question was a click-to-answer one
+  (Yes/No, Single Choice, Rating, …) that isn't required, focus stayed on the
+  clicked option, so the "press Enter to confirm" hint was wrong: Enter just
+  picked the same option again. Focus now moves to the consent box after the
+  answer, as it already did on required steps, so Enter confirms and then
+  agrees and submits.
+
 ## [0.48.0] - 2026-11-05
 
 ### Added
