@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.48.6 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.49.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -20,8 +20,8 @@ OpenFlow is a **full-stack application** with three main components:
   - `models/db.js` — Database schema, migrations, first-boot admin seeding
   - `models/integrations.js` — Integration engine (webhooks, email, Google Sheets, Google Ads, Meta Conversions API)
   - `models/secureDefaults.js` — Refuses a weak seed `ADMIN_PASSWORD` at boot, the weak/guessable-password rules (`isWeakPassword`, `isAcceptableNewPassword`), flags accounts still on a weak password (admin UI banner)
-  - `models/sessions.js` — Server-side login sessions (`token` cookie, 7 days) and remembered browsers (`of_dev_<hash>` cookie, 30 days, path `/api/auth`); only SHA-256 hashes of tokens are stored
-  - `models/loginGuard.js` — Persistent per-e-mail lockout after failed logins (1/5/15/60 min every 5 failures); remembered browsers are exempt
+  - `models/sessions.js` — Server-side login sessions (`token` cookie, host-only, 7 days) and remembered browsers (`of_dev_<hash>` cookie, 30 days, path `/api/auth`); only SHA-256 hashes of tokens are stored. `markReauthenticated` stamps a session's `reauth_at` ("sudo mode", see below)
+  - `models/loginGuard.js` — Persistent per-e-mail lockout after failed logins (1/5/15/60 min every 5 failures); remembered browsers are exempt at `/login`. Wrong passwords at `POST /api/auth/confirm-password` count too, and that endpoint is refused while locked, with no exemption
   - `models/twoFactor.js` — E-mailed one-time codes (opt-in two-factor login, confirming 2FA); `OPENFLOW_2FA_DISABLED` escape hatch
   - `models/systemMail.js` — OpenFlow's own outgoing mail (login codes, security notices); separate from the per-form email integration. `SMTP_*` env wins (UI read-only); otherwise the admin UI's settings, stored encrypted as the `smtp` row of `site_settings` (password write-only; a UI host passes `integrations.js#smtpTarget`)
   - `models/passwords.js` — Async bcrypt (cost `BCRYPT_ROUNDS`, default 12), dummy-hash timing equalisation, rehash-on-login
@@ -31,10 +31,10 @@ OpenFlow is a **full-stack application** with three main components:
   - `models/apiTokens.js` — Read-only `ofw_` API tokens (hashed at rest)
   - `models/encryption.js` / `models/integrationSecrets.js` — AES-256-GCM for integration configs; which config fields are write-only secrets (redacted from every API response, merged on update)
   - `models/rateLimit.js` — In-memory rate limiter
-  - `middleware/auth.js` — Session + API-token authentication, `requireAdmin`, `requireSession`
+  - `middleware/auth.js` — Session + API-token authentication, `requireAdmin`, `requireSession`, `requireRecentAuth` ("sudo mode": the password re-entered on this session within `REAUTH_WINDOW_MS` = 10 min, else `403 reauth_required`), `isAdminUser` (the one role check), `sessionFromCookie` (the live session behind the cookie only — never a Bearer header)
   - `middleware/securityHeaders.js` — Strict CSP + `X-Frame-Options: DENY` for admin pages, none for public form pages (`/f/`, `/embed/`, subdomains — GTM/Pixel/iframes); nosniff, referrer policy, HSTS over HTTPS
   - `middleware/subdomain.js` — Resolves per-form subdomains and blocks admin paths on them
-  - `routes/` — API endpoints (auth, forms, submissions, public, integrations, analytics, settings, admin). `routes/account.js` (mounted inside `auth.js`) is the self-service part: own password, 2FA, sessions, remembered browsers
+  - `routes/` — API endpoints (auth, forms, submissions, public, integrations, analytics, settings, admin). `routes/account.js` (mounted inside `auth.js`) is the self-service part: own password, 2FA, sessions, remembered browsers, and `POST /confirm-password` (sudo mode)
   - `utils/` — `steps.js` (flattens combined steps), `fieldKeys.js` (stable field keys + key-based condition references), `conditions.js` (server mirror of the renderer's show/hide logic), `slug.js`, `subdomain.js`, `sanitizeCss.js`, `ssrf.js`
 - **Database**: SQLite stored in Docker volume (`db-data`) for persistence
 - **Key Features**: Rate limiting, server-side sessions with opt-in e-mail 2FA and account lockout, read-only API tokens, HMAC-signed webhooks, SMTP email, Google Sheets/Ads integrations, retrying deliveries, analytics tracking, backup & restore
@@ -45,9 +45,9 @@ OpenFlow is a **full-stack application** with three main components:
 - **Key Files**:
   - `main.jsx` — Route split: `/f/:slug`, `/embed/:slug`, everything else the admin SPA (plus per-form subdomain mode)
   - `App.jsx` — Admin shell (sidebar: Forms, Analytics, an admin-only "Administration" section with Users/Settings/Backup, and the account footer — e-mail → `/account`, theme toggle, log out; auth gate)
-  - `pages/FormEditor.jsx` — Form builder UI (`FIELD_TYPES` lives here; steps, end screen, design, GTM/GDPR, integrations, embed tabs)
-  - `pages/FormView.jsx` — Public form page at `/f/:slug` (landing page, GTM, cookie banner)
-  - `pages/EmbedView.jsx` — Iframe-optimized form page at `/embed/:slug` (posts resize messages)
+  - `pages/FormEditor.jsx` — Form builder UI (`FIELD_TYPES` lives here; steps, end screen, design, GTM/GDPR, integrations, embed tabs). Gets `isAdmin` from `App.jsx` (`user.role` from `GET /api/auth/me`): for non-admins the GTM field is read-only (`GtmReadOnly`, remove/undo only)
+  - `pages/FormView.jsx` — Public form page at `/f/:slug` (landing page, GTM, cookie banner). Also exports `GtmSuppressedNotice`, the small notice shown instead of GTM when the API sent `gtmSuppressed` (signed-in browser; inline styles only)
+  - `pages/EmbedView.jsx` — Iframe-optimized form page at `/embed/:slug` (posts resize messages; same GTM rules and notice)
   - `pages/Landing.jsx` (+ `Landing.css`, `components/LandingBackground.jsx`) — Marketing landing page shown at `/` to logged-out visitors when `OPENFLOW_LANDING_PAGE=true` (read via `GET /api/settings` → `landingPage`); login then lives at `/login`. Lazy-loaded, always dark, styles scoped under `.lp`
   - `pages/Dashboard.jsx` — Form list (create, duplicate, publish, delete)
   - `pages/Analytics.jsx` — Analytics overview: all forms vs. the previous period
@@ -58,13 +58,13 @@ OpenFlow is a **full-stack application** with three main components:
   - `pages/Login.jsx` — Password step, then (2FA accounts on a new browser) the e-mailed-code step with "remember this browser"
   - `components/FormRenderer.jsx` — Renders forms with animations, validation, conditional logic and consent
   - `components/IntegrationsPanel.jsx` — Configure integrations per form
-  - `components/AdminUI.jsx` — Shared page header (breadcrumb row via `backTo`/`crumb`/`eyebrow`, then the title; it also renders the account-wide notice from `PageNoticeContext`, e.g. the weak-password warning, under the title), alert, empty/loading components, plus `LogoMark` / `LogoWordmark` (the brand mark and the "OpenFlow" wordmark used in the sidebar, topbar and login page; the same mark as `public/favicon.svg` and `docs/assets/openflow-mark.svg`)
+  - `components/AdminUI.jsx` — `ReauthDialog` (the sudo-mode password prompt, mounted once by `App.jsx`; registers itself via `api.js#setReauthHandler`). Shared page header (breadcrumb row via `backTo`/`crumb`/`eyebrow`, then the title; it also renders the account-wide notice from `PageNoticeContext`, e.g. the weak-password warning, under the title), alert, empty/loading components, plus `LogoMark` / `LogoWordmark` (the brand mark and the "OpenFlow" wordmark used in the sidebar, topbar and login page; the same mark as `public/favicon.svg` and `docs/assets/openflow-mark.svg`)
   - `components/AnimatedBackground.jsx` — The form's animated backgrounds (CSS Waves/Aurora; canvas Gradient Wave, Gateway Flow, Flow). Legacy `bubbles`/`particles` values map to `gradientWave`/`gatewayFlow` via `normalizeBgAnimation`
   - `styles/global.css` — The admin look (since 0.47: a toned-down take on the promo video). Colour tokens for light/dark/auto at the top (`--bg`, `--card`, `--text`, `--text-light`, `--border`, `--border-strong`, `--accent-text`, …; inline styles across the pages use them, so restyle via tokens, not literals). System UI font (`--font`) and system mono (`--mono`, data only: numbers, keys, column heads); Space Grotesk (the Google Fonts link in `index.html`, which public forms rely on too) only for the logo wordmark. Page-wide admin rules (body font/size/background, `color-scheme`, `code`, focus ring) hang off `html.of-admin`, which `App.jsx` sets — see **Admin styles must never reach public forms** below. Purple only for the main button, active tab, focus, links and the purple-tinted sidebar (same in both themes). The sidebar and the page header share a vertical grid so the first menu item and the page title sit in the same 36px band — keep `.admin-sidebar`/`.admin-main` paddings, the 32px logo row and the 20px `.page-crumb` row in step
   - `locales.js` — Built-in respondent-facing UI strings (EN / DE)
   - `autofill.js` — Browser-autofill (`autocomplete`) tokens per field + the editor's "Autofill tip" heuristic for Short Text fields
   - `clickIds.js` — Ad click-ID capture for FormView/EmbedView (gclid/gbraid/wbraid, `fbclid` → `fbc`, Meta Pixel `_fbp`/`_fbc` cookies), used only after cookie consent
-- **API Client**: `api.js` — Wrapper for backend API calls
+- **API Client**: `api.js` — Wrapper for backend API calls. A `403 reauth_required` asks the registered handler (the `ReauthDialog`) for the password, then retries the request once (`fetchWithReauth`, also used by the blob backup download); cancel throws `reauth_cancelled`
 - **Dev Server**: Vite with proxy to backend (port 3000)
 
 ### WordPress Plugin
@@ -122,7 +122,7 @@ fields table:
 - **`steps`**: Array of steps, each with field type, label, placeholder, validation, etc. A step is normally one field; two adjacent questions can be merged into a `{ type: 'group', fields: [a, b] }` step. Use `utils/steps.js#flattenFields` before touching leaf fields. Every leaf field (incl. group sub-fields and address `customFields`) also carries a stable, human-readable **`key`** (`[a-z][a-z0-9_]{0,39}`, unique within the form — `utils/fieldKeys.js`): the editor derives it from the label until the operator edits it (`keyCustom`), the save path fills missing keys and refuses duplicates/malformed keys with 400, and a boot migration (`db.js#ensureFormFieldKeys`, also run after a restore) keyed every pre-0.46 form. Keys are what the outside world maps on (lodgely, the submission contract); submission `data` stays keyed by `id`.
 - **`theme`**: Colors, fonts, animated backgrounds, button position, custom CSS, language
 - **`end_screen`**: Thank-you content, auto-redirect, GDPR consent settings, cookie-banner settings
-- **`gtm_id`**: GTM container id (validated as `GTM-XXXXXXX`, since it is interpolated into a raw `<script>` tag)
+- **`gtm_id`**: GTM container id (validated as `GTM-XXXXXXX`, since it is interpolated into a raw `<script>` tag). Third-party script on the admin origin, so: only admins set or change it (`routes/forms.js`, `403 gtm_admin_only`; anyone may clear it to `''`, an unchanged value passes, clone keeps it), and `GET /api/public/form/:slug` never hands it to a browser with a live session cookie — see **GTM and the admin session** below
 - **Integrations**: Rows in the `integrations` table, keyed by `form_id`
 - **Landing Page**: Optional logo, headline, subline, footer links (in `theme`)
 - **Conditional Logic**: Show/hide rules based on previous answers (stored in step config as `condition: { field: <key>, op, value }` — `field` is the referenced field's **key** since 0.46; a bare id still resolves via `fieldKeys.js#fieldIdResolver`)
@@ -225,8 +225,11 @@ Tests live in `backend/tests/` and cover: authentication, authorization, API
 tokens, rate limiting, form CRUD, submission validation, slug rules, subdomain
 rules, backup/restore, sessions/lockout/2FA/password change/security headers (`loginSecurity.test.js`), system-mail settings (`systemMailSettings.test.js`), calon availability/booking, analytics ranges and step drop-off, encryption, integration
 secrets, Meta CAPI, the audit log, session revocation, stable field keys
-(`fieldKeys.test.js`), the SSRF guard incl. the `CALON_ALLOWED_HOSTS` opt-in (`ssrf.test.js`)
-and the security hardening (`securityHardening.test.js`).
+(`fieldKeys.test.js`), the SSRF guard incl. the `CALON_ALLOWED_HOSTS` opt-in (`ssrf.test.js`),
+the security hardening (`securityHardening.test.js`), the GTM rules for signed-in browsers and
+non-admins (`gtmProtection.test.js`) and sudo mode (`reauth.test.js`). Suites that call a
+sudo-guarded route for its own sake confirm the password first with `confirmPassword()` from
+`tests/setup.js`.
 There is no frontend test suite.
 
 ## Version Management
@@ -257,7 +260,7 @@ Defined in one `CREATE TABLE IF NOT EXISTS` block plus additive `ALTER TABLE`
 migrations in `models/db.js`:
 
 - `users` — Users (email, bcrypt `password_hash`, `role` = `admin` | `user`, `twofa_enabled`; `token_version` is legacy, unused since 0.44)
-- `sessions` / `trusted_devices` / `auth_challenges` / `login_failures` — Login state (hashed tokens, epoch-ms timestamps, no FKs, not in backups; a restore signs out everyone but the restoring admin)
+- `sessions` / `trusted_devices` / `auth_challenges` / `login_failures` — Login state (hashed tokens, epoch-ms timestamps, no FKs, not in backups; a restore signs out everyone but the restoring admin). `sessions.reauth_at` (epoch ms, NULL = never; added in 0.49) is when the password was last re-entered on that session
 - `forms` — Everything about a form: `steps`, `end_screen`, `theme` (JSON text columns), `slug`, `gtm_id`, `published`. Steps are **not** a separate table.
 - `submissions` — User responses (`data` + `metadata` JSON, keyed by field id)
 - `integrations` — Integration configs per form (`type`, `enabled`, `config` JSON)
@@ -270,12 +273,13 @@ migrations in `models/db.js`:
 
 ## API Structure
 
-- **Public** (`/api/public/`): No auth required. Load form, submit response, track analytics.
+- **Public** (`/api/public/`): No auth required. Load form, submit response, track analytics. `GET /form/:slug` is always `Cache-Control: private, no-store` + `Vary: Cookie`, and for a request with a live session cookie it returns `gtm_id: ''` plus `gtmSuppressed: true` (only when the form has a container); visitors get the unchanged shape.
 - **Admin** (`/api/forms`, `/api/submissions`, `/api/auth`): session (server-side `token` cookie / Bearer) or a read-only `ofw_` API token (`router.use(authMiddleware)`). Every query is scoped to the **owning user** (`user_id = req.userId`) — admins included; there is no cross-user form visibility yet.
 - **Integrations** (`/api/integrations`): Test, create, update, delete integrations; list and retry deliveries.
 - **Analytics** (`/api/analytics`): Get funnel and trend data.
 - **Settings** (`/api/settings`): `GET` is public (branding, `primaryHost` and the `landingPage` flag are needed by the logged-out screen and form editor); `PUT /:key` is admin-only and restricted to an allowlist of keys.
 - **Admin-only** (`/api/admin/`): Backup, restore, and scheduled-backup listing. The whole router is behind `authMiddleware, requireAdmin`, and it is blocked outright on per-form subdomains. `requireAdmin` rejects API tokens, so a token never inherits its owner's admin rights.
+- **Sudo mode** (`requireRecentAuth`, after `requireAdmin` / `requireSession`) guards exactly: `GET /api/admin/backup`, `GET /api/admin/backups/:filename`, `POST /api/admin/restore`, `POST /api/auth/users`, `PUT /api/auth/users/:id`, `POST /api/auth/users/:id/revoke-sessions`, `DELETE /api/auth/users/:id`, `POST /api/auth/tokens`. `POST /api/auth/confirm-password` `{ password }` (session only) sets `reauth_at` on the current session: async bcrypt, a shared per-user throttle (10 / 15 min), wrong passwords → `loginGuard.recordFailure`, audit `reauth_succeeded` / `reauth_failed`. A login does **not** set it (a script already running in the browser would otherwise get sudo with every new login). Don't put lodgely's reads (`GET /api/forms`, `/api/forms/:id`, `/api/submissions/:formId`) or other everyday reads behind it.
 
 ### External consumer: lodgely (lead intake hub)
 
@@ -284,8 +288,9 @@ connector that **pulls** submissions out of an install — it is not a push
 integration configured here, but it does depend on this API's shape:
 
 - **Auth (preferred): an API token.** A logged-in user mints a read-only token
-  under **Account → API Tokens** (`POST /api/auth/tokens`), and lodgely sends
-  it as a `Bearer` token. See "API tokens" below.
+  under **Account → API Tokens** (`POST /api/auth/tokens`, which asks for the
+  password first — sudo mode), and lodgely sends it as a `Bearer` token. See
+  "API tokens" below. Using the token never needs a password confirmation.
 - **Auth (fallback): login.** lodgely can still log in via `POST /api/auth/login`
   (email + password) and read the session token from the **`token` httpOnly
   cookie** (an opaque server-side session token since 0.44, no longer a JWT),
@@ -307,7 +312,8 @@ hash is stored; the plaintext is shown once at creation. The auth middleware
 the owning user, and **rejects any non-GET/HEAD request** (`req.authVia ===
 'api_token'`). `requireSession` blocks token-authed callers from the
 token-management endpoints, so a token can never mint or list tokens. Tokens are
-managed in the UI under **Account → API Tokens**.
+managed in the UI under **Account → API Tokens**; minting one needs a recent
+password confirmation (`requireRecentAuth`), listing and revoking do not.
 
 ## Common Tasks
 
@@ -344,10 +350,11 @@ docker compose up -d --build
 - **HMAC Signing**: Webhooks can be signed with a shared secret for security.
 - **Conditional Logic**: Stored as a `condition` on the step. Evaluated client-side during form render and mirrored on submit by `utils/conditions.js`, so the server skips validation of hidden steps and drops their stale answers.
 - **Form Slugs**: Unique URL identifier for public form access (`/f/<slug>` and `/embed/<slug>`). Renaming a slug archives the old one in `slug_history` so old links still resolve.
-- **Multi-User**: Admin can invite users and assign roles (`admin` / `user`). `requireAdmin` / `requireSession` live in `middleware/auth.js` (the one copy — don't re-implement role checks inline). Forms are private to their owner.
+- **Multi-User**: Admin can invite users and assign roles (`admin` / `user`). `requireAdmin` / `requireSession` / `requireRecentAuth` and `isAdminUser` (for routes that treat admins differently, e.g. the GTM rule) live in `middleware/auth.js` (the one copy — don't re-implement role checks inline). Forms are private to their owner.
 - **Reverse proxy**: set `TRUST_PROXY` (e.g. `1`) behind a proxy, or every visitor shares the proxy's IP — one rate-limit bucket and a wrong `metadata.ip`. `utils/trustProxy.js` logs `trust_proxy_not_configured` once when it sees `X-Forwarded-For` without it.
 - **Secrets**: `ENCRYPTION_KEY` is auto-generated and persisted next to the DB when unset; there is no hardcoded fallback. `JWT_SECRET` is unused since 0.44 (sessions are server-side) and only logs a "you can remove it" note.
-- **Login security**: Passwords are only ever compared with the async bcrypt API (`models/passwords.js`) — never `compareSync`, which would block the event loop for ~300 ms per login at cost 12. A new password must pass `isAcceptableNewPassword` (with the account's e-mail). Anything that should end a user's access calls `sessions.revokeUserSessions` (with `devices: true` when remembered browsers must re-verify).
+- **Login security**: Passwords are only ever compared with the async bcrypt API (`models/passwords.js`) — never `compareSync`, which would block the event loop for ~300 ms per login at cost 12. A new password must pass `isAcceptableNewPassword` (with the account's e-mail). Anything that should end a user's access calls `sessions.revokeUserSessions` (with `devices: true` when remembered browsers must re-verify). A new admin action that could take over the instance or leak all of its data (backups, users, credentials) goes behind `requireRecentAuth`.
+- **GTM and the admin session**: form pages share the admin's origin, so a form's GTM container could act with the session of a signed-in visitor. The rules: (1) `GET /api/public/form/:slug` drops the container for a live session **cookie** (`sessionFromCookie`; a Bearer header is an API client) and is never cacheable by a shared cache; (2) only admins set or change `gtm_id`; (3) sudo mode guards backups, user management and token minting. Per-form subdomains never get the cookie: it is host-only — never give it a `Domain`. **Residual gap**: a form tab opened while signed out keeps a running GTM script that can use a session created later in the same browser (and an `/embed/` frame on another site could open the admin in a pop-up); only sudo mode limits that. The advice to operators is to test forms in a private window. Anything new that loads third-party script on the form pages must follow rule (1).
 - **Admin styles must never reach public forms**: `global.css` and `index.html` are loaded on the public form pages too (`/f/`, `/embed/`, per-form subdomains), and a form's text inherits the page's base font when the operator picked none (`--form-font: inherit`). So an admin restyle must not change what a respondent sees:
   - The unscoped `body` rule keeps the forms' original base (system font stack, 16px, `#F8F9FA`/`#2D3436`, dark `#1a1a2e`/`#E0E0E0`) as literals; admin page-wide styles go under `html.of-admin` (set by `App.jsx` while the admin is mounted), never on bare `body`, `:root` `color-scheme`, element selectors or `:focus-visible`.
   - Admin class names must not reuse the renderer's: check `FormRenderer.jsx` / `FormRenderer.css` before adding a generic name (0.47.0 broke every form heading with an editor `.step-question` rule; the editor's is now `.step-row-question`). The editor's Design-tab preview (`.form-preview`) mirrors the forms' base, not the admin's.

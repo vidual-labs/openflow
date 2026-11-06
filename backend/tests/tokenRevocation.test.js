@@ -1,7 +1,7 @@
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
 const { randomUUID: uuid } = require('crypto');
-const { createTestApp } = require('./setup');
+const { createTestApp, confirmPassword } = require('./setup');
 
 function getDb() {
   return require('../src/models/db').getDb();
@@ -26,6 +26,7 @@ describe('Session revocation', () => {
 
     const adminRes = await request(app).post('/api/auth/login').send({ email: 'revoke-admin@test.com', password: 'adminpass' });
     adminCookie = adminRes.headers['set-cookie'];
+    await confirmPassword(app, adminCookie, 'adminpass'); // user management needs it
 
     const targetRes = await request(app).post('/api/auth/login').send({ email: 'revoke-target@test.com', password: 'targetpass' });
     targetCookie = targetRes.headers['set-cookie'];

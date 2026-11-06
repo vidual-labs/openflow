@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { api } from '../api';
 import { formatServerDateTime } from '../utils/dates';
 import { PageHeader, Alert, EmptyState, Loading } from '../components/AdminUI';

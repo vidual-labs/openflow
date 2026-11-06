@@ -52,6 +52,17 @@ function describeUserAgent(ua) {
   return browser || os || 'an API client';
 }
 
+// 429 for an account in the failed-login lockout (models/loginGuard.js).
+function lockedResponse(res, retryAfterSeconds) {
+  const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+  res.set('Retry-After', String(retryAfterSeconds));
+  return res.status(429).json({
+    error: `Too many failed sign-in attempts for this account. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+    code: 'account_locked',
+    retryAfterSeconds,
+  });
+}
+
 function requestContext(req) {
   return `${describeUserAgent(req.headers['user-agent'])}, IP ${clientIp(req)}`;
 }
@@ -92,4 +103,4 @@ function completeLogin(req, res, user, { method, trustDevice = false }) {
   res.json({ user: publicUser(user) });
 }
 
-module.exports = { clientIp, findUserByEmail, publicUser, describeUserAgent, requestContext, completeLogin };
+module.exports = { clientIp, findUserByEmail, publicUser, describeUserAgent, requestContext, completeLogin, lockedResponse };

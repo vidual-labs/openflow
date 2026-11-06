@@ -1,7 +1,7 @@
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
 const { randomUUID: uuid } = require('crypto');
-const { createTestApp } = require('./setup');
+const { createTestApp, confirmPassword } = require('./setup');
 
 function getDb() {
   return require('../src/models/db').getDb();
@@ -18,9 +18,13 @@ function seedUsers() {
   return { adminId, userId };
 }
 
+// Logs in and, for a successful login, re-confirms the password ("sudo mode",
+// needed for backups and user management).
 async function login(app, email, password) {
   const res = await request(app).post('/api/auth/login').send({ email, password });
-  return res.headers['set-cookie'];
+  const cookie = res.headers['set-cookie'];
+  if (res.status === 200) await confirmPassword(app, cookie, password);
+  return cookie;
 }
 
 describe('Admin backup & restore', () => {

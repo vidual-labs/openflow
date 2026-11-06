@@ -84,6 +84,10 @@ export const LOCALES = {
     cookieAccept: 'Accept',
     cookieDecline: 'Decline',
     cookieBannerLabel: 'Cookie preferences',
+    // Only ever shown to someone signed in to OpenFlow (never to respondents):
+    // the server left the form's GTM container out (routes/public.js).
+    gtmSuppressedNotice: 'Google Tag Manager is off because you\'re signed in to OpenFlow. Open this form in a private window to test tracking.',
+    gtmSuppressedDismiss: 'Hide this notice',
   },
   de: {
     next: 'Weiter',
@@ -162,5 +166,7 @@ export const LOCALES = {
     cookieAccept: 'Akzeptieren',
     cookieDecline: 'Ablehnen',
     cookieBannerLabel: 'Cookie-Einstellungen',
+    gtmSuppressedNotice: 'Google Tag Manager ist aus, weil du bei OpenFlow angemeldet bist. Öffne dieses Formular in einem privaten Fenster, um das Tracking zu testen.',
+    gtmSuppressedDismiss: 'Hinweis ausblenden',
   },
 };

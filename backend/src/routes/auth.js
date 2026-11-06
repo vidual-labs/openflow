@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
-const { authMiddleware, requireAdmin, requireSession, readToken } = require('../middleware/auth');
+const { authMiddleware, requireAdmin, requireSession, requireRecentAuth, readToken } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const apiTokens = require('../models/apiTokens');
 const { checkRateLimit, isRateLimited } = require('../models/rateLimit');
@@ -12,7 +12,7 @@ const sessions = require('../models/sessions');
 const loginGuard = require('../models/loginGuard');
 const twoFactor = require('../models/twoFactor');
 const { isMailConfigured, sendSystemMail, sendSecurityNotice } = require('../models/systemMail');
-const { clientIp, findUserByEmail, publicUser, requestContext, completeLogin } = require('./authHelpers');
+const { clientIp, findUserByEmail, publicUser, requestContext, completeLogin, lockedResponse } = require('./authHelpers');
 
 const router = Router();
 
@@ -21,16 +21,6 @@ router.use((req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
-
-function lockedResponse(res, retryAfterSeconds) {
-  const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
-  res.set('Retry-After', String(retryAfterSeconds));
-  return res.status(429).json({
-    error: `Too many failed sign-in attempts for this account. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
-    code: 'account_locked',
-    retryAfterSeconds,
-  });
-}
 
 // Step 1: e-mail + password. Answers with the session (as before), or — for
 // an account with two-factor login on, from a browser it doesn't remember —
@@ -183,6 +173,10 @@ router.get('/me', authMiddleware, (req, res) => {
 router.use(require('./account'));
 
 // --- Multi-user management (admin only) ---
+//
+// Creating, changing (role, password, 2FA reset), signing out and deleting
+// users need the admin's password re-entered within the last 10 minutes on
+// this session (requireRecentAuth, "sudo mode"); listing them does not.
 
 // List all users
 router.get('/users', authMiddleware, requireAdmin, (req, res) => {
@@ -193,7 +187,7 @@ router.get('/users', authMiddleware, requireAdmin, (req, res) => {
 });
 
 // Create / invite user
-router.post('/users', authMiddleware, requireAdmin, asyncHandler(async (req, res) => {
+router.post('/users', authMiddleware, requireAdmin, requireRecentAuth, asyncHandler(async (req, res) => {
   if (!checkRateLimit(`users-create:${req.userId}`, 20, 60)) {
     return res.status(429).json({ error: 'Too many requests. Try again later.' });
   }
@@ -228,7 +222,7 @@ router.post('/users', authMiddleware, requireAdmin, asyncHandler(async (req, res
 
 // Update a user: role, password, or (twoFactor: false) switch off their
 // two-factor login when they have lost access to their mailbox.
-router.put('/users/:id', authMiddleware, requireAdmin, asyncHandler(async (req, res) => {
+router.put('/users/:id', authMiddleware, requireAdmin, requireRecentAuth, asyncHandler(async (req, res) => {
   const db = getDb();
   const user = db.prepare('SELECT id, email FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
@@ -283,7 +277,7 @@ router.put('/users/:id', authMiddleware, requireAdmin, asyncHandler(async (req, 
 // touching their password — e.g. after a suspected compromise. Takes effect
 // on their very next request, and their next login needs the e-mailed code
 // again if they use two-factor login.
-router.post('/users/:id/revoke-sessions', authMiddleware, requireAdmin, (req, res) => {
+router.post('/users/:id/revoke-sessions', authMiddleware, requireAdmin, requireRecentAuth, (req, res) => {
   const db = getDb();
   const user = db.prepare('SELECT id, email FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
@@ -294,7 +288,7 @@ router.post('/users/:id/revoke-sessions', authMiddleware, requireAdmin, (req, re
 });
 
 // Delete user (admin only)
-router.delete('/users/:id', authMiddleware, requireAdmin, (req, res) => {
+router.delete('/users/:id', authMiddleware, requireAdmin, requireRecentAuth, (req, res) => {
   try {
     const db = getDb();
     if (req.params.id === req.userId) {
@@ -335,8 +329,10 @@ router.get('/tokens', authMiddleware, requireSession, (req, res) => {
   res.json({ tokens: apiTokens.listTokens(req.userId) });
 });
 
-// Create a token. The plaintext is returned exactly once, here.
-router.post('/tokens', authMiddleware, requireSession, (req, res) => {
+// Create a token. The plaintext is returned exactly once, here. A token is
+// lasting read access to every form and submission of the account, so minting
+// one needs the password re-entered recently (requireRecentAuth).
+router.post('/tokens', authMiddleware, requireSession, requireRecentAuth, (req, res) => {
   if (!checkRateLimit(`tokens-create:${req.userId}`, 20, 60)) {
     return res.status(429).json({ error: 'Too many requests. Try again later.' });
   }

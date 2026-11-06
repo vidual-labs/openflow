@@ -1,7 +1,55 @@
 const BASE = '/api';
 
+// "Sudo mode": downloading/restoring a backup, managing users and creating
+// API tokens answer 403 { code: 'reauth_required' } until the password was
+// re-entered on this session in the last 10 minutes. The admin shell
+// registers a handler (ReauthDialog in components/AdminUI.jsx) that asks for
+// it and resolves true once confirmed, false when cancelled; the request is
+// then retried once. Without a handler (public form pages) the 403 stands.
+let reauthHandler = null;
+let pendingReauth = null;
+
+export function setReauthHandler(handler) {
+  reauthHandler = handler;
+}
+
+// Concurrent requests share one prompt.
+function askForReauth() {
+  if (!reauthHandler) return Promise.resolve(false);
+  if (!pendingReauth) {
+    pendingReauth = Promise.resolve()
+      .then(() => reauthHandler())
+      .catch(() => false)
+      .finally(() => { pendingReauth = null; });
+  }
+  return pendingReauth;
+}
+
+async function needsReauth(res) {
+  if (res.status !== 403 || !reauthHandler) return false;
+  try {
+    return (await res.clone().json()).code === 'reauth_required';
+  } catch {
+    return false;
+  }
+}
+
+export const REAUTH_CANCELLED_MESSAGE = 'Cancelled: this action needs your password, so nothing was done.';
+
+async function fetchWithReauth(url, init) {
+  const res = await fetch(url, init);
+  if (!(await needsReauth(res))) return res;
+  if (!(await askForReauth())) {
+    const err = new Error(REAUTH_CANCELLED_MESSAGE);
+    err.status = 403;
+    err.code = 'reauth_cancelled';
+    throw err;
+  }
+  return fetch(url, init);
+}
+
 async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetchWithReauth(`${BASE}${path}`, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
@@ -50,6 +98,8 @@ export const api = {
   revokeSession: (id) => request(`/auth/sessions/${id}`, { method: 'DELETE' }),
   revokeOtherSessions: () => request('/auth/sessions/revoke-others', { method: 'POST' }),
   forgetDevice: (id) => request(`/auth/devices/${id}`, { method: 'DELETE' }),
+  // Sudo mode: unlocks the guarded admin actions for 10 minutes on this session.
+  confirmPassword: (password) => request('/auth/confirm-password', { method: 'POST', body: JSON.stringify({ password }) }),
 
   getForms: () => request('/forms'),
   getForm: (id) => request(`/forms/${id}`),
@@ -102,7 +152,7 @@ export const api = {
   // Backup & restore (admin only)
   getBackupInfo: () => request('/admin/backup/info'),
   downloadBackup: async () => {
-    const res = await fetch(`${BASE}/admin/backup`, { credentials: 'include' });
+    const res = await fetchWithReauth(`${BASE}/admin/backup`, { credentials: 'include' });
     if (!res.ok) {
       let message = 'Backup download failed';
       try { message = (await res.json()).error || message; } catch { /* non-JSON */ }

@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const dns = require('dns');
 const nodemailer = require('nodemailer');
 const { randomUUID: uuid } = require('crypto');
-const { createTestApp } = require('./setup');
+const { createTestApp, confirmPassword } = require('./setup');
 const { decrypt } = require('../src/models/encryption');
 const { runIntegration } = require('../src/models/integrations');
 
@@ -34,6 +34,7 @@ describe('integration secrets are write-only', () => {
       .run(formId, userId, 'Secrets', `secrets-${formId.slice(0, 8)}`, '[]');
     const res = await request(app).post('/api/auth/login').send({ email: 'owner@test.com', password: 'ownerpass' });
     cookie = res.headers['set-cookie'];
+    await confirmPassword(app, cookie, 'ownerpass'); // minting a token needs it
   });
 
   function storedConfig(id) {

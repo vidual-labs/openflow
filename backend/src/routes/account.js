@@ -1,8 +1,8 @@
 const { Router } = require('express');
 const { getDb } = require('../models/db');
-const { authMiddleware, requireSession } = require('../middleware/auth');
+const { authMiddleware, requireSession, REAUTH_WINDOW_MS } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { checkRateLimit } = require('../models/rateLimit');
+const { checkRateLimit, isRateLimited } = require('../models/rateLimit');
 const { logAuditEvent } = require('../models/auditLog');
 const logger = require('../utils/logger');
 const { isAcceptableNewPassword, WEAK_PASSWORD_MESSAGE, flagWeakPassword } = require('../models/secureDefaults');
@@ -11,14 +11,15 @@ const sessions = require('../models/sessions');
 const loginGuard = require('../models/loginGuard');
 const twoFactor = require('../models/twoFactor');
 const { isMailConfigured, sendSystemMail, sendSecurityNotice } = require('../models/systemMail');
-const { clientIp, describeUserAgent, requestContext } = require('./authHelpers');
+const { clientIp, describeUserAgent, requestContext, lockedResponse } = require('./authHelpers');
 
 // Self-service account security for the logged-in user, mounted under
 // /api/auth (so it inherits the subdomain block and no-store caching): change
 // password, opt in/out of the e-mailed login code, see and end sessions, and
-// forget remembered browsers. Session-only: an API token can't reach any of it.
+// forget remembered browsers, and re-confirm the password for "sudo mode".
+// Session-only: an API token can't reach any of it.
 const router = Router();
-router.use(['/account', '/password', '/2fa', '/sessions', '/devices'], authMiddleware, requireSession);
+router.use(['/account', '/password', '/2fa', '/sessions', '/devices', '/confirm-password'], authMiddleware, requireSession);
 
 function currentUser(req) {
   return getDb().prepare('SELECT * FROM users WHERE id = ?').get(req.userId);
@@ -44,6 +45,59 @@ async function confirmPassword(req, res, user) {
   }
   return true;
 }
+
+// "Sudo mode": re-enter the password to unlock the actions behind
+// requireRecentAuth (backup download/restore, user management, minting API
+// tokens) for REAUTH_WINDOW_MS — on this session only. Two-factor accounts
+// confirm with the password alone (the session already passed the code).
+//
+// A wrong password counts toward the account's persistent lockout like a
+// failed login, and while the account is locked this is refused too: a script
+// running in the signed-in browser carries the same remembered-browser cookie,
+// so the login lockout's exemption for known browsers doesn't apply here. The
+// per-account throttle is shared with the other password re-checks above.
+router.post('/confirm-password', asyncHandler(async (req, res) => {
+  const user = currentUser(req);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  const ip = clientIp(req);
+  const rateKey = `confirm-password:${user.id}`;
+  if (isRateLimited(rateKey, 10)) {
+    return res.status(429).json({ error: 'Too many attempts. Try again in 15 minutes.' });
+  }
+  const lock = loginGuard.lockStatus(user.email);
+  if (lock.locked) return lockedResponse(res, lock.retryAfterSeconds);
+
+  const { password } = req.body || {};
+  if (typeof password !== 'string' || !password) {
+    return res.status(400).json({ error: 'Your password is required' });
+  }
+  if (password.length > 1024) {
+    return res.status(401).json({ error: 'That password is not correct.', code: 'wrong_password' });
+  }
+
+  const { ok } = await verifyPassword(password, user.password_hash);
+  if (!ok) {
+    checkRateLimit(rateKey, 10, 15 * 60);
+    const failure = loginGuard.recordFailure(user.email);
+    logAuditEvent({ userId: user.id, action: 'reauth_failed', target: user.email, ip, details: { failures: failure.failures } });
+    if (failure.lockedMinutes) {
+      logAuditEvent({ userId: user.id, action: 'login_locked', target: user.email, ip, details: { minutes: failure.lockedMinutes, via: 'confirm-password' } });
+      if (failure.notify) {
+        sendSecurityNotice(user.email, 'Failed password confirmations on your OpenFlow account', [
+          `There have been ${failure.failures} failed attempts to sign in to or confirm the password of your OpenFlow account (${user.email}); the latest from ${requestContext(req)}.`,
+          `Password sign-ins and confirmations are paused for ${failure.lockedMinutes} minutes.`,
+          'If this wasn\'t you, someone may be guessing your password from a signed-in browser: change it and use "Sign out everywhere else" on your Account page.',
+        ]);
+      }
+    }
+    return res.status(401).json({ error: 'That password is not correct.', code: 'wrong_password' });
+  }
+
+  loginGuard.clearFailures(user.email);
+  const at = sessions.markReauthenticated(req.sessionId);
+  logAuditEvent({ userId: user.id, action: 'reauth_succeeded', target: user.email, ip });
+  res.json({ ok: true, validUntil: at + REAUTH_WINDOW_MS });
+}));
 
 function currentDeviceId(req) {
   const device = sessions.findDevice(req.cookies?.[sessions.deviceCookieName(req.userId)], req.userId);

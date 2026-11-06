@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
-import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router';
 import { api } from './api';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -11,7 +11,7 @@ import FormAnalytics from './pages/FormAnalytics';
 import Settings from './pages/Settings';
 import Backup from './pages/Backup';
 import Account from './pages/Account';
-import { LogoMark, LogoWordmark, Loading, EmptyState, Alert, PageNoticeContext } from './components/AdminUI';
+import { LogoMark, LogoWordmark, Loading, EmptyState, Alert, PageNoticeContext, ReauthDialog } from './components/AdminUI';
 import { version as APP_VERSION } from '../package.json';
 import { readStorage, writeStorage } from './utils/storage';
 
@@ -187,7 +187,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/login" element={<Navigate to="/" replace />} />
-            <Route path="/forms/:id" element={<FormEditor />} />
+            <Route path="/forms/:id" element={<FormEditor isAdmin={isAdmin} />} />
             <Route path="/forms/:id/submissions" element={<Submissions />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/analytics/:formId" element={<FormAnalytics />} />
@@ -199,6 +199,7 @@ export default function App() {
           </Routes>
         </PageNoticeContext.Provider>
       </main>
+      <ReauthDialog />
     </div>
   );
 }

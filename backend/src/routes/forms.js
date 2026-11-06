@@ -3,7 +3,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const { validateFormPayload } = require('../utils/formPayload');
 const { prepareSteps } = require('../utils/fieldKeys');
 const { getDb } = require('../models/db');
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, isAdminUser } = require('../middleware/auth');
 const { randomUUID: uuid } = require('crypto');
 const { customAlphabet } = require('nanoid');
 const { validateSlug } = require('../utils/slug');
@@ -31,6 +31,21 @@ function validateGtmId(gtm_id) {
     return { ok: false, error: 'GTM container ID must look like GTM-XXXXXXX' };
   }
   return { ok: true, value: gtm_id };
+}
+
+// The container is also third-party script on this origin (see
+// routes/public.js), so only admins may set or change it. Anyone may remove
+// one ('' — that only lowers the risk), and a value equal to the stored one
+// passes, since the editor always sends the whole form back. Forms of
+// non-admins that already have a container keep it.
+function gtmIsSet(value) {
+  return value !== undefined && value !== null && value !== '';
+}
+function gtmAdminOnly(res) {
+  return res.status(403).json({
+    code: 'gtm_admin_only',
+    error: 'Only an admin can set or change a form\'s Google Tag Manager container.',
+  });
 }
 
 router.use(authMiddleware);
@@ -71,6 +86,7 @@ router.post('/', (req, res) => {
   const shapeError = validateFormPayload(req.body);
   if (shapeError) return res.status(400).json({ error: shapeError });
 
+  if (gtmIsSet(gtm_id) && !isAdminUser(req.userId)) return gtmAdminOnly(res);
   const gtmCheck = validateGtmId(gtm_id);
   if (!gtmCheck.ok) return res.status(400).json({ error: gtmCheck.error });
 
@@ -162,6 +178,11 @@ router.put('/:id', (req, res) => {
   const shapeError = validateFormPayload(req.body);
   if (shapeError) return res.status(400).json({ error: shapeError });
 
+  // Checked before anything below is written (subdomain and slug changes
+  // are applied first), so a refused request changes nothing.
+  if (gtmIsSet(gtm_id) && gtm_id !== (existing.gtm_id || '') && !isAdminUser(req.userId)) {
+    return gtmAdminOnly(res);
+  }
   if (gtm_id !== undefined) {
     const gtmCheck = validateGtmId(gtm_id);
     if (!gtmCheck.ok) return res.status(400).json({ error: gtmCheck.error });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { api } from '../api';
 import { PageHeader, Alert, EmptyState, Loading } from '../components/AdminUI';
 import { Delta, Kpi, formatPct } from '../components/AnalyticsUI';

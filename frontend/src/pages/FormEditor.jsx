@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { PageNotice } from '../components/AdminUI';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';
@@ -57,7 +57,48 @@ const EMOJI_CATEGORIES = {
   'Symbols': ['✓', '✗', '➡️', '⬅️', '⬆️', '⬇️', '♻️', '💲', '📌', '🔗', '⚙️', '🔔'],
 };
 
-export default function FormEditor() {
+function savedGtmIdOf(snapshot) {
+  try { return (snapshot && JSON.parse(snapshot).gtm_id) || ''; } catch { return ''; }
+}
+
+// The GTM field for non-admins: read-only (a container is third-party script
+// on OpenFlow's origin, so only an admin may set or change one), with a way
+// to remove an existing container. Removing takes effect on Save.
+function GtmReadOnly({ form, setForm, savedGtmId }) {
+  const note = { color: 'var(--text-light)', fontSize: 13, marginTop: 6 };
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input
+          id="gtm-container-id"
+          className="input"
+          value={form.gtm_id || ''}
+          readOnly
+          placeholder="None"
+          aria-describedby="gtm-admin-note"
+          style={{ maxWidth: 300, background: 'var(--panel)', color: 'var(--text-light)' }}
+        />
+        {form.gtm_id ? (
+          <button type="button" className="btn btn-sm btn-secondary" onClick={() => setForm({ ...form, gtm_id: '' })}>
+            Remove container
+          </button>
+        ) : savedGtmId ? (
+          <button type="button" className="btn btn-sm btn-secondary" onClick={() => setForm({ ...form, gtm_id: savedGtmId })}>
+            Undo
+          </button>
+        ) : null}
+      </div>
+      <p id="gtm-admin-note" style={note}>
+        Only an admin can set or change the GTM container.
+        {!form.gtm_id && savedGtmId ? ' Removed — save the form to apply.' : ''}
+      </p>
+    </>
+  );
+}
+
+// `isAdmin`: only admins may set or change a form's GTM container (the server
+// refuses it with 403 gtm_admin_only); everyone else can only remove one.
+export default function FormEditor({ isAdmin = false }) {
   const { id } = useParams();
   const [form, setForm] = useState(null);
   const [primaryHost, setPrimaryHost] = useState(null);
@@ -677,10 +718,15 @@ export default function FormEditor() {
             <h3 style={{ marginBottom: 4 }}>Google Tag Manager</h3>
             <p style={{ color: 'var(--text-light)', fontSize: 13, marginBottom: 16 }}>
               GTM is injected when this form is viewed — or, with the cookie banner enabled, only after the visitor accepts it. Events are pushed to the dataLayer on each step change and on submit.
+              {' '}Browsers signed in to OpenFlow never load it (it would run with your session), so test tracking in a private window.
             </p>
             <div className="input-group">
-              <label>GTM Container ID</label>
-              <input className="input" value={form.gtm_id || ''} onChange={e => setForm({ ...form, gtm_id: e.target.value })} placeholder="GTM-XXXXXXX" style={{ maxWidth: 300 }} />
+              <label htmlFor="gtm-container-id">GTM Container ID</label>
+              {isAdmin ? (
+                <input id="gtm-container-id" className="input" value={form.gtm_id || ''} onChange={e => setForm({ ...form, gtm_id: e.target.value })} placeholder="GTM-XXXXXXX" style={{ maxWidth: 300 }} />
+              ) : (
+                <GtmReadOnly form={form} setForm={setForm} savedGtmId={savedGtmIdOf(savedSnapshotRef.current)} />
+              )}
             </div>
             {form.gtm_id && (
               <div style={{ padding: 12, background: 'rgba(0, 184, 148, 0.12)', borderRadius: 8, fontSize: 13 }}>

@@ -2,6 +2,64 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.49.0] - 2026-11-06
+
+### Security
+- **Google Tag Manager no longer runs for people signed in to OpenFlow.**
+  Form pages share the admin app's address, so a form's GTM container
+  (third-party script) could act with the session of anyone signed in who
+  opened the form, and a regular user could add a container to their own
+  form to reach an admin's session. A browser with a valid OpenFlow session
+  now gets the form without its container, and the form page shows a small
+  notice instead: "Google Tag Manager is off because you're signed in to
+  OpenFlow. Open this form in a private window to test tracking." (German
+  forms show it in German.) **Respondents see no change at all**: their
+  page, banner and GTM work exactly as before. Per-form subdomains never
+  receive the session cookie and are unchanged.
+- **Downloading or restoring a backup, managing users and creating API
+  tokens ask for your password again.** The first time in a session you
+  download a backup (including a scheduled one), restore one, add, promote,
+  demote, sign out or delete a user, reset their password or two-factor
+  login, or create an API token, a dialog asks for your password; after that
+  these work without asking for 10 minutes, in that session only. A fresh login doesn't count, wrong
+  passwords count toward the usual sign-in lockout, and accounts with
+  two-factor login confirm with their password alone (no code). Cancelling
+  stops the action. Reading forms and submissions is not affected, so the
+  lodgely connector keeps working with its API token or its login.
+
+### Changed
+- **Only admins can set or change a form's GTM container.** Other users see
+  the field read-only, with a note, and can remove an existing container
+  (and save), but not add or change one; the API answers `403`
+  (`gtm_admin_only`). Containers already on their forms keep working, saving
+  such a form still works, and duplicating a form keeps its container.
+  Because forms belong to their owner, a user who needs GTM on a new form
+  needs an admin to own that form for now.
+- **To test tracking, open the form in a private window** (or another browser
+  profile). A form tab that was already open *before* you signed in keeps
+  its GTM running and could use the session you start later in the same
+  browser; the password check above keeps backups, users and new tokens out
+  of its reach, but not your forms and submissions. Close form tabs before
+  signing in.
+- The public form response (`GET /api/public/form/:slug`) is now sent with
+  `Cache-Control: private, no-store` and `Vary: Cookie`, so no cache in
+  between can mix up the signed-in and the visitor version.
+
+## [0.48.7] - 2026-11-06
+
+### Security
+- **React Router 7 for the admin and form pages.** The frontend moves from
+  `react-router-dom` 6 to `react-router` 7.18.5, which fixes the two
+  remaining moderate advisories: an open redirect via a backslash in
+  `<Link>` / `useNavigate`, and a constructor injection in server-side
+  rendering hydration. Neither could be reached in OpenFlow: its links and
+  redirects never take a path from a visitor, and it doesn't render on the
+  server. Nothing changes for admins or respondents: every page, link,
+  redirect and the back button work as before, and published forms look
+  exactly the same.
+- The only advisory left is in Jest's own tooling (tests only, never
+  shipped).
+
 ## [0.48.6] - 2026-11-06
 
 ### Security
