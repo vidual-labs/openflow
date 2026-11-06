@@ -2,6 +2,19 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.49.1] - 2026-11-06
+
+### Documentation
+- **The README is now a short overview.** New screenshots of the form editor,
+  per-form analytics, responses and three mock forms (desktop and phone), an
+  animated diagram of how OpenFlow works with calon and lodgely, and a small
+  animated form demo. Everything else moved, word for word, into `docs/`:
+  features and field types, installation and every environment variable,
+  integrations (with separate lodgely and calon pages), embedding and GTM,
+  custom subdomains, the API, security and production notes, and development.
+  The stale "two-factor login is not available" line under known gaps now
+  says what is actually missing (app-based codes, admin-enforced 2FA).
+
 ## [0.49.0] - 2026-11-06
 
 ### Security

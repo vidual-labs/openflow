@@ -46,6 +46,7 @@ repository root.
 Out of scope: vulnerabilities that require an attacker to already have
 admin credentials for a self-hosted instance, denial-of-service reports
 against the rate limiter's fixed in-memory limits (already documented as a
-single-instance constraint — see README), and issues in third-party
+single-instance constraint — see
+[docs/production.md](docs/production.md#single-instance-architecture)), and issues in third-party
 dependencies that should be reported upstream (though we're happy to hear
 about them too, so we can track/patch on our side).

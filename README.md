@@ -20,92 +20,83 @@
   <a href="https://github.com/vidual-labs/openflow/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/vidual-labs/openflow?style=flat&logo=github&color=A29BFE"></a>
 </p>
 
-## 📚 Table of Contents
+<p align="center">
+  <img src="docs/assets/readme/hero.webp" alt="An OpenFlow lead form with an animated gradient background, on desktop and on a phone" width="860">
+</p>
 
-[Features](#-features) · [Quick Start](#-quick-start) · [Updating](#-updating) · [Configuration](#️-configuration) · [Architecture](#️-architecture) · [Field Types](#-field-types) · [Integrations](#-integrations) ([calon](#-calon-real-time-booking--calendar-sync)) · [Analytics](#-analytics) · [GTM Events](#️-gtm-events) ([Cookie Banner](#-cookie-consent-banner)) · [Embedding](#-embedding) ([iFrame](#simple-iframe) · [Auto-Resize](#iframe-with-auto-resize) · [WordPress](#wordpress) · [URL Slug](#custom-url-slug) · [Subdomains](#custom-subdomains)) · [API Endpoints](#-api-endpoints) · [Development](#‍-development) · [Security & Production Notes](#-security--production-notes) · [Roadmap](#️-roadmap) · [License](#-license)
+<p align="center">
+  <a href="#-features">Features</a> ·
+  <a href="#-screenshots">Screenshots</a> ·
+  <a href="#-works-with-lodgely-and-calon">lodgely &amp; calon</a> ·
+  <a href="#-quick-start">Quick start</a> ·
+  <a href="docs/README.md">Docs</a> ·
+  <a href="ROADMAP.md">Roadmap</a>
+</p>
+
+Multi-step lead forms, one question per screen, on your own server. One Docker
+container, a SQLite file, no per-response pricing, and no tracking you didn't add.
 
 ## ✨ Features
 
-### 🎯 Form Builder
-- **Multi-Step Forms** — Typeform-style one-question-at-a-time experience with smooth animations
-- **15 Field Types** — Short Text, Long Text, Number, Date, Date & Timeslot, Single Choice, Multiple Choice, Yes/No, Rating, Image/Icon Select, File Upload, Email, Phone, Website URL, Address
-- **Built-in [calon](https://github.com/vidual-labs/calon) booking integration** — point a Date & Timeslot field at a self-hosted calon instance and it shows that calendar's real, conflict-checked availability **and** books the selected slot into a real calendar. When the calon resource is connected to a Google Calendar or Microsoft 365 calendar, accepted bookings are written straight into it. Entirely optional — nothing else about the form depends on it
-- **Number Stepper** — Large +/− buttons with a configurable step size and an optional prefilled start value, for quantity questions where 0 or 1 is an unlikely answer
-- **Inline Date Picker** — An always-visible calendar per date step, set to either a single day or a date range (from – to), with selectable-window limits and localized month/weekday names
-- **Conditional Logic** — Show/hide steps based on previous answers (equals, contains, is set, etc.)
-- **Combined Steps** — Merge two adjacent questions onto one screen (e.g. email + phone), optionally requiring just one of them to be answered; reorder the questions inside with ↑ / ↓
-- **Flat-Rate Pricing Filter** — On a choice step, hide budget options that can't cover a rate × quantity answered earlier, so nobody picks an impossible budget
-- **Smart Defaults** — Selecting a field type auto-fills question, label, and placeholder
-- **Browser Autofill** — Email, Phone, Website and Address fields tell the browser what they hold, so saved details fill in with one tap; Short Text fields can be set to Full name, Company, City and more, and the editor suggests the right setting (or a better field type) when a question looks like one of these
-- **Visual Editor** — Collapsible question cards, reorder, visual field type picker with icons
-- **Emoji/Icon Picker** — Built-in category-based emoji selector for Image/Icon Select fields
-- **Landing Page Mode** — Add logo, headline, and subline on top of the form
-- **Footer Links** — Add up to 3 links (Privacy Policy, Imprint, Terms) below the form
-- **End Screen** — Custom thank-you title and message with a light entrance animation, plus an optional redirect URL that can open automatically on submit (breaking out of the iframe when embedded)
-- **Theme Customization** — Colors, custom CSS, animated backgrounds, and branding per form, with a live preview in the Design tab; buttons and the progress bar blend the primary into the accent color
-- **Animated Backgrounds** — 5 presets in the form's primary and accent colors: Waves and Aurora (CSS), plus Gradient Wave, Gateway Flow and Flow (canvas, no extra dependencies). Visitors with "reduce motion" turned on see a still frame
-- **Configurable Button Position** — Place the "Next" button in the footer bar or inline below the input field
-- **Editable Button Labels** — Override the built-in "Next" / "Submit" wording per form
-- **Form Language (EN / DE)** — Sets the language of every built-in string shown to respondents, including error messages and calendar month/weekday names
-- **Enter Key Hint** — Optional "press Enter" keyboard shortcut hint next to the Next button
-- **GDPR-Ready** — Consent under the last question or as its own final step, agreed to by a deliberate press of Enter or a click (form-level toggle)
-- **File Uploads** — Drag & drop with configurable file types and size limits
-- **Duplicate a Form** — One-click copy of a form's questions, theme and integrations, created as a draft with copied integrations disabled
+<img src="docs/assets/readme/form-flow.svg" align="right" width="340" alt="Animated example: a form step is answered, a number is set, then the thank-you screen appears">
 
+- **15 field types**: text, choice, image/icon select, number stepper, date ranges, a Date & Timeslot picker, file upload, address and more
+- **Logic**: show or hide steps based on earlier answers, two questions on one screen, budget options filtered by an earlier answer
+- **Design per form**: colours, fonts, five animated backgrounds, a landing-page header, custom CSS, EN/DE strings
+- **Integrations**: signed webhooks, e-mail, Google Sheets, Google Ads offline conversions, Meta Conversions API. Failed deliveries are retried
+- **Analytics**: views → starts → completions, drop-off and time per step, compared with an earlier period
+- **Embed anywhere**: iframe with auto-resize, a WordPress plugin, custom slugs, per-form subdomains, GTM behind a cookie banner
+- **Secure defaults**: server-side sessions, opt-in e-mailed 2FA, account lockout, password re-entry for sensitive actions, encrypted write-only secrets
+- **Operations**: multiple users, read-only API tokens, scheduled backups, an audit log, a health check
 
-<img width="1017" height="672" alt="grafik" src="https://github.com/user-attachments/assets/1265603a-4602-44e6-97b0-15c77afb9456" />
-<img width="1502" height="1041" alt="grafik" src="https://github.com/user-attachments/assets/cc4e4a66-ee1b-4147-bd01-e5ae46230132" />
+<br clear="right">
 
+→ **[The full feature list](docs/features.md)**
 
-### 📊 Data & Integrations
-- **Webhook Support** — POST/PUT submission data to any URL with optional HMAC signing
-- **📧 Email Notifications** — SMTP-based alerts with beautiful HTML submission tables
-- **📝 Google Sheets (Simple)** — Via Google Apps Script — no service account needed, just paste a URL
-- **📝 Google Sheets (Service Account)** — Auto-append rows via service account for advanced setups
-- **🎯 Google Ads (Server-Side Conversion)** — Upload leads with a captured `gclid`/`gbraid`/`wbraid` as offline conversions via Google's Data Manager API
-- **📣 Meta Conversions API** — Send a server-side `Lead` event to Facebook/Instagram Ads on every submission, no Meta Pixel required; matches leads to ad clicks via `fbclid`, and deduplicates against a Meta Pixel via a shared event ID
-- **CSV Export** — Download all submissions as CSV
-- **Test Button** — Verify each integration with sample data before going live
+## 📸 Screenshots
 
-### 📈 Analytics Dashboard
-- **Conversion Funnel** — Views → Starts → Completions with conversion rates
-- **Step Drop-off** — See where users abandon the form
-- **Daily Trends** — Visual chart of form activity over time
-- **Per-Form Stats** — Detailed analytics for each form
+**What visitors see.** A booking form with its own time slots, and a holiday-home enquiry on its own subdomain:
 
-### 🔌 Embedding & Tracking
-- **iframe Embed** — Drop forms into any landing page (with auto-resize)
-- **Editable URL Slug** — Rename a form's URL anytime (`/f/spring-launch` instead of the auto-generated 8-char code); old links keep working, and the browser is rewritten to the current URL
-- **Custom Subdomain** — Host each form on its own subdomain of a domain you control (e.g. `acme.forms.example.com`), backed by a single wildcard TLS cert
-- **🏷️ GTM Integration** — Google Tag Manager per form, with step and submit events
-- **🍪 Cookie Consent Banner** — Optional banner shown *before* GTM loads, so tracking only starts once the visitor accepts
-- **WordPress Plugin** — Shortcode `[openflow]`, WPBakery element, and Gutenberg block
+<table>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/assets/readme/form-booking.webp" alt="Date & Timeslot step: a month calendar with a picked day and a column of times"></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/form-rental.webp" alt="Date range step: two months with a selected stay highlighted"></td>
+  </tr>
+</table>
 
-### 🛠️ Infrastructure
-- **🐳 Docker** — One command to start, from an official pre-built multi-arch image (`ghcr.io/vidual-labs/openflow`) or from source
-- **SQLite** — Zero-config database, no external DB needed
-- **🛡️ Rate Limiting** — Built-in in-memory spam protection
-- **👥 Multi-User** — Admin can invite users, assign roles (admin/user)
-- **🏷️ White-Label Branding** — Admins can swap or hide the vendor logo in the admin sidebar (**Settings → Branding**)
-- **🔑 API Tokens** — Read-only tokens for programmatic API access (e.g. the lodgely connector); created by each user on their **Account** page, hashed at rest, revocable anytime
-- **💾 Backup & Restore** — Admins can download a full JSON snapshot of the database and restore it later; older backups are auto-migrated to the current format on restore
-- **⏰ Scheduled Backups** — A background job writes a rotating backup on an interval to a separate volume, so recovery doesn't depend on someone remembering to click "Download"
-- **🔁 Retrying Integration Deliveries** — Failed webhook/email/Sheets deliveries retry with backoff instead of silently dropping the lead; exhausted retries surface as a dead letter you can manually retry from the Integrations tab
-- **📋 Audit Log** — Logins (success/failure), user/role changes, settings changes, and backup/restore are recorded with actor, IP and timestamp for post-incident review (`GET /api/admin/audit-log`, admin only)
-- **🔒 Server-Side Sessions** — Logging out, changing a password or role, or **Log out everywhere** on the Users page ends the session immediately; every user sees their own sessions and remembered browsers on the **Account** page and can sign out everywhere else
-- **✉️ Two-Factor Login (opt-in)** — Each user can require a 6-digit code sent by e-mail when signing in from a new browser; "remember this browser" skips it for 30 days (needs system e-mail: Settings → System e-mail or `SMTP_*`)
-- **🧱 Brute-Force Lockout** — Repeated failed logins lock the account for escalating periods (1 → 60 min), persisted across restarts, without locking the owner out of browsers they already use
-- **🔐 Encrypted, Write-Only Integration Secrets** — SMTP passwords, Google service-account keys, OAuth client secrets/refresh tokens, Meta access tokens and webhook HMAC secrets are encrypted (AES-256-GCM) before being stored, so a leaked database file or backup JSON doesn't hand over live credentials. The API never returns them once saved — the editor only shows that one is set, and lets you replace or remove it
-- **❤️ Health Check** — `GET /api/health` reports database connectivity and uptime for uptime monitors and container orchestrators
-- **📊 Structured Logging** — Request, integration-delivery, and backup events are logged as single-line JSON so they can be piped into any log aggregator
-- **🌙 Dark Mode** — Auto/light/dark theme toggle for the admin interface
-- **🛡️ Delete Protection** — Published forms require typing the form name to confirm deletion
-- **♿ Accessible Forms** — Labeled questions, announced errors, keyboard-operable file uploads, and a progress bar and choice controls exposed to assistive tech (WCAG 2.1 AA pass on `/f/:slug` and `/embed/:slug`)
-- **Responsive** — Optimized for mobile and desktop
+**What you work in.** The form editor: question cards, the field type picker and a stable key per field:
 
----
+<p align="center"><img src="docs/assets/readme/admin-editor.webp" alt="Form editor with question cards, field keys and an expanded Single Choice question" width="860"></p>
 
-## 🚀 Quick Start
+Per-form analytics: where visitors drop off, compared with the previous period:
+
+<p align="center"><img src="docs/assets/readme/admin-analytics.webp" alt="Form analytics: KPIs against the previous period, drop-off and time per step, and a daily trend" width="860"></p>
+
+<details>
+<summary><strong>More: responses and the form list</strong></summary>
+<br>
+<table>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/assets/readme/admin-submissions.webp" alt="Responses table with one column per question and a CSV export button"></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/admin-dashboard.webp" alt="Form list with live and draft forms and their response counts"></td>
+  </tr>
+</table>
+</details>
+
+<sub>All data in the screenshots is made up.</sub>
+
+## 🔗 Works with lodgely and calon
+
+<p align="center">
+  <img src="docs/assets/readme/ecosystem.svg" alt="A visitor's answers go to OpenFlow. OpenFlow reads free slots from calon and books there, calon syncs with Google Calendar or Microsoft 365, and lodgely pulls the finished leads from OpenFlow" width="860">
+</p>
+
+OpenFlow runs fine on its own. Two optional self-hosted companions add to it:
+
+- **[calon](https://github.com/vidual-labs/calon)** turns a Date & Timeslot field into real booking. The form shows calon's conflict-checked availability, and the picked slot is booked before the lead is stored. If calon's resource is connected to Google Calendar or Microsoft 365, the booking also lands in that calendar. → [Setup](docs/integrations/calon.md)
+- **[lodgely](https://github.com/vidual-labs/lodgely)** is a lead intake hub. It pulls each form's submissions with a read-only API token and maps them onto its lead fields by their stable field keys. → [Setup](docs/integrations/lodgely.md)
+
+## 🚀 Quick start
 
 ```bash
 git clone https://github.com/vidual-labs/openflow.git
@@ -114,771 +105,41 @@ docker compose pull
 docker compose up -d
 ```
 
-This pulls the official pre-built image from `ghcr.io/vidual-labs/openflow`
-(multi-arch: `linux/amd64` + `linux/arm64`) — no local build required.
-
-Building from source instead (e.g. if you're contributing, or changed the
-`Dockerfile`):
-
-```bash
-docker compose up -d --build
-```
-
-The app runs on `http://localhost:3000`.
-
-**🔑 First Login:**
-- Email: `admin@openflow.local` (or your `ADMIN_EMAIL`)
-- Password: OpenFlow never ships a hardcoded default. If `ADMIN_PASSWORD` isn't set, a random one-time password is generated on first start and printed **once** to the container log (`docker compose logs app`) — copy it from there to log in, then change it. Set `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` before the first start to control both explicitly instead.
-
----
-
-## 🔄 Updating
-
-To update an existing Docker installation:
-
-```bash
-cd openflow
-git pull
-docker compose pull
-docker compose up -d
-```
-
-(Building from source instead: `git pull && docker compose up -d --build`.)
-
-Your data is safe — the SQLite database is stored in a Docker volume (`db-data`) and persists across rebuilds.
-
-> 💡 To fully recreate the container (e.g. after major changes): `docker compose down && docker compose up -d --build`
-> ⚠️ To reset everything including data: `docker compose down -v && docker compose up -d --build`
-
----
-
-## ⚙️ Configuration
-
-Environment variables (in `.env` or docker-compose):
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ENCRYPTION_KEY` | *(none — auto-generated)* | 🔐 64 hex chars (32 bytes). Encrypts integration secrets (SMTP passwords, Google credentials, webhook HMAC secrets) at rest. If unset, a random key is generated and persisted next to the database — set this explicitly in production **and back it up separately from the database**, since losing it makes existing encrypted integration config unrecoverable. Setting it on an install that ran on an auto-generated key is safe: the old key file is still used to read existing secrets. Backups contain secrets encrypted with this key, so restoring on another instance needs the same key |
-| `CALON_ALLOWED_HOSTS` | *(unset)* | 📅 Comma-separated `host[:port]` entries (e.g. `calon:8000,localhost:8000`) a [calon](#-calon-real-time-booking--calendar-sync) base URL may point at although they are localhost or on a private network — for a calon instance next to OpenFlow (same Docker network or LAN). Applies only to OpenFlow's two calon requests (availability and booking), never to webhooks or other integrations; an entry without a port allows any port on that host; link-local / cloud-metadata addresses stay refused even when listed. Unset, a calon URL must resolve to a public address |
-| `SMTP_BLOCK_PRIVATE_HOSTS` | *(unset)* | 📧 SMTP hosts resolving to link-local/cloud-metadata addresses are always refused. Set to `true` to also refuse private networks and localhost (as webhooks do) when you don't relay mail through an internal server |
-| `SMTP_HOST` | *(unset)* | ✉️ OpenFlow's own outgoing mail: two-factor login codes and security notices (new sign-in, password changed, repeated failed logins). Optional: admins can instead enter it under **Settings → System e-mail** (stored encrypted). When set here, the `SMTP_*` values win and the UI shows them read-only. Check it with **Send test e-mail** there |
-| `SMTP_PORT` | `587` | ✉️ SMTP port (`465` implies `SMTP_SECURE=true`) |
-| `SMTP_SECURE` | `true` on port 465, else `false` | ✉️ `true` = implicit TLS; otherwise STARTTLS |
-| `SMTP_REQUIRE_TLS` | `true` | ✉️ Refuse to send codes over an unencrypted connection. Set `false` only for a relay on a trusted local network |
-| `SMTP_USER` / `SMTP_PASS` | *(unset)* | ✉️ SMTP credentials |
-| `SMTP_FROM` | `SMTP_USER` if it is an address | ✉️ Sender, e.g. `OpenFlow <no-reply@example.com>` (required when `SMTP_USER` isn't an address) |
-| `OPENFLOW_2FA_DISABLED` | *(unset)* | 🚨 Emergency switch: accounts with two-factor login sign in with their password only (e.g. while SMTP is broken). Logged as a warning at every boot; remove it again afterwards |
-| `BCRYPT_ROUNDS` | `12` | 🔑 bcrypt cost for password hashes (10–14). Lower it only on very slow hardware; older hashes are upgraded on the next login |
-| `ADMIN_EMAIL` | `admin@openflow.local` | 👤 Admin email |
-| `ADMIN_PASSWORD` | *(none — auto-generated)* | 🔑 Admin password (only on first start). If unset, a random one is generated and printed to the log once |
-| `DB_PATH` | `/app/data/openflow.db` (from `docker-compose.yml`; otherwise `backend/data/openflow.db`) | 💾 SQLite database path |
-| `PORT` | `3000` | 🌐 Port the app listens on *inside* the container |
-| `HOST_PORT` | `3000` | 🌐 Host-side port `docker-compose.yml` publishes (set this instead of editing `docker-compose.yml` directly, so `git pull` never conflicts with a local port change) |
-| `CORS_ORIGINS` | *(empty)* | 🌍 Comma-separated extra origins allowed to call the API. Same-origin requests are always allowed, so this is only needed when the admin UI is served from a different host than the API |
-| `OPENFLOW_PRIMARY_HOST` | *(empty)* | 🌐 Apex host for [custom subdomains](#custom-subdomains). Also implicitly allowed as a CORS origin, and implies `TRUST_PROXY=1` |
-| `TRUST_PROXY` | *(empty = off)* | 🔀 Set when OpenFlow runs behind a reverse proxy: a hop count (`1` = one proxy in front), `true`, or a comma-separated list of proxy IPs/CIDRs. Without it every visitor shares the proxy's IP — one rate-limit bucket for everybody and the proxy's address stored as the submitter IP |
-| `OPENFLOW_LANDING_PAGE` | *(unset = off)* | 🏠 Set to `true` to show the OpenFlow landing page (features, self-host guide) at `/` to logged-out visitors; the login then lives at `/login`. Off, `/` opens straight on the login screen as before |
-| `OPENFLOW_VERSION` | `latest` | 🐳 Image tag `docker-compose.yml` pulls (e.g. `0.31.0` to pin a version instead of always tracking `latest`) |
-| `BACKUP_ENABLED` | `true` | ⏰ Set to `false` to disable the scheduled backup job |
-| `BACKUP_DIR` | `/app/backups` (from `docker-compose.yml`; otherwise a `backups/` folder next to `DB_PATH`) | 📁 Where scheduled backups are written (point at a separate volume for real off-box protection) |
-| `BACKUP_INTERVAL_HOURS` | `24` | ⏱️ How often to write a scheduled backup |
-| `BACKUP_RETENTION_COUNT` | `14` | 🗑️ How many scheduled backups to keep before pruning the oldest |
-
-> 💾 `docker-compose.yml` bind-mounts `./backups` on the host into the container, deliberately **outside** the `db-data` volume — so wiping or losing that volume doesn't take the backups with it. Copy `./backups` off the host regularly for real disaster recovery.
-
----
-
-## 🏗️ Architecture
-
-```
-openflow/
-├── backend/                        # 🟢 Express API + SQLite (also serves the built frontend)
-│   ├── src/
-│   │   ├── index.js                # Server entry point, CORS, SPA fallback
-│   │   ├── models/                 # DB schema, integrations engine, delivery queue,
-│   │   │                           #   backups, API tokens, rate limiting
-│   │   ├── middleware/             # Session + API-token auth, security headers, per-form subdomain routing
-│   │   ├── routes/                 # auth, forms, submissions, public, integrations,
-│   │   │                           #   analytics, settings, admin
-│   │   └── utils/                  # slug/subdomain rules, CSS sanitizer, SSRF guard
-│   └── tests/                      # Jest + supertest
-├── frontend/                       # ⚛️ React (Vite)
-│   └── src/
-│       ├── main.jsx                # /f/:slug, /embed/:slug, and the admin SPA
-│       ├── components/             # FormRenderer, IntegrationsPanel, shared admin UI
-│       ├── pages/                  # Admin pages + public form/embed views
-│       ├── locales.js              # Respondent-facing strings (EN / DE)
-│       ├── autofill.js             # Browser-autofill tokens + the editor's autofill tip
-│       ├── clickIds.js             # Ad click-ID capture (gclid/gbraid/wbraid, fbclid)
-│       └── styles/                 # CSS
-├── wordpress-plugin/               # 🔌 WordPress integration
-│   └── openflow/
-│       ├── openflow.php            # Shortcode + WPBakery + Gutenberg
-│       └── block.js                # Gutenberg block editor
-├── docs/integrations/              # 📚 Per-integration setup walkthroughs
-├── Dockerfile                      # Multi-stage: builds the frontend into the backend image
-├── docker-compose.yml
-├── docker-compose.subdomains.yml   # Optional Caddy overlay for custom subdomains
-└── Caddyfile
-```
-
----
-
-## 📋 Field Types
-
-**Question Types:**
-
-| Type | Description | Auto-advance |
-|------|-------------|:---:|
-| 📝 Short Text | Single-line text input | |
-| 📄 Long Text | Multi-line text | |
-| 🔢 Number | Numeric input with min/max | |
-| 📅 Date | Date picker | |
-| 📆 Date & Timeslot | Pick a day, then a time on that day; the day's times sit in a scrolling column beside the month (below it on phones). Generates its own times, or shows real availability from and books directly into a connected [calon](https://github.com/vidual-labs/calon) instance — including straight into a Google or Microsoft 365 calendar the calon resource is linked to | ✓ (once day and time are picked) |
-| ☑️ Single Choice | Choose one option | ✓ |
-| ✅ Multiple Choice | Choose multiple options, optionally with an "Other" free-text field | ✓ (not with "Other") |
-| 👍 Yes / No | Binary choice | ✓ |
-| ⭐ Rating | Star rating (configurable 3-10) | ✓ |
-| 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | ✓ |
-| 📎 File Upload | Drag & drop with configurable types and size limit (up to 37 MB per file — a submission carries the file base64-encoded and the server takes 50 MB per submission) | |
-
-**Contact & Data Fields:**
-
-| Type | Description | Sub-fields |
-|------|-------------|------------|
-| 📧 Email Address | Email with validation | |
-| 📞 Phone Number | Phone number input | |
-| 🌐 Website URL | URL with validation | |
-| 🏠 Address | Composite address field (sub-field labels are editable) | Street, Postal Code, City, Country |
-
-> 🔒 **Consent / GDPR is not a field type** — it's a per-form setting in the **GTM / GDPR** tab. Switch it on and the consent checkbox with your legal text is added either under the last question or as its own final step; it arrives in the submission as `_consent`.
-
-Any two adjacent questions can be **combined** into a single step (e.g. email + phone side by side) via the **Combine** buttons in the editor, reordered inside the step with ↑ / ↓, and split apart again at any time.
-
-Auto-advance can be switched off per form in the **Design** tab. Going back to an answered step never jumps forward again on its own, so the answer can be changed.
-
----
-
-## 🔗 Integrations
-
-Configure integrations per form in the **Integrations** tab of the form editor.
-
-### 🔗 Webhook
-Send submission data to any URL on each submission.
-- Configurable HTTP method (POST/PUT)
-- JSON payload: `event` (always `"submission"`), `formId`, `formTitle`, `data` (keyed by field id), `timestamp` (ISO 8601)
-- Optional HMAC-SHA256 signing with a shared secret, sent as an `X-OpenFlow-Signature` header — the signature is computed over the exact JSON bytes sent as the body, so a receiver can verify it by HMAC-ing the raw request body it received
-- The target URL is checked against private/internal address ranges before the request is made, and redirects are not followed
-
-### 📧 Email Notification
-Receive an email with a formatted HTML table of each submission.
-- Full SMTP configuration (host, port, user, password, TLS)
-- Customizable sender, recipient, and subject line
-
-### 📊 Google Sheets (Simple)
-Auto-append submissions via Google Apps Script — **no JSON key needed**.
-1. Open your Google Sheet → Extensions → Apps Script
-2. Paste the provided script, deploy as Web App
-3. Copy the URL into OpenFlow
-
-### 📊 Google Sheets (Service Account)
-Auto-append each submission using a Google Service Account.
-- Auto-creates header row from form field labels
-- Configurable sheet name
-
-### 🎯 Google Ads (Server-Side Conversion)
-Upload qualifying leads as offline conversions directly to Google Ads, via the
-[Data Manager API](https://developers.google.com/data-manager/api) — no
-browser-side conversion pixel required.
-- OpenFlow captures `gclid`/`gbraid`/`wbraid` from the form's landing URL
-  (subject to the same cookie-consent setting used for GTM); submissions
-  without one of these click IDs are skipped, since there's nothing to
-  attribute them to
-- Requires a one-time setup outside OpenFlow: an OAuth client + refresh token
-  for a Google account with access to your Google Ads account (client ID,
-  client secret, refresh token, customer ID, conversion action ID — pasted
-  into the integration config, same as the Google Sheets service-account flow)
-- No developer token needed — the Data Manager API uses plain OAuth2
-- Optionally map one of the form's fields as the conversion value, or set a
-  fixed default value
-- The **Test** button only validates the OAuth credentials — it does not
-  upload a real conversion, since a test submission has no genuine click ID
-- See [`docs/integrations/google-ads.md`](docs/integrations/google-ads.md) for the full one-time setup walkthrough
-
-### 📣 Meta Conversions API
-Send a server-side `Lead` event to Facebook/Instagram Ads on every
-submission, via [Meta's Conversions API](https://developers.facebook.com/docs/marketing-api/conversions-api) —
-no Meta Pixel needs to be installed on the form.
-- Matching relies on the submission's captured IP address and user agent,
-  plus SHA-256-hashed `Email`/`Phone` field values when the form collects
-  them (matched by field **type**, not id), and — once cookie consent allows
-  it — the ad click ID (`?fbclid=` → `fbc`) and any Meta Pixel `_fbp`/`_fbc`
-  cookies
-- Every event carries the submission id as `event_id`; the same id is
-  pushed to the dataLayer (`openflow_submit` → `eventId`) and posted to the
-  embedding page, so a Meta Pixel `Lead` using it as `eventID` is
-  deduplicated against the server-side event
-- Click IDs are captured on the form's direct link (`/f/<slug>` or its
-  subdomain). An embedded form can't read the host page's URL, so an
-  `fbclid` there doesn't reach OpenFlow (the same applies to `gclid`)
-- Requires a Pixel ID and an access token, both generated in Events Manager
-  → Data Sources → your Pixel → Settings → Conversions API
-- Optionally map one of the form's fields as the event value, or set a
-  fixed default value
-- An optional **Test Event Code** routes events into Events Manager's Test
-  Events tool instead of counting them as real leads; the **Test** button
-  only sends a real event while one is set — otherwise it just validates
-  the Pixel ID/access token, since a test submission has no genuine lead
-- See [`docs/integrations/meta-conversion-api.md`](docs/integrations/meta-conversion-api.md) for the full setup walkthrough
-
-> 💡 Each integration has an **Enable/Disable** toggle and a **Test** button to verify your setup with sample data.
-
-### 🏨 lodgely (lead intake hub)
-
-[lodgely](https://github.com/vidual-labs/lodgely) — a self-hosted lead intake
-hub — can **pull** a form's submissions into a specific client view. Unlike the
-push integrations above, this is configured entirely in lodgely (under
-**Imports → OpenFlow**), so there is nothing to set up on the OpenFlow side
-beyond an account that owns the form:
-
-- **Recommended:** create a **read-only API token** under **Account → API
-  Tokens** (OpenFlow asks for your password first) and paste it into lodgely. The token can read what its owner can
-  read (their forms and submissions) but never modify anything, never manage
-  tokens, and never reach admin endpoints (backups, users, audit log) — even
-  when an admin created it. Revoke it anytime without touching your password.
-  Creating it from a dedicated non-admin account that owns only the forms
-  lodgely needs keeps its reach smallest.
-- Alternatively, lodgely can sign in with an OpenFlow login (email + password).
-- It maps each OpenFlow field to a lead field; unmapped answers are kept as
-  custom answers. Re-fetches are idempotent on the submission id.
-- Every field has a stable, readable **key** (`email`, `vorname`, `budget_2`;
-  shown on the question card and editable under **Field key** in the editor).
-  Keys are what lodgely maps on, so keep them stable once leads are flowing —
-  the key follows the label until you edit it.
-- Point lodgely at your OpenFlow base URL and pick the form — leads flow into
-  the chosen client automatically.
-
-### 📅 calon (real-time booking + calendar sync)
-
-[calon](https://github.com/vidual-labs/calon) — a self-hosted, single-container
-booking engine — is wired into OpenFlow **directly**: a Date & Timeslot field is
-pointed at a calon instance and talks to it through OpenFlow's own backend. No
-webhook, no shared secret and no config on the calon side are needed — just the
-calon URL in the field.
-
-> **Requirements — read this first.**
->
-> - **Two separate deployments.** calon is its own application and must be
->   deployed separately, at a URL **OpenFlow's server can reach**. Like every
->   URL OpenFlow fetches, it has to resolve to a **public** address unless you
->   opt the host in: for a calon on the same Docker network or LAN (e.g.
->   `http://calon:8000`), set `CALON_ALLOWED_HOSTS=calon:8000` (see
->   [Configuration](#️-configuration)). Without it, **Test connection** answers
->   "Requests to localhost are not allowed" or "…resolves to a private/internal
->   address".
-> - **The calendar write is done by calon, never by OpenFlow.** OpenFlow only
->   sends the chosen slot to calon. calon reads the connected calendar's
->   free/busy and **writes accepted bookings into Google Calendar or Microsoft
->   365**. OpenFlow holds no calendar credentials and never calls Google or
->   Microsoft.
-
-Once connected (field editor → **Connect to calon**), OpenFlow:
-
-- **Shows real availability** — the field renders the slots calon reports as free
-  for that calendar (calon's scheduling rules and any connected calendar's busy
-  time decide which). **Test connection** checks the link before you publish.
-- **Books the picked slot on submit** — before the submission is stored, OpenFlow
-  books the slot in calon under the respondent's name, email and phone. Which
-  fields those are is picked under **Book under** in the same panel (automatic by
-  default: the first Email and Phone fields, and a Short Text field with the
-  *Full name* autofill). calon needs an email, so the form needs an Email field.
-- **Books exactly the slot that was shown** — the field's **Slot length** is the
-  length OpenFlow asks calon's availability for, and the booking carries the
-  matching end time, so calon books that length rather than its own default.
-- **Sends the respondent back if the slot is gone** — when calon turns the slot
-  down (taken in the meantime, or against its rules), the respondent lands back on
-  the Date & Timeslot step with fresh times and a note to pick another; nothing is
-  stored until the booking succeeds.
-- **Never loses a lead to a calon outage** — if calon can't be reached at submit,
-  the submission is stored anyway and the booking is retried in the background
-  (1, 5, 30, 120, 360 minutes). A request calon refuses outright rather than the
-  slot (it answers `400`/`422`, or the resource is unknown — usually a
-  configuration problem) also keeps the submission, with the booking marked
-  `failed` and calon's reason in `lastError`. The outcome is kept in the
-  submission's metadata (`calonBookings`: `booked` with calon's booking id,
-  `pending`, `rejected` or `failed`).
-
-#### How the two sides talk
-
-| Direction | Mechanism | What it does |
-|-----------|-----------|--------------|
-| OpenFlow → calon (availability) | `GET /api/v1/availability`, fetched **server-side** by OpenFlow | Returns which slots are free for the field's resource in the window; OpenFlow hands the list to its own frontend. Public and unauthenticated by design. |
-| OpenFlow → calon (booking) | `POST /api/v1/bookings`, sent **server-side** by OpenFlow on submit | calon's public booking endpoint — the same one its own booking form uses. calon judges the request (conflicts, buffers, blackouts, connected calendar) and answers `201` (booked) or `200` with the reason it was rejected. |
-
-Both calls go through the same SSRF guard as every other operator-supplied URL, and
-neither needs CORS: OpenFlow's backend is the caller, never the browser.
-
-#### Calendar sync (Google & Microsoft 365)
-
-The calendar write is **calon's job**. To land bookings in a real calendar, connect the
-calon resource's calendar in **calon's dashboard** (Calendars → Connect) — see the
-["Resource calendar sync" section of calon's self-hosting
-guide](https://github.com/vidual-labs/calon/blob/main/docs/self-hosting.md). calon then
-hides slots that are busy on that calendar and writes each accepted booking into it.
-Without a connected calendar, bookings still land in calon (its dashboard, `.ics` and
-calendar links).
-
-## 📈 Analytics
-
-OpenFlow tracks form analytics automatically:
-
-| Metric | Description |
-|--------|-------------|
-| **Views** | Unique sessions that loaded the form |
-| **Starts** | Sessions that began filling the form |
-| **Completions** | Sessions that submitted the form |
-| **Conversion Rate** | Completions / Views (%) |
-| **Step Drop-off** | Per-step session count to identify where users leave |
-
-Access analytics from the **Analytics** page in the admin panel.
-
----
-
-## 🏷️ GTM Events
-
-OpenFlow automatically pushes events to the Google Tag Manager dataLayer:
-
-| Event | Trigger | Data |
-|-------|---------|------|
-| `openflow_step` | Each step change | `formId`, `stepIndex`, `stepId` |
-| `openflow_submit` | Form submitted | `formId`, `formTitle`, `eventId` (the submission id, for Meta Pixel deduplication) |
-
-Set the container ID per form under **GTM / GDPR → GTM Container ID** (it must look like `GTM-XXXXXXX`). Only **admins** can set or change it; other users see it read-only and can only remove it.
-
-Browsers signed in to OpenFlow never load a form's GTM container — the form shows a small notice instead — because the container is third-party script running on OpenFlow's own address. **Test tracking in a private window.** See [Tracking scripts and your admin session](#tracking-scripts-and-your-admin-session).
-
-### 🍪 Cookie consent banner
-
-Optionally, a consent banner can be shown **before** the GTM container is loaded — GTM only fires once the visitor accepts, and the choice is remembered in their browser so the banner doesn't reappear. Enable it under **GTM / GDPR → Cookie / Tracking Consent Banner**; the message and both button labels are editable. A GTM container ID must be set first.
-
-The same consent gates the ad click IDs that the [Google Ads](#-google-ads-server-side-conversion) (`gclid`/`gbraid`/`wbraid`) and [Meta Conversions API](#-meta-conversions-api) (`fbclid`, `_fbp`/`_fbc` cookies) integrations rely on.
-
----
-
-## 🔌 Embedding
-
-### Simple iFrame
-
-```html
-<iframe
-  src="https://your-domain.com/embed/FORM_SLUG"
-  width="100%" height="600"
-  frameborder="0"
-  style="border:none;border-radius:12px;">
-</iframe>
-```
-
-### iFrame with Auto-Resize
-
-```html
-<iframe
-  id="openflow-form"
-  src="https://your-domain.com/embed/FORM_SLUG"
-  width="100%" height="600"
-  frameborder="0"
-  style="border:none;border-radius:12px;">
-</iframe>
-<script>
-window.addEventListener('message', function(e) {
-  if (e.data && e.data.type === 'openflow-resize') {
-    document.getElementById('openflow-form').style.height = e.data.height + 'px';
-  }
-});
-</script>
-```
-
-After a successful submission the iframe also posts
-`{ type: 'openflow-submit', formId, eventId }` to the page, e.g. to fire a
-Meta Pixel `Lead` with `eventID: e.data.eventId` (see
-[`docs/integrations/meta-conversion-api.md`](docs/integrations/meta-conversion-api.md)).
-
-### WordPress
-
-1. Upload `wordpress-plugin/openflow/` to `/wp-content/plugins/`
-2. Activate the plugin
-3. Go to **Settings → OpenFlow** and enter your server URL
-4. Use anywhere:
-
-```
-[openflow slug="your-form-slug" height="600" autoresize="true"]
-```
-
-Also available as a **WPBakery element** and **Gutenberg block**.
-
-### Custom URL Slug
-
-Every form is reachable at `/f/<slug>`. Open the form's **Embed** tab to rename the slug from the auto-generated 8-character code to anything memorable (e.g. `/f/spring-launch`). Rules:
-
-- Lowercase letters, digits, hyphens. 3–60 characters.
-- No leading/trailing or consecutive hyphens.
-- Reserved labels (`admin`, `api`, `login`, `embed`, `f`, `dashboard`, …) are rejected.
-- Must be unique across all forms.
-
-Previously shared URLs keep working: when you change a slug, the old one is recorded in a history table and visits to it transparently load the form at its current slug. The browser URL bar is updated to the canonical address so subsequent shares use the new URL.
-
-### Custom Subdomains
-
-Serve each form on its own subdomain of a host you control (e.g. `acme.forms.example.com`). Every form gets a vanity URL that's friendlier than `/f/<slug>` and looks tenant-owned. A form keeps its existing `/f/<slug>` and `/embed/<slug>` paths in parallel — the subdomain is just an additional, prettier entry point.
-
-#### How it works
-
-Caddy fronts the app on ports 80/443 and acquires **one wildcard TLS certificate** for `*.<primary-host>` via Let's Encrypt's DNS-01 challenge. That single cert covers every form on every subdomain — there is no per-tenant verification step or on-demand TLS dance. When a request lands on `<sub>.<primary-host>`, the backend looks up which form claimed that subdomain, blocks any admin API paths with a 404, and injects the form's identity into `index.html`. The frontend then boots in form-only mode: every URL renders that form and admin routes are unreachable.
-
-#### 1. Operator setup (one-time)
-
-Pick an apex host you control (e.g. `forms.example.com`) and a DNS provider with a Caddy plugin (Cloudflare, Route53, DigitalOcean, Hetzner, Gandi, …).
-
-**a. Configure DNS.** At your registrar, add a wildcard A/AAAA record:
-
-```
-*.forms.example.com   A   <your-server-ip>
-forms.example.com     A   <your-server-ip>
-```
-
-Wait for propagation — `dig +short '*.forms.example.com'` (or any subdomain you pick) should resolve to your server. Cloudflare proxy (orange-cloud) must be **disabled** for the wildcard, otherwise Caddy can't see the real Host header.
-
-**b. Create a scoped DNS API token.** The token only needs **edit** rights for that one zone — it's used by Caddy to add a temporary `_acme-challenge` TXT record during cert issuance.
-
-**c. Fill in `.env`:**
-
-```bash
-OPENFLOW_PRIMARY_HOST=forms.example.com
-CADDY_DNS_PROVIDER=cloudflare        # or route53, digitalocean, hetzner, ...
-CADDY_DNS_TOKEN=your-scoped-api-token
-CADDY_ACME_EMAIL=you@example.com     # optional, used by Let's Encrypt for expiry warnings
-
-# Caddy image with the matching DNS plugin built in. The default caddy:2-alpine
-# does NOT ship plugins — either use a community image or build your own.
-CADDY_IMAGE=slothcroissant/caddy-cloudflaredns:latest
-```
-
-**d. Bring it up with the subdomain-aware overlay:**
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.subdomains.yml up -d --build
-```
-
-The overlay removes the public `3000:3000` binding (Caddy is the only ingress now) and adds the Caddy service that owns ports 80/443.
-
-**e. Verify.** Tail Caddy until you see `certificate obtained successfully` for `*.<primary-host>`:
-
-```bash
-docker compose logs -f caddy
-```
-
-Then hit the apex in a browser → admin UI should load with a valid TLS cert.
-
-> **DNS providers without a Caddy plugin** — your options are (a) build a Caddy image with `xcaddy` that includes a plugin for your provider, (b) put any other reverse proxy in front and skip the overlay, or (c) terminate TLS at a CDN (e.g. Cloudflare proxied DNS with a uploaded origin cert) and bypass the cert-issuance flow entirely.
-
-#### 2. Per-form usage
-
-For each form you want on its own subdomain:
-
-1. Open the form in the editor and go to the **Embed** tab.
-2. In **Custom subdomain (optional)**, type a label — `acme`, `widgets-inc`, `summer-promo` — and click **Update**.
-   - Rules: 3–60 chars, lowercase letters, digits and hyphens only. No leading/trailing or consecutive hyphens. Common reserved labels (`www`, `api`, `admin`, `mail`, etc.) are rejected.
-3. **Publish** the form (it must be live to be served on the subdomain).
-4. The success message links to the live URL: `https://<label>.<your-primary-host>`.
-
-To change the subdomain later, just edit the field and click **Update** — the form is reachable at the new label immediately. To detach the subdomain entirely, clear the field and click **Update** (or use the **Remove** button when the value matches what's saved). Note that — unlike the editable slug — subdomain changes are **not** archived: the old subdomain stops working immediately. Use it for stable tenant-style URLs, not for marketing campaign renames.
-
-A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep working in parallel.
-
-#### Troubleshooting
-
-| Symptom | Likely cause |
-| --- | --- |
-| Caddy logs show `no DNS module registered with name "cloudflare"` (or similar) | The Caddy image doesn't include the DNS plugin. Use a community image or build with `xcaddy`. |
-| Cert issuance hangs or times out | DNS API token lacks edit rights for the zone, or the wildcard record isn't visible yet. Verify with `dig`. |
-| `acme: error: 429 :: urn:ietf:params:acme:error:rateLimited` | You hit Let's Encrypt's rate limit during testing. Caddy's data volume persists certs across restarts — don't `docker compose down -v` between attempts. |
-| Subdomain returns the admin UI instead of the form | The form isn't published, or its `subdomain` field doesn't match the label. Confirm via `GET /api/forms/:id` on the admin host. |
-| Visiting the subdomain shows "Form not found" | The subdomain is unclaimed, or the form was deleted/unpublished. |
-| Admin works on `https://forms.example.com` but `https://forms.example.com:3000` is also reachable | You didn't use the overlay file — the base compose still publishes port 3000. Use both `-f` flags in `docker compose up`. |
-
----
-
-## 📡 API Endpoints
-
-### Public (no auth)
-- `GET /api/health` — Liveness/readiness check (database connectivity + uptime), for orchestrators and uptime monitors
-- `GET /api/public/form/:slug` — Load published form. A request with a valid OpenFlow session cookie gets `gtm_id: ""` and `gtmSuppressed: true` instead of the form's GTM container; always `Cache-Control: private, no-store` + `Vary: Cookie`
-- `GET /api/public/form/:slug/availability` — Bookable times for a calon-backed Date & Timeslot field (proxied, SSRF-guarded)
-- `POST /api/public/form/:slug/submit` — Submit response (`400 consent_required` when the form asks for consent and it wasn't given)
-- `POST /api/public/track` — Track analytics event
-
-### Auth
-- `POST /api/auth/login` — Log in (sets the session as a `token` httpOnly cookie; the body is `{ user }`). For an account with two-factor login on, from a browser it doesn't remember, the body is `{ twoFactorRequired: true, challenge, email }` instead and a code is e-mailed. `429` with `code: "account_locked"` and `Retry-After` while the account is locked
-- `POST /api/auth/login/verify` — `{ challenge, code, remember }` → `{ user }` + session cookie
-- `POST /api/auth/logout` — End the session (server-side) and clear the cookie
-- `GET /api/auth/me` — Current user (includes `twoFactorEnabled`)
-- `GET /api/auth/account` — Own two-factor status, active sessions and remembered browsers
-- `POST /api/auth/password` — Change own password (`currentPassword`, `newPassword`); signs out every other session
-- `POST /api/auth/2fa/start` / `POST /api/auth/2fa/confirm` / `POST /api/auth/2fa/disable` — Turn two-factor login on (password → e-mailed code) or off (password)
-- `DELETE /api/auth/sessions/:id`, `POST /api/auth/sessions/revoke-others`, `DELETE /api/auth/devices/:id` — End a session, sign out everywhere else, forget a remembered browser
-- `POST /api/auth/confirm-password` — `{ password }` → `{ ok, validUntil }`: "sudo mode" for the routes marked 🔐 below, for 10 minutes on this session only (session only, never an API token). `401 wrong_password` counts toward the account lockout; `429 account_locked` while it is locked
-
-> 🔐 marks routes that answer `403` with `code: "reauth_required"` unless the password was confirmed on this session in the last 10 minutes. A fresh login does not count.
-
-### Admin (auth required)
-- `GET /api/forms` — List your forms (every form query is scoped to its owner)
-- `GET /api/forms/:id` — Get one form (including its `steps`)
-- `POST /api/forms` — Create form (`403 gtm_admin_only` when a non-admin sends a `gtm_id`)
-- `POST /api/forms/:id/clone` — Duplicate a form (draft copy, integrations disabled)
-- `PUT /api/forms/:id` — Update form (`403 gtm_admin_only` when a non-admin changes `gtm_id`; sending the stored value or `""` is fine)
-- `DELETE /api/forms/:id` — Delete form
-- `POST /api/forms/:id/calon-test` — Check a calon base URL + resource from the editor
-- `GET /api/submissions/:formId` — Get submissions (paginated, newest first)
-- `GET /api/submissions/:formId/export` — CSV export
-- `DELETE /api/submissions/:formId/:submissionId` — Delete a submission
-- `GET /api/settings` — Read global settings (public) — branding and the configured primary host
-- `PUT /api/settings/:key` — Update a global setting (admin only)
-
-### Integrations (auth required)
-- `GET /api/integrations/:formId` — List integrations (secret fields are never returned; `secrets` says which are set)
-- `POST /api/integrations/:formId` — Create integration
-- `PUT /api/integrations/:formId/:id` — Update integration (an omitted secret field keeps its stored value, `null`/`""` clears it)
-- `DELETE /api/integrations/:formId/:id` — Delete integration
-- `POST /api/integrations/:formId/:id/test` — Test integration
-- `GET /api/integrations/:formId/deliveries` — List delivery attempts (retrying/failed/dead)
-- `POST /api/integrations/:formId/deliveries/:deliveryId/retry` — Manually retry a delivery
-
-### Analytics (auth required)
-- `GET /api/analytics/overview` — Overview stats for all forms
-- `GET /api/analytics/:formId` — Detailed analytics for a form
-
-### User Management (admin only)
-- `GET /api/auth/users` — List all users
-- 🔐 `POST /api/auth/users` — Create/invite user
-- 🔐 `PUT /api/auth/users/:id` — Update user role/password (either one immediately revokes that user's existing sessions) or reset their two-factor login
-- 🔐 `DELETE /api/auth/users/:id` — Delete user
-- 🔐 `POST /api/auth/users/:id/revoke-sessions` — Force-expire a user's existing sessions without changing their password ("Log out everywhere")
-
-### API Tokens (session auth only — a token can never manage tokens)
-- `GET /api/auth/tokens` — List your tokens (prefix + last used, never the secret)
-- 🔐 `POST /api/auth/tokens` — Mint a token (the plaintext `ofw_…` value is returned **once**)
-- `DELETE /api/auth/tokens/:id` — Revoke a token
-
-### Backup & Restore (admin only)
-- `GET /api/admin/backup/info` — Summary of current DB contents and backup format version
-- 🔐 `GET /api/admin/backup` — Download a full JSON backup
-- 🔐 `POST /api/admin/restore` — Restore from a JSON backup
-- `GET /api/admin/backups` — List backups written by the scheduler
-- 🔐 `GET /api/admin/backups/:filename` — Download a specific scheduled backup
-- `GET /api/admin/mail` — System e-mail settings (`source`: `env` | `ui`, `locked` when `SMTP_*` is set; the password is never returned, only `passwordSet`)
-- `PUT /api/admin/mail` — Save SMTP settings after checking the connection (`422 verify_failed` otherwise; `skipVerify: true` saves anyway; an omitted `password` keeps the stored one, `""` clears it). `409` while `SMTP_*` manages it
-- `DELETE /api/admin/mail` — Remove the UI SMTP settings
-- `POST /api/admin/mail/test` — Send a test message to yourself
-
-### Audit Log (admin only)
-- `GET /api/admin/audit-log?limit=200` — Recent security-relevant events (logins, user/role changes, settings changes, backup/restore), newest first. Not included in backups — it's a trail of what happened to the instance, not instance data to restore.
-
-> 🔑 Read-only API tokens (`Authorization: Bearer ofw_…`) may call any **GET/HEAD** endpoint above on behalf of their owner. Every other method is rejected.
-
----
-
-## 🧑‍💻 Development
-
-Requires **Node.js 20+** (the Docker image and CI use Node 20).
-
-```bash
-# Start backend
-cd backend && npm install && npm run dev
-
-# Start frontend (in new terminal)
-cd frontend && npm install && npm run dev
-```
-
-Frontend dev server: `http://localhost:5173` (proxies API to port 3000)
-
-Run the backend test suite (Jest + supertest):
-
-```bash
-cd backend && npm test
-```
-
----
-
-## 🔒 Security & Production Notes
-
-### TLS
-
-The base `docker-compose.yml` serves plain HTTP on `:3000` — it does not
-terminate TLS itself. Put a reverse proxy in front in production:
-- Use the bundled [Custom Subdomains](#custom-subdomains) Caddy overlay
-  (`docker-compose.subdomains.yml`) if you want per-form subdomains, which
-  gets you TLS for free.
-- Otherwise, put OpenFlow behind any reverse proxy you already run (Caddy,
-  Nginx, Traefik, a managed load balancer) and terminate TLS there. This is
-  a deliberate deployment-layer decision, not something the app does for
-  you — most self-hosters already have a reverse proxy in front of every
-  service on their box.
-
-### Reverse proxy & client IPs
-
-Behind any reverse proxy, set `TRUST_PROXY=1` (or the number of proxies in
-front). Without it, Express sees every request as coming from the proxy: all
-visitors share **one** rate-limit bucket (10 submissions per minute for the
-whole install, so real leads get a 429 during a campaign spike), and the
-proxy's address is stored as the submitter IP and sent to Meta's Conversions
-API. OpenFlow logs `trust_proxy_not_configured` once when it sees an
-`X-Forwarded-For` header without `TRUST_PROXY`. The subdomain overlay implies
-it via `OPENFLOW_PRIMARY_HOST`. Don't set it when OpenFlow is reachable
-directly — any client could then pick its own IP.
-
-### Secure defaults
-
-- No password or secret ships with OpenFlow. `ENCRYPTION_KEY` is generated
-  on first boot when unset; the first admin gets a random one-time password
-  printed to the log. A weak `ADMIN_PASSWORD` (< 10 characters, a well-known
-  default or an easily guessed pattern like `Password2026!`) makes the first
-  boot refuse to create the admin.
-- Login sessions are stored server-side (only a hash of the cookie's token),
-  last 7 days, and end immediately on logout, password change, role change or
-  an admin's "log out everywhere". `JWT_SECRET` is no longer used since 0.44
-  and can be removed.
-- Failed logins lock the account for 1, 5, 15, then 60 minutes after every 5
-  failures (persisted, so a restart doesn't reset it, and identical for
-  unknown e-mails). Browsers that signed in to the account before are not
-  locked out, so an attacker can't lock the owner out of their usual browser.
-  The owner is e-mailed once the attempts pile up.
-- **Two-factor login (opt-in, per user, Account page):** signing in from a new
-  browser also needs a 6-digit code sent by e-mail (valid 10 minutes, 5
-  tries, at most 5 codes per 15 minutes). Ticking "remember this browser"
-  skips the code there for 30 days. Needs system e-mail (Settings → System
-  e-mail, or `SMTP_*`). An admin can switch it off
-  for a user who lost their mailbox; `OPENFLOW_2FA_DISABLED=true` is the
-  server-wide emergency switch. Integrations such as lodgely should use an API
-  token, which keeps working with two-factor login on.
-- Every user can change their own password (Account page), see their active
-  sessions and remembered browsers, and sign out everywhere else.
-- Admin pages are served with a strict Content-Security-Policy (only
-  OpenFlow's own scripts), `X-Frame-Options: DENY`, `nosniff` and HSTS over
-  HTTPS. Public form pages (`/f/`, `/embed/`, form subdomains) keep working
-  with GTM, Meta Pixel and iframes.
-- Accounts that still use a well-known default password (e.g. `admin123`
-  from an install older than 0.16) are logged as
-  `default_admin_password_in_use` at boot, and the user sees a red "change
-  your password" banner in the admin UI until they do.
-- API tokens are read-only and never pass an admin check, even when an admin
-  created them.
-
-### Tracking scripts and your admin session
-
-Form pages (`/f/`, `/embed/`) are served from the same address as the admin
-app, so a form's Google Tag Manager container — third-party script — would
-run with the session of anyone signed in to OpenFlow who opens the form.
-Since 0.49 OpenFlow limits that in three ways:
-
-- **No GTM for signed-in browsers.** When the request for a form carries a
-  valid OpenFlow session cookie, the API leaves the container out and the
-  form shows a small "Google Tag Manager is off because you're signed in"
-  notice. Visitors are not affected. The response is
-  `Cache-Control: private, no-store` with `Vary: Cookie`, so no cache in
-  between can hand one version to the other. **Test tracking in a private
-  window** (or another browser profile).
-- **Only admins set or change a form's container.** Other users see the
-  field read-only and can remove a container, but not add or change one.
-  Containers already on their forms keep working, and duplicating a form
-  keeps its container.
-- **Sensitive actions ask for the password again ("sudo mode").**
-  Downloading or restoring a backup (including a scheduled one), creating,
-  changing, signing out or deleting users and creating API tokens ask for
-  the password once, then work for 10 minutes — in that session only. A
-  fresh login doesn't count, wrong passwords count toward the account
-  lockout, and two-factor accounts confirm with the password alone. Reading
-  forms and submissions (what lodgely does) is not affected.
-
-Per-form subdomains never receive the session cookie (it is host-only) and
-have no admin API, so GTM there runs as before.
-
-**What this does not cover.** A form page that loaded its container while
-you were signed out keeps that script running. If you then sign in, in
-another tab of the same browser, the script can make requests with your
-new session: read what your account can read (your forms and submissions;
-for an admin also the user list and the audit log) and use what isn't
-behind the password check, such as editing forms and their integrations.
-The same goes for an `/embed/` frame on another site, whose script could
-open OpenFlow in a new window. Backups, users and new API tokens stay out
-of its reach unless you confirmed your password in the last 10 minutes.
-So: open forms that have GTM, and test tracking, in a private window, and
-close form tabs before signing in. The complete fix — serving the admin
-app from its own hostname — is not part of OpenFlow yet.
-
-### Single-instance architecture
-
-OpenFlow's rate limiter (`models/rateLimit.js`) and scheduled-backup job
-(`models/backupScheduler.js`) are in-process and in-memory by design — this
-keeps the app a genuinely zero-dependency, single SQLite file deployment
-with nothing else to run (no Redis, no external queue). This is an accepted
-tradeoff, not a bug: run **one** container per OpenFlow instance. Running
-multiple replicas behind a load balancer will not share rate-limit state
-between them (each replica enforces its own limits independently) and will
-write duplicate scheduled backups. Horizontal scaling would need a shared
-store for both and is not currently supported.
-
-### Backups: what's automatic vs. manual
-
-- **Automatic today**: a background job (`BACKUP_ENABLED`, on by default)
-  writes a full JSON snapshot to `./backups` on an interval
-  (`BACKUP_INTERVAL_HOURS`) and prunes old ones (`BACKUP_RETENTION_COUNT`).
-  Admins can also trigger an on-demand download anytime from **Backup** in
-  the admin UI, or `GET /api/admin/backup`.
-- **Not automatic**: OpenFlow does not upload backups to S3/cloud storage
-  for you. `./backups` is a host-local bind mount — copy it off-box on a
-  schedule that matches your recovery requirements (`rsync`, a cron job, or
-  your cloud provider's own volume backup tooling all work fine against a
-  plain directory of JSON files).
-
-### Deferred for now
-
-The following are known gaps, deliberately not addressed yet:
-- **Two-factor authentication (2FA)** — password + session-revocation only.
-- **Admin UI localization** — only respondent-facing form strings ship in
-  EN/DE (`frontend/src/locales.js`); the admin interface itself is
-  English-only.
-- **Automated data-retention / GDPR erasure workflows** — submissions can be
-  deleted one at a time or exported as CSV, but there's no policy-driven
-  auto-expiry or bulk "erase everything for this data subject" tool yet.
-
----
+Open `http://localhost:3000` and sign in as `admin@openflow.local`. On first start
+OpenFlow generates a one-time password and prints it once to the log
+(`docker compose logs app`). It never ships a default password.
+
+To update, run `git pull && docker compose pull && docker compose up -d`. Your data
+stays in the `db-data` volume. For environment variables, TLS and reverse proxies, see
+[configuration](docs/configuration.md) and [security & production](docs/production.md).
+
+## 📚 Documentation
+
+| Page | What's in it |
+|------|--------------|
+| [Features](docs/features.md) | Every feature, field type and analytics metric |
+| [Installation & configuration](docs/configuration.md) | Install, update, all environment variables |
+| [Integrations](docs/integrations/README.md) | Webhook, e-mail, Sheets, Google Ads, Meta, [lodgely](docs/integrations/lodgely.md), [calon](docs/integrations/calon.md) |
+| [Embedding & tracking](docs/embedding.md) | iframe, WordPress, slugs, GTM events, cookie banner |
+| [Custom subdomains](docs/subdomains.md) | A subdomain per form behind one wildcard certificate |
+| [API endpoints](docs/api.md) | Routes, auth and read-only API tokens |
+| [Security & production](docs/production.md) | Secure defaults, proxies, backups, known gaps |
+| [Development](docs/development.md) | Running from source, tests, repository layout |
 
 ## 🗺️ Roadmap
 
-- ✅ **Phase 1**: Multi-step forms, field types, Admin UI, GTM, iframe embed, CSV export, WordPress plugin
-- ✅ **Phase 2**: Webhook, email notifications, Google Sheets integration
-- ✅ **Phase 3**: Conditional logic, file uploads, custom CSS per form, multi-user support, landing page header/footer
-- ✅ **Phase 4**: Analytics dashboard, simplified Google Sheets, dark mode, delete protection for live forms
-- ✅ **Phase 5**: Editable slugs and per-form subdomains, backup & restore, read-only API tokens, retrying integration deliveries, server-side Google Ads conversions, Meta Conversions API, Date & Timeslot with calon booking, browser autofill, published Docker image
-- 🔜 **Next** — see **[ROADMAP.md](ROADMAP.md)**: a versioned submission contract and signed webhook for lodgely, answer-based routing (jump logic, conditional end screens and redirects), hidden fields / UTM capture, spam protection, opt-in partial submissions, and GDPR retention & erasure. A/B testing is deferred and arbitrary custom domains are out of scope (reasons in the roadmap).
-
---
+Planned next: a versioned submission contract and signed webhook for lodgely,
+answer-based routing, hidden fields and UTM capture, spam protection, partial
+submissions, and GDPR retention and erasure. Details in **[ROADMAP.md](ROADMAP.md)**.
 
 ## Ethical use
 
-OpenFlow is a marketing tool. We ask, as a non-binding ethical request, that you do not use it for clients in:
-
-    Weapons and armaments
-    Fossil-fuel energy (extraction, refining, distribution, generation)
-    Internal-combustion / fossil-fuel passenger vehicles — electric vehicles, bicycles and public transit are explicitly fine.
-
-This is a request from the maintainers, not a legal restriction (OpenFlow remains GPL-3.0). See the preamble in LICENSE for the full statement.
-
-
----
+OpenFlow is a marketing tool. As a non-binding request, please don't use it for
+clients in weapons and armaments, fossil-fuel energy (extraction, refining,
+distribution, generation), or internal-combustion passenger vehicles (electric vehicles, bicycles and public transit are fine). This
+is a request from the maintainers, not a legal restriction. See the preamble in
+[LICENSE](LICENSE).
 
 ## 📄 License
 
-GPL 3.0 — see [LICENSE](LICENSE).
-
----
-
+GPL 3.0, see [LICENSE](LICENSE).
