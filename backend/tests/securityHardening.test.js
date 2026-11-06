@@ -1,7 +1,7 @@
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
 const { randomUUID: uuid } = require('crypto');
-const { createTestApp } = require('./setup');
+const { createTestApp, confirmPassword } = require('./setup');
 const secureDefaults = require('../src/models/secureDefaults');
 const { resolveTrustProxy } = require('../src/utils/trustProxy');
 
@@ -37,6 +37,7 @@ describe('Security hardening', () => {
     beforeEach(async () => {
       insertUser('admin@test.com', 'a-strong-password');
       const cookie = (await login('admin@test.com', 'a-strong-password')).headers['set-cookie'];
+      await confirmPassword(app, cookie, 'a-strong-password');
       const res = await request(app).post('/api/auth/tokens').set('Cookie', cookie).send({ name: 'lodgely' });
       token = res.body.token.token;
     });
@@ -144,6 +145,7 @@ describe('Security hardening', () => {
       const me = await request(app).get('/api/auth/me').set('Cookie', cookie);
       expect(me.body.user.weakPassword).toBe(true);
 
+      await confirmPassword(app, cookie, 'admin123');
       const change = await request(app).put(`/api/auth/users/${id}`).set('Cookie', cookie).send({ password: 'a-much-better-passphrase' });
       expect(change.status).toBe(200);
       const relogin = await login('old@test.com', 'a-much-better-passphrase');
@@ -153,6 +155,7 @@ describe('Security hardening', () => {
     it('refuses to set a well-known default as a new password', async () => {
       const id = insertUser('admin2@test.com', 'a-strong-password');
       const cookie = (await login('admin2@test.com', 'a-strong-password')).headers['set-cookie'];
+      await confirmPassword(app, cookie, 'a-strong-password');
       const res = await request(app).put(`/api/auth/users/${id}`).set('Cookie', cookie).send({ password: '1234567890' });
       expect(res.status).toBe(400);
     });

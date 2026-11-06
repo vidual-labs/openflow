@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { createTestApp } = require('./setup');
+const { createTestApp, confirmPassword } = require('./setup');
 const bcrypt = require('bcryptjs');
 const { randomUUID: uuid } = require('crypto');
 
@@ -16,7 +16,9 @@ describe('API tokens', () => {
     getDb().prepare('INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)')
       .run(uuid(), email, bcrypt.hashSync(password, 10), role);
     const res = await request(app).post('/api/auth/login').send({ email, password });
-    return res.headers['set-cookie'];
+    const cookie = res.headers['set-cookie'];
+    await confirmPassword(app, cookie, password); // minting a token needs it
+    return cookie;
   }
 
   async function createToken(cookie, name = 'lodgely') {

@@ -7,7 +7,7 @@ jest.mock('../src/models/integrations', () => ({
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
 const { randomUUID: uuid } = require('crypto');
-const { createTestApp } = require('./setup');
+const { createTestApp, confirmPassword } = require('./setup');
 const { runIntegration } = require('../src/models/integrations');
 const { enqueueAndAttempt, processDueDeliveries } = require('../src/models/deliveryQueue');
 const { formatValue } = require('../src/utils/formatValue');
@@ -33,9 +33,13 @@ function seedForm(userId, steps, slug = 'reg-form') {
   return formId;
 }
 
+// Logs in and re-confirms the password ("sudo mode", needed for backups and
+// user management).
 async function login(app, email = 'owner@test.com') {
   const res = await request(app).post('/api/auth/login').send({ email, password: 'ownerpass1234' });
-  return res.headers['set-cookie'];
+  const cookie = res.headers['set-cookie'];
+  if (res.status === 200) await confirmPassword(app, cookie, 'ownerpass1234');
+  return cookie;
 }
 
 describe('delivery queue retry scheduling', () => {

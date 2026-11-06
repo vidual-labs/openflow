@@ -69,6 +69,14 @@ function findSession(token) {
   return row;
 }
 
+// "Sudo mode": the password was just re-entered on this session (see
+// middleware/auth.js#requireRecentAuth). Per session, so the account's other
+// sessions don't inherit it. Returns the timestamp stored.
+function markReauthenticated(sessionId, at = Date.now()) {
+  getDb().prepare('UPDATE sessions SET reauth_at = ? WHERE id = ?').run(at, sessionId);
+  return at;
+}
+
 function deleteSessionByToken(token) {
   if (!token || typeof token !== 'string') return;
   getDb().prepare('DELETE FROM sessions WHERE token_hash = ?').run(hashToken(token));
@@ -204,6 +212,7 @@ module.exports = {
   hashToken,
   createSession,
   findSession,
+  markReauthenticated,
   deleteSessionByToken,
   deleteSession,
   listSessions,

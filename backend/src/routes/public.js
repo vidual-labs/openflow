@@ -6,6 +6,7 @@ const { randomUUID: uuid } = require('crypto');
 const { flattenFields } = require('../utils/steps');
 const { visibleSteps } = require('../utils/conditions');
 const logger = require('../utils/logger');
+const { sessionFromCookie } = require('../middleware/auth');
 
 const router = Router();
 
@@ -24,8 +25,18 @@ function clientIp(req) {
   return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
-// Get published form by slug (public)
+// Get published form by slug (public).
+//
+// A form's GTM container is third-party script, and the form pages share the
+// admin app's origin: run in a browser that is signed in to OpenFlow, it could
+// call the API with that session. So a request carrying a live session cookie
+// gets the form without it (gtm_id '' plus `gtmSuppressed: true`, which the
+// form page turns into a small notice); visitors get exactly what they always
+// got. Because the answer depends on the cookie, it must never be stored by a
+// shared cache: private, no-store, and Vary: Cookie for anything in between.
 router.get('/form/:slug', (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.vary('Cookie');
   const db = getDb();
   let form = db.prepare(
     'SELECT id, title, slug, steps, end_screen, theme, gtm_id FROM forms WHERE slug = ? AND published = 1'
@@ -50,6 +61,10 @@ router.get('/form/:slug', (req, res) => {
     form.theme = JSON.parse(form.theme);
   } catch {
     return res.status(500).json({ error: 'Form data is corrupted' });
+  }
+  if (form.gtm_id && sessionFromCookie(req)) {
+    form.gtm_id = '';
+    form.gtmSuppressed = true;
   }
   res.json({ form });
 });

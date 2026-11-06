@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router';
+import { api, setReauthHandler } from '../api';
 
 /**
  * Shared admin UI primitives. These replace the ad-hoc inline blocks that were
@@ -61,6 +62,102 @@ export function EmptyState({ title, message, children }) {
       {title && <h3>{title}</h3>}
       {message && <p>{message}</p>}
       {children}
+    </div>
+  );
+}
+
+/**
+ * "Sudo mode" prompt. Mounted once by the admin shell (App.jsx), it registers
+ * itself with api.js: when a guarded action (backup download/restore, user
+ * management, creating an API token) answers 403 `reauth_required`, it asks
+ * for the password, confirms it with POST /api/auth/confirm-password, and the
+ * original request is retried once. Cancel aborts that action. Accounts with
+ * two-factor login confirm with their password only.
+ */
+export function ReauthDialog() {
+  const [open, setOpen] = React.useState(false);
+  const [password, setPassword] = React.useState('');
+  const [error, setError] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const resolveRef = React.useRef(null);
+  const inputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    setReauthHandler(() => new Promise((resolve) => {
+      resolveRef.current = resolve;
+      setPassword('');
+      setError('');
+      setOpen(true);
+    }));
+    return () => {
+      setReauthHandler(null);
+      if (resolveRef.current) resolveRef.current(false);
+      resolveRef.current = null;
+    };
+  }, []);
+
+  function finish(confirmed) {
+    setOpen(false);
+    setPassword('');
+    setError('');
+    const resolve = resolveRef.current;
+    resolveRef.current = null;
+    if (resolve) resolve(confirmed);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!password || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api.confirmPassword(password);
+      finish(true);
+    } catch (err) {
+      setPassword('');
+      setError(err.message || 'That password is not correct.');
+      inputRef.current?.focus();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) return null;
+  return (
+    <div className="reauth-backdrop" onKeyDown={(e) => { if (e.key === 'Escape') finish(false); }}>
+      <form
+        className="card reauth-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reauth-title"
+        aria-describedby="reauth-desc"
+        onSubmit={handleSubmit}
+      >
+        <h3 id="reauth-title">Confirm your password</h3>
+        <p id="reauth-desc" className="reauth-text">
+          This action needs your password. Once confirmed, you won't be asked again for 10 minutes in this session.
+        </p>
+        <div className="input-group">
+          <label htmlFor="reauth-password">Password</label>
+          <input
+            id="reauth-password"
+            ref={inputRef}
+            className="input"
+            type="password"
+            autoComplete="current-password"
+            autoFocus
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        <Alert type="error">{error}</Alert>
+        <div className="reauth-actions">
+          <button type="button" className="btn btn-secondary" onClick={() => finish(false)}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={busy || !password}>
+            {busy ? 'Checking…' : 'Confirm'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

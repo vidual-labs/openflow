@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { getDb, ensureFormFieldKeys } = require('../models/db');
-const { authMiddleware, requireAdmin } = require('../middleware/auth');
+const { authMiddleware, requireAdmin, requireRecentAuth } = require('../middleware/auth');
 const { createBackup, backupSummary, restoreBackup } = require('../models/backup');
 const { listScheduledBackups, readScheduledBackup } = require('../models/backupScheduler');
 const { logAuditEvent, listAuditEvents } = require('../models/auditLog');
@@ -114,8 +114,11 @@ router.get('/backup/info', (req, res) => {
   res.json(backupSummary(getDb()));
 });
 
-// Download a full backup of the database as a JSON file.
-router.get('/backup', (req, res) => {
+// Download a full backup of the database as a JSON file. A backup holds every
+// submission and every password hash, so it needs the password re-entered
+// recently ("sudo mode", requireRecentAuth), as do downloading a scheduled
+// backup and restoring one below. Listing them and the counts do not.
+router.get('/backup', requireRecentAuth, (req, res) => {
   const backup = createBackup(getDb());
   const date = new Date().toISOString().slice(0, 10);
   logAuditEvent({ userId: req.userId, action: 'backup_downloaded', ip: clientIp(req) });
@@ -130,7 +133,7 @@ router.get('/backups', (req, res) => {
 });
 
 // Download one specific scheduled backup by filename.
-router.get('/backups/:filename', (req, res) => {
+router.get('/backups/:filename', requireRecentAuth, (req, res) => {
   try {
     const contents = readScheduledBackup(req.params.filename);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -144,7 +147,7 @@ router.get('/backups/:filename', (req, res) => {
 // Restore (replace) the database from an uploaded backup. The backup is
 // migrated up to the current format before being applied, all inside a single
 // transaction — a malformed file leaves existing data untouched.
-router.post('/restore', (req, res) => {
+router.post('/restore', requireRecentAuth, (req, res) => {
   try {
     const db = getDb();
     // Preserve the acting admin so a restore can never lock them out.

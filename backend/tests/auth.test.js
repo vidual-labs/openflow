@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { createTestApp } = require('./setup');
+const { createTestApp, confirmPassword } = require('./setup');
 const bcrypt = require('bcryptjs');
 const { randomUUID: uuid } = require('crypto');
 
@@ -91,6 +91,7 @@ describe('Authentication', () => {
 
       const adminRes = await request(app).post('/api/auth/login').send({ email: 'admin@test.com', password: 'adminpass' });
       adminCookie = adminRes.headers['set-cookie'];
+      await confirmPassword(app, adminCookie, 'adminpass'); // user management needs it
 
       const userRes = await request(app).post('/api/auth/login').send({ email: 'user@test.com', password: 'userpass' });
       userCookie = userRes.headers['set-cookie'];

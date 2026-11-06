@@ -93,4 +93,19 @@ function getCookies(res) {
   return cookies;
 }
 
-module.exports = { createTestApp, getCookies };
+// "Sudo mode": backup/restore, user management and minting API tokens need
+// the password re-entered on the session first (POST
+// /api/auth/confirm-password, see reauth.test.js). Suites that exercise those
+// actions for their own sake confirm right after logging in. `who` is a
+// cookie (header value or set-cookie array) or a supertest agent.
+async function confirmPassword(app, who, password) {
+  const request = require('supertest');
+  const req = who && typeof who.post === 'function'
+    ? who.post('/api/auth/confirm-password')
+    : request(app).post('/api/auth/confirm-password').set('Cookie', who);
+  const res = await req.send({ password });
+  if (res.status !== 200) throw new Error(`confirm-password failed: ${res.status} ${JSON.stringify(res.body)}`);
+  return res;
+}
+
+module.exports = { createTestApp, getCookies, confirmPassword };

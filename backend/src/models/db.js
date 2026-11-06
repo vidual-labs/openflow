@@ -240,6 +240,16 @@ function initDb() {
     console.log('Migration: added twofa_enabled column to users');
   }
 
+  // Migrate: "sudo mode" (0.49) — when the password was last re-entered on a
+  // session (epoch ms; NULL = never, which is every session from before and
+  // every fresh login). See middleware/auth.js#requireRecentAuth.
+  try {
+    db.prepare('SELECT reauth_at FROM sessions LIMIT 1').get();
+  } catch {
+    db.exec('ALTER TABLE sessions ADD COLUMN reauth_at INTEGER');
+    console.log('Migration: added reauth_at column to sessions');
+  }
+
   // Migrate: add subdomain column to forms (existing DBs).
   // SQLite can't add a column with a UNIQUE constraint inline, so we add the
   // column nullable and enforce uniqueness with a partial unique index.

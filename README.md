@@ -341,8 +341,8 @@ push integrations above, this is configured entirely in lodgely (under
 **Imports → OpenFlow**), so there is nothing to set up on the OpenFlow side
 beyond an account that owns the form:
 
-- **Recommended:** create a **read-only API token** under **Settings → API
-  Tokens** and paste it into lodgely. The token can read what its owner can
+- **Recommended:** create a **read-only API token** under **Account → API
+  Tokens** (OpenFlow asks for your password first) and paste it into lodgely. The token can read what its owner can
   read (their forms and submissions) but never modify anything, never manage
   tokens, and never reach admin endpoints (backups, users, audit log) — even
   when an admin created it. Revoke it anytime without touching your password.
@@ -453,7 +453,9 @@ OpenFlow automatically pushes events to the Google Tag Manager dataLayer:
 | `openflow_step` | Each step change | `formId`, `stepIndex`, `stepId` |
 | `openflow_submit` | Form submitted | `formId`, `formTitle`, `eventId` (the submission id, for Meta Pixel deduplication) |
 
-Set the container ID per form under **GTM / GDPR → GTM Container ID** (it must look like `GTM-XXXXXXX`).
+Set the container ID per form under **GTM / GDPR → GTM Container ID** (it must look like `GTM-XXXXXXX`). Only **admins** can set or change it; other users see it read-only and can only remove it.
+
+Browsers signed in to OpenFlow never load a form's GTM container — the form shows a small notice instead — because the container is third-party script running on OpenFlow's own address. **Test tracking in a private window.** See [Tracking scripts and your admin session](#tracking-scripts-and-your-admin-session).
 
 ### 🍪 Cookie consent banner
 
@@ -609,7 +611,7 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 
 ### Public (no auth)
 - `GET /api/health` — Liveness/readiness check (database connectivity + uptime), for orchestrators and uptime monitors
-- `GET /api/public/form/:slug` — Load published form
+- `GET /api/public/form/:slug` — Load published form. A request with a valid OpenFlow session cookie gets `gtm_id: ""` and `gtmSuppressed: true` instead of the form's GTM container; always `Cache-Control: private, no-store` + `Vary: Cookie`
 - `GET /api/public/form/:slug/availability` — Bookable times for a calon-backed Date & Timeslot field (proxied, SSRF-guarded)
 - `POST /api/public/form/:slug/submit` — Submit response (`400 consent_required` when the form asks for consent and it wasn't given)
 - `POST /api/public/track` — Track analytics event
@@ -623,13 +625,16 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 - `POST /api/auth/password` — Change own password (`currentPassword`, `newPassword`); signs out every other session
 - `POST /api/auth/2fa/start` / `POST /api/auth/2fa/confirm` / `POST /api/auth/2fa/disable` — Turn two-factor login on (password → e-mailed code) or off (password)
 - `DELETE /api/auth/sessions/:id`, `POST /api/auth/sessions/revoke-others`, `DELETE /api/auth/devices/:id` — End a session, sign out everywhere else, forget a remembered browser
+- `POST /api/auth/confirm-password` — `{ password }` → `{ ok, validUntil }`: "sudo mode" for the routes marked 🔐 below, for 10 minutes on this session only (session only, never an API token). `401 wrong_password` counts toward the account lockout; `429 account_locked` while it is locked
+
+> 🔐 marks routes that answer `403` with `code: "reauth_required"` unless the password was confirmed on this session in the last 10 minutes. A fresh login does not count.
 
 ### Admin (auth required)
 - `GET /api/forms` — List your forms (every form query is scoped to its owner)
 - `GET /api/forms/:id` — Get one form (including its `steps`)
-- `POST /api/forms` — Create form
+- `POST /api/forms` — Create form (`403 gtm_admin_only` when a non-admin sends a `gtm_id`)
 - `POST /api/forms/:id/clone` — Duplicate a form (draft copy, integrations disabled)
-- `PUT /api/forms/:id` — Update form
+- `PUT /api/forms/:id` — Update form (`403 gtm_admin_only` when a non-admin changes `gtm_id`; sending the stored value or `""` is fine)
 - `DELETE /api/forms/:id` — Delete form
 - `POST /api/forms/:id/calon-test` — Check a calon base URL + resource from the editor
 - `GET /api/submissions/:formId` — Get submissions (paginated, newest first)
@@ -653,22 +658,22 @@ A form's `/f/<slug>` and `/embed/<slug>` URLs on the primary host always keep wo
 
 ### User Management (admin only)
 - `GET /api/auth/users` — List all users
-- `POST /api/auth/users` — Create/invite user
-- `PUT /api/auth/users/:id` — Update user role/password (either one immediately revokes that user's existing sessions)
-- `DELETE /api/auth/users/:id` — Delete user
-- `POST /api/auth/users/:id/revoke-sessions` — Force-expire a user's existing sessions without changing their password ("Log out everywhere")
+- 🔐 `POST /api/auth/users` — Create/invite user
+- 🔐 `PUT /api/auth/users/:id` — Update user role/password (either one immediately revokes that user's existing sessions) or reset their two-factor login
+- 🔐 `DELETE /api/auth/users/:id` — Delete user
+- 🔐 `POST /api/auth/users/:id/revoke-sessions` — Force-expire a user's existing sessions without changing their password ("Log out everywhere")
 
 ### API Tokens (session auth only — a token can never manage tokens)
 - `GET /api/auth/tokens` — List your tokens (prefix + last used, never the secret)
-- `POST /api/auth/tokens` — Mint a token (the plaintext `ofw_…` value is returned **once**)
+- 🔐 `POST /api/auth/tokens` — Mint a token (the plaintext `ofw_…` value is returned **once**)
 - `DELETE /api/auth/tokens/:id` — Revoke a token
 
 ### Backup & Restore (admin only)
 - `GET /api/admin/backup/info` — Summary of current DB contents and backup format version
-- `GET /api/admin/backup` — Download a full JSON backup
-- `POST /api/admin/restore` — Restore from a JSON backup
+- 🔐 `GET /api/admin/backup` — Download a full JSON backup
+- 🔐 `POST /api/admin/restore` — Restore from a JSON backup
 - `GET /api/admin/backups` — List backups written by the scheduler
-- `GET /api/admin/backups/:filename` — Download a specific scheduled backup
+- 🔐 `GET /api/admin/backups/:filename` — Download a specific scheduled backup
 - `GET /api/admin/mail` — System e-mail settings (`source`: `env` | `ui`, `locked` when `SMTP_*` is set; the password is never returned, only `passwordSet`)
 - `PUT /api/admin/mail` — Save SMTP settings after checking the connection (`422 verify_failed` otherwise; `skipVerify: true` saves anyway; an omitted `password` keeps the stored one, `""` clears it). `409` while `SMTP_*` manages it
 - `DELETE /api/admin/mail` — Remove the UI SMTP settings
@@ -766,6 +771,48 @@ directly — any client could then pick its own IP.
   your password" banner in the admin UI until they do.
 - API tokens are read-only and never pass an admin check, even when an admin
   created them.
+
+### Tracking scripts and your admin session
+
+Form pages (`/f/`, `/embed/`) are served from the same address as the admin
+app, so a form's Google Tag Manager container — third-party script — would
+run with the session of anyone signed in to OpenFlow who opens the form.
+Since 0.49 OpenFlow limits that in three ways:
+
+- **No GTM for signed-in browsers.** When the request for a form carries a
+  valid OpenFlow session cookie, the API leaves the container out and the
+  form shows a small "Google Tag Manager is off because you're signed in"
+  notice. Visitors are not affected. The response is
+  `Cache-Control: private, no-store` with `Vary: Cookie`, so no cache in
+  between can hand one version to the other. **Test tracking in a private
+  window** (or another browser profile).
+- **Only admins set or change a form's container.** Other users see the
+  field read-only and can remove a container, but not add or change one.
+  Containers already on their forms keep working, and duplicating a form
+  keeps its container.
+- **Sensitive actions ask for the password again ("sudo mode").**
+  Downloading or restoring a backup (including a scheduled one), creating,
+  changing, signing out or deleting users and creating API tokens ask for
+  the password once, then work for 10 minutes — in that session only. A
+  fresh login doesn't count, wrong passwords count toward the account
+  lockout, and two-factor accounts confirm with the password alone. Reading
+  forms and submissions (what lodgely does) is not affected.
+
+Per-form subdomains never receive the session cookie (it is host-only) and
+have no admin API, so GTM there runs as before.
+
+**What this does not cover.** A form page that loaded its container while
+you were signed out keeps that script running. If you then sign in, in
+another tab of the same browser, the script can make requests with your
+new session: read what your account can read (your forms and submissions;
+for an admin also the user list and the audit log) and use what isn't
+behind the password check, such as editing forms and their integrations.
+The same goes for an `/embed/` frame on another site, whose script could
+open OpenFlow in a new window. Backups, users and new API tokens stay out
+of its reach unless you confirmed your password in the last 10 minutes.
+So: open forms that have GTM, and test tracking, in a private window, and
+close form tabs before signing in. The complete fix — serving the admin
+app from its own hostname — is not part of OpenFlow yet.
 
 ### Single-instance architecture
 

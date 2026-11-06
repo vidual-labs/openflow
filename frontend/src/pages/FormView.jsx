@@ -53,6 +53,42 @@ function CookieBanner({ form, onAccept, onDecline }) {
   );
 }
 
+// Shown instead of GTM when the API left the form's container out because
+// this browser is signed in to OpenFlow (`gtmSuppressed`, routes/public.js):
+// a third-party tag on this origin would otherwise run with the session.
+// Respondents never get the flag, so their page is unchanged. Inline styles
+// only — admin CSS must never reach the form pages.
+export function GtmSuppressedNotice({ form }) {
+  const [hidden, setHidden] = useState(false);
+  if (!form?.gtmSuppressed || hidden) return null;
+  const locale = LOCALES[form.theme?.language] || LOCALES.en;
+  return (
+    <div
+      role="status"
+      style={{
+        position: 'fixed', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 9998,
+        width: 'max-content', maxWidth: 'calc(100% - 16px)', boxSizing: 'border-box',
+        display: 'flex', alignItems: 'flex-start', gap: 10,
+        padding: '7px 10px 7px 12px', borderRadius: 8,
+        background: 'rgba(45, 52, 54, 0.9)', color: '#fff',
+        fontFamily: '-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif',
+        fontSize: 12, lineHeight: 1.45, boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+      }}
+    >
+      <span>{locale.gtmSuppressedNotice}</span>
+      <button
+        type="button"
+        onClick={() => setHidden(true)}
+        aria-label={locale.gtmSuppressedDismiss}
+        title={locale.gtmSuppressedDismiss}
+        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 0, opacity: 0.75 }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 export default function FormView({ slugProp, hostMode = false }) {
   const params = useParams();
   const slug = slugProp || params.slug;
@@ -132,9 +168,10 @@ export default function FormView({ slugProp, hostMode = false }) {
     if (Object.keys(ids).length) setClickIds(ids);
   }, [cookieConsent]);
 
-  // Inject GTM only when consent is given
+  // Inject GTM only when consent is given — and never for a browser signed in
+  // to OpenFlow (the API then sends no container and `gtmSuppressed`).
   useEffect(() => {
-    if (!form?.gtm_id || cookieConsent !== true) return;
+    if (!form?.gtm_id || form.gtmSuppressed || cookieConsent !== true) return;
     if (!/^GTM-[A-Z0-9]+$/.test(form.gtm_id)) return;
     const script = document.createElement('script');
     script.innerHTML = `
@@ -146,7 +183,7 @@ export default function FormView({ slugProp, hostMode = false }) {
     `;
     document.head.appendChild(script);
     return () => { if (document.head.contains(script)) document.head.removeChild(script); };
-  }, [form?.gtm_id, cookieConsent]);
+  }, [form?.gtm_id, form?.gtmSuppressed, cookieConsent]);
 
   function handleAccept() {
     writeStorage('local', `of_cc_${form.id}`, 'accepted');
@@ -163,6 +200,7 @@ export default function FormView({ slugProp, hostMode = false }) {
   return (
     <>
       <FormRenderer form={form} onSubmit={(data) => api.submitForm(slug, data, cookieConsent === true ? withMetaCookies(clickIds) : clickIds)} />
+      <GtmSuppressedNotice form={form} />
       {cookieConsent === 'pending' && (
         <CookieBanner form={form} onAccept={handleAccept} onDecline={handleDecline} />
       )}

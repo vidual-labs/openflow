@@ -2,7 +2,7 @@ const request = require('supertest');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { randomUUID: uuid } = require('crypto');
-const { createTestApp } = require('./setup');
+const { createTestApp, confirmPassword } = require('./setup');
 const systemMail = require('../src/models/systemMail');
 const loginGuard = require('../src/models/loginGuard');
 const { resetRateLimits } = require('../src/models/rateLimit');
@@ -356,6 +356,7 @@ describe('Login security', () => {
       const userId = createUser('lost@test.com', { twofa: true });
       const admin = request.agent(app);
       await admin.post('/api/auth/login').send({ email: 'boss@test.com', password: PASSWORD });
+      await confirmPassword(app, admin, PASSWORD);
 
       const browser = request.agent(app);
       const s1 = await browser.post('/api/auth/login').send({ email: 'lost@test.com', password: PASSWORD });
@@ -452,6 +453,7 @@ describe('Login security', () => {
       createUser('tok@test.com');
       const agent = request.agent(app);
       await agent.post('/api/auth/login').send({ email: 'tok@test.com', password: PASSWORD });
+      await confirmPassword(app, agent, PASSWORD);
       const { token } = (await agent.post('/api/auth/tokens').send({ name: 'ci' })).body.token;
       const res = await request(app).get('/api/auth/account').set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(403);
@@ -462,6 +464,7 @@ describe('Login security', () => {
       const goneId = createUser('gone@test.com');
       const admin = request.agent(app);
       await admin.post('/api/auth/login').send({ email: 'boss2@test.com', password: PASSWORD });
+      await confirmPassword(app, admin, PASSWORD);
       await request(app).post('/api/auth/login').send({ email: 'gone@test.com', password: PASSWORD });
       expect((await admin.delete(`/api/auth/users/${goneId}`)).status).toBe(200);
       expect(getDb().prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?').get(goneId).n).toBe(0);

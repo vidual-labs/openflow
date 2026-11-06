@@ -5,6 +5,7 @@ import { api } from '../api';
 import { LOCALES } from '../locales';
 import { captureClickIds, withMetaCookies } from '../clickIds';
 import { readStorage, writeStorage } from '../utils/storage';
+import { GtmSuppressedNotice } from './FormView';
 
 function CookieBanner({ form, onAccept, onDecline }) {
   const es = form.end_screen || {};
@@ -120,9 +121,10 @@ export default function EmbedView() {
     if (Object.keys(ids).length) setClickIds(ids);
   }, [cookieConsent]);
 
-  // Inject GTM only when consent is given
+  // Inject GTM only when consent is given — and never for a browser signed in
+  // to OpenFlow (the API then sends no container and `gtmSuppressed`).
   useEffect(() => {
-    if (!form?.gtm_id || cookieConsent !== true) return;
+    if (!form?.gtm_id || form.gtmSuppressed || cookieConsent !== true) return;
     if (!/^GTM-[A-Z0-9]+$/.test(form.gtm_id)) return;
     const script = document.createElement('script');
     script.innerHTML = `
@@ -134,7 +136,7 @@ export default function EmbedView() {
     `;
     document.head.appendChild(script);
     return () => { if (document.head.contains(script)) document.head.removeChild(script); };
-  }, [form?.gtm_id, cookieConsent]);
+  }, [form?.gtm_id, form?.gtmSuppressed, cookieConsent]);
 
   function handleAccept() {
     writeStorage('local', `of_cc_${form.id}`, 'accepted');
@@ -172,6 +174,7 @@ export default function EmbedView() {
   return (
     <>
       <FormRenderer form={form} onSubmit={handleSubmit} embedded />
+      <GtmSuppressedNotice form={form} />
       {cookieConsent === 'pending' && (
         <CookieBanner form={form} onAccept={handleAccept} onDecline={handleDecline} />
       )}
