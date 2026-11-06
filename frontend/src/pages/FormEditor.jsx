@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { PageNotice } from '../components/AdminUI';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';

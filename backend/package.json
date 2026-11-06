@@ -1,6 +1,6 @@
 {
   "name": "openflow-backend",
-  "version": "0.48.6",
+  "version": "0.48.7",
   "description": "OpenFlow - Form builder backend",
   "main": "src/index.js",
   "scripts": {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import FormRenderer from '../components/FormRenderer';
 import { api } from '../api';
 import { LOCALES } from '../locales';

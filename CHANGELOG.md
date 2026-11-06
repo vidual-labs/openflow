@@ -2,6 +2,21 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.48.7] - 2026-11-06
+
+### Security
+- **React Router 7 for the admin and form pages.** The frontend moves from
+  `react-router-dom` 6 to `react-router` 7.18.5, which fixes the two
+  remaining moderate advisories: an open redirect via a backslash in
+  `<Link>` / `useNavigate`, and a constructor injection in server-side
+  rendering hydration. Neither could be reached in OpenFlow: its links and
+  redirects never take a path from a visitor, and it doesn't render on the
+  server. Nothing changes for admins or respondents: every page, link,
+  redirect and the back button work as before, and published forms look
+  exactly the same.
+- The only advisory left is in Jest's own tooling (tests only, never
+  shipped).
+
 ## [0.48.6] - 2026-11-06
 
 ### Security

@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router';
 import App from './App';
 import FormView from './pages/FormView';
 import EmbedView from './pages/EmbedView';
@@ -12,9 +12,14 @@ import './styles/global.css';
 // for the bound slug.
 const hostForm = typeof window !== 'undefined' ? window.__OPENFLOW_HOST_FORM__ : null;
 
+// useTransitions={false}: React Router 7 would otherwise wrap every location
+// update in React.startTransition (v6's opt-in `v7_startTransition`), which
+// renders a navigation a moment after the URL changes and briefly snaps
+// URL-bound controls (the analytics period/compare selects) back. Off keeps
+// v6's synchronous updates.
 const root = (
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter useTransitions={false}>
       {hostForm && hostForm.slug ? (
         <Routes>
           <Route path="*" element={<FormView slugProp={hostForm.slug} hostMode />} />

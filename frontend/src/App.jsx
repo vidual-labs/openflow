@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
-import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router';
 import { api } from './api';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
