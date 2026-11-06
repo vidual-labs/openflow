@@ -20,8 +20,10 @@ router.get('/:formId', (req, res) => {
   const offset = (page - 1) * limit;
 
   const total = db.prepare('SELECT COUNT(*) as count FROM submissions WHERE form_id = ?').get(req.params.formId).count;
+  // created_at has second precision; rowid breaks ties so submissions from
+  // the same second are newest-first too (the lodgely connector pages on it).
   const submissions = db.prepare(
-    'SELECT * FROM submissions WHERE form_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
+    'SELECT * FROM submissions WHERE form_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?'
   ).all(req.params.formId, limit, offset);
 
   submissions.forEach(s => {
@@ -39,7 +41,7 @@ router.get('/:formId/export', (req, res) => {
   if (!form) return res.status(404).json({ error: 'Form not found' });
 
   const submissions = db.prepare(
-    'SELECT * FROM submissions WHERE form_id = ? ORDER BY created_at DESC'
+    'SELECT * FROM submissions WHERE form_id = ? ORDER BY created_at DESC, rowid DESC'
   ).all(req.params.formId);
 
   // Flatten combined "group" steps to one column per underlying field.

@@ -285,8 +285,12 @@ router.post('/track', (req, res) => {
   const allowed = checkRateLimit(`track:${ip}`, 100, 60);
   if (!allowed) return res.status(429).json({ error: 'Rate limited' });
 
-  const { formId, event, sessionId, stepIndex, stepId } = req.body;
+  const { formId, event, sessionId, stepIndex, stepId } = req.body || {};
   if (!formId || !event) return res.status(400).json({ error: 'Missing formId or event' });
+  // Anything but a string here reached the SQLite binding and answered 500.
+  if (typeof formId !== 'string' || typeof event !== 'string') {
+    return res.status(400).json({ error: 'Invalid formId or event' });
+  }
 
   const validEvents = ['view', 'start', 'step', 'complete', 'drop'];
   if (!validEvents.includes(event)) return res.status(400).json({ error: 'Invalid event type' });
@@ -295,10 +299,17 @@ router.post('/track', (req, res) => {
   const formExists = db.prepare('SELECT id FROM forms WHERE id = ?').get(formId);
   if (!formExists) return res.status(404).json({ error: 'Form not found' });
 
+  // The renderer sends strings and an integer index; a malformed part is left
+  // out rather than failing the whole insert (and losing the event).
+  const text = (v, max) => (typeof v === 'string' && v ? v.slice(0, max) : null);
+  const index = (typeof stepIndex === 'number' || typeof stepIndex === 'string') && stepIndex !== '' && Number.isInteger(Number(stepIndex))
+    ? Number(stepIndex)
+    : null;
+
   try {
     db.prepare(
       'INSERT INTO analytics_events (form_id, event, session_id, step_index, step_id) VALUES (?, ?, ?, ?, ?)'
-    ).run(formId, event, sessionId || null, stepIndex ?? null, stepId || null);
+    ).run(formId, event, text(sessionId, 100), index, text(stepId, 200));
   } catch (err) {
     logger.error('analytics_event_insert_failed', { formId, error: err.message });
   }

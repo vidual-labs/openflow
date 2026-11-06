@@ -131,6 +131,100 @@ describe('POST /api/public/form/:slug/submit with a calon-connected timeslot', (
     expect(submitCalonBooking.mock.calls[0][0].booking.start).toBe('2026-09-02T09:30:00-04:00');
   });
 
+  // A misspelt or deactivated resource slug: calon's availability read answers
+  // 404, so the step only ever offered the standalone times and the answer has
+  // no timezone. The timezone lookup's 404 is calon saying the resource isn't
+  // there — asking again for hours won't change that.
+  it("stores the booking failed, not pending, when calon says the resource isn't there", async () => {
+    seedForm(STEPS);
+    fetchCalonAvailability.mockRejectedValue(Object.assign(new Error('calon returned 404'), { status: 404 }));
+
+    const res = await request(app).post('/api/public/form/booking-form/submit').send({ data: { ...ANSWERS, when: '2026-09-02 09:30' } });
+
+    expect(res.status).toBe(201);
+    expect(submitCalonBooking).not.toHaveBeenCalled();
+    const [sub] = storedSubmissions();
+    expect(sub.metadata.calonBookings.when).toEqual({ status: 'failed', code: 'RESOURCE_UNKNOWN', lastError: 'calon returned 404' });
+    expect(sub.metadata.calonPending).toBeUndefined();
+  });
+
+  it('still retries when the timezone lookup fails because calon is down', async () => {
+    seedForm(STEPS);
+    fetchCalonAvailability.mockRejectedValue(Object.assign(new Error('calon returned 503'), { status: 503 }));
+
+    await request(app).post('/api/public/form/booking-form/submit').send({ data: { ...ANSWERS, when: '2026-09-02 09:30' } });
+
+    const [sub] = storedSubmissions();
+    expect(sub.metadata.calonBookings.when).toEqual(expect.objectContaining({ status: 'pending', attempts: 1 }));
+    expect(sub.metadata.calonPending).toBe(true);
+  });
+
+  // calon books its own default length when `end` is missing, while the
+  // availability shown was asked for with the field's slot length: the booked
+  // length could differ from the one shown, and a slot shown as free could be
+  // refused. The booking now carries the end that matches the slot.
+  it("sends the end of the slot, by the field's slot length, with the booking", async () => {
+    seedForm([{ ...STEPS[0], durationMin: 45 }, ...STEPS.slice(1)]);
+    submitCalonBooking.mockResolvedValue({ accepted: true, bookingId: 'bk_4' });
+
+    await request(app).post('/api/public/form/booking-form/submit').send({ data: ANSWERS });
+
+    const { booking } = submitCalonBooking.mock.calls[0][0];
+    expect(booking.start).toBe('2026-09-02T09:30:00+02:00');
+    expect(booking.end).toBe('2026-09-02T10:15:00+02:00');
+  });
+
+  it('gives the end in the offset that applies when the slot ends across a DST change', async () => {
+    seedForm([{ ...STEPS[0], durationMin: 90 }, ...STEPS.slice(1)]);
+    submitCalonBooking.mockResolvedValue({ accepted: true, bookingId: 'bk_5' });
+
+    await request(app).post('/api/public/form/booking-form/submit').send({ data: { ...ANSWERS, when: '2026-10-25 01:30 Europe/Berlin' } });
+
+    const { booking } = submitCalonBooking.mock.calls[0][0];
+    expect(booking.start).toBe('2026-10-25T01:30:00+02:00');
+    expect(booking.end).toBe('2026-10-25T02:00:00+01:00');
+  });
+
+  it("leaves `end` to calon when the field has no slot length (availability uses calon's too)", async () => {
+    seedForm(STEPS);
+    submitCalonBooking.mockResolvedValue({ accepted: true, bookingId: 'bk_6' });
+
+    await request(app).post('/api/public/form/booking-form/submit').send({ data: ANSWERS });
+
+    expect(submitCalonBooking.mock.calls[0][0].booking).not.toHaveProperty('end');
+  });
+
+  // A 400/422 means calon refused the request's shape; picking another time
+  // can't change that, so the respondent must not be sent back to the
+  // timeslot step. The lead is kept and the booking marked failed.
+  it('stores the submission with the booking failed when calon refuses the request itself', async () => {
+    seedForm(STEPS);
+    submitCalonBooking.mockResolvedValue({ accepted: false, code: 'INVALID_REQUEST', message: 'calon returned 422: requester.email: must be an email address' });
+
+    const res = await request(app).post('/api/public/form/booking-form/submit').send({ data: ANSWERS });
+
+    expect(res.status).toBe(201);
+    const [sub] = storedSubmissions();
+    expect(sub.metadata.calonBookings.when).toEqual({
+      status: 'failed',
+      code: 'INVALID_REQUEST',
+      lastError: 'calon returned 422: requester.email: must be an email address',
+    });
+    expect(sub.metadata.calonPending).toBeUndefined();
+  });
+
+  it.each(['RESOURCE_UNKNOWN', 'INVALID_INPUT', 'DURATION_NOT_ALLOWED'])("treats calon's request-level code %s like a refused request", async (code) => {
+    seedForm(STEPS);
+    submitCalonBooking.mockResolvedValue({ accepted: false, code, message: 'There is no bookable resource called consulting.' });
+
+    const res = await request(app).post('/api/public/form/booking-form/submit').send({ data: ANSWERS });
+
+    expect(res.status).toBe(201);
+    expect(storedSubmissions()[0].metadata.calonBookings.when).toEqual({
+      status: 'failed', code, lastError: 'There is no bookable resource called consulting.',
+    });
+  });
+
   it('leaves forms without a calon-connected field alone', async () => {
     seedForm([{ id: 'when', type: 'date-timeslot', calon: { enabled: false } }, { id: 'mail', type: 'email' }]);
 
@@ -145,12 +239,12 @@ describe('POST /api/public/form/:slug/submit with a calon-connected timeslot', (
 describe('processDueCalonBookings', () => {
   beforeEach(() => submitCalonBooking.mockReset());
 
-  function seedPending(entry) {
+  function seedPending(entry, answers = ANSWERS) {
     const formId = seedForm(STEPS);
     const id = uuid();
     const metadata = { calonPending: true, calonBookings: { when: entry } };
     getDb().prepare('INSERT INTO submissions (id, form_id, data, metadata) VALUES (?, ?, ?, ?)')
-      .run(id, formId, JSON.stringify(ANSWERS), JSON.stringify(metadata));
+      .run(id, formId, JSON.stringify(answers), JSON.stringify(metadata));
     return id;
   }
   const due = { status: 'pending', attempts: 1, nextAttemptAt: '2000-01-01T00:00:00.000Z' };
@@ -182,6 +276,30 @@ describe('processDueCalonBookings', () => {
 
     const [sub] = storedSubmissions();
     expect(sub.metadata.calonBookings.when).toEqual({ status: 'rejected', code: 'SLOT_TAKEN', message: 'Taken' });
+    expect(sub.metadata.calonPending).toBeUndefined();
+  });
+
+  it('marks the booking failed, not rejected, when calon refuses the request itself on retry', async () => {
+    seedPending(due);
+    submitCalonBooking.mockResolvedValue({ accepted: false, code: 'INVALID_REQUEST', message: 'calon returned 422' });
+
+    await processDueCalonBookings(getDb());
+
+    const [sub] = storedSubmissions();
+    expect(sub.metadata.calonBookings.when).toEqual({ status: 'failed', code: 'INVALID_REQUEST', lastError: 'calon returned 422' });
+    expect(sub.metadata.calonPending).toBeUndefined();
+  });
+
+  it("gives up at once when calon says the resource isn't there", async () => {
+    seedPending(due, { ...ANSWERS, when: '2026-09-02 09:30' });
+    fetchCalonAvailability.mockReset();
+    fetchCalonAvailability.mockRejectedValue(Object.assign(new Error('calon returned 404'), { status: 404 }));
+
+    await processDueCalonBookings(getDb());
+
+    const [sub] = storedSubmissions();
+    expect(submitCalonBooking).not.toHaveBeenCalled();
+    expect(sub.metadata.calonBookings.when).toEqual({ status: 'failed', code: 'RESOURCE_UNKNOWN', lastError: 'calon returned 404' });
     expect(sub.metadata.calonPending).toBeUndefined();
   });
 

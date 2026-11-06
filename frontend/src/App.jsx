@@ -13,13 +13,14 @@ import Backup from './pages/Backup';
 import Account from './pages/Account';
 import { LogoMark, LogoWordmark, Loading, EmptyState, Alert, PageNoticeContext } from './components/AdminUI';
 import { version as APP_VERSION } from '../package.json';
+import { readStorage, writeStorage } from './utils/storage';
 
 // Only fetched when OPENFLOW_LANDING_PAGE is on, so the admin bundle doesn't
 // carry the marketing page's code and styles.
 const Landing = lazy(() => import('./pages/Landing'));
 
 function getInitialTheme() {
-  return localStorage.getItem('of_theme') || 'auto';
+  return readStorage('local', 'of_theme') || 'auto';
 }
 
 const THEMES = [['auto', 'Auto'], ['dark', 'Dark'], ['light', 'Light']];
@@ -90,7 +91,7 @@ export default function App() {
     } else {
       root.setAttribute('data-theme', theme);
     }
-    localStorage.setItem('of_theme', theme);
+    writeStorage('local', 'of_theme', theme);
   }, [theme]);
 
   if (loading) return <Loading />;

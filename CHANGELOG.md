@@ -2,6 +2,198 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.48.6] - 2026-11-06
+
+### Security
+- **Dependency updates for known advisories**, all within the current major
+  versions, so nothing changes in how OpenFlow behaves:
+  - `body-parser` 1.20.9 (via Express): fixes a high-severity denial of
+    service, where trailing bytes after a compressed request body could
+    tie up the server.
+  - `nodemailer` 10.3.1: fixes how e-mail address lists are parsed (nested
+    comments, quoted `;` and `>`), so the display text of an address can no
+    longer turn into an extra recipient. It also fixes a slow regex in
+    SMTP AUTH detection. This affects the e-mail integration and system mail.
+  - `qs` 6.16.2 and `vite` 6.4.5. Vite is only used to build the frontend,
+    and published forms look exactly as before.
+- Two advisories remain, both moderate or low:
+  - Jest's own tooling (tests only, never shipped).
+  - `react-router-dom` (an open redirect via a backslash in `<Link>` /
+    `useNavigate`). Only react-router 7 fixes it, and moving to 7 is a
+    major upgrade left for a separate change.
+
+## [0.48.5] - 2026-11-05
+
+### Fixed
+- **A visitor in another timezone couldn't tell which time a calon slot
+  meant.** A calon-connected Date & Timeslot field lists calon's times in the
+  booked resource's timezone, with nothing saying so, so someone in New York
+  picking "10:00" on a Berlin calendar booked 04:00 their time. When the
+  visitor's timezone differs from calon's, the step now says which timezone
+  the times are in ("Times are in Europe/Berlin time." / "Alle Uhrzeiten in
+  der Zeitzone Europe/Berlin."). Forms seen from calon's own timezone look
+  exactly as before.
+
+## [0.48.4] - 2026-11-05
+
+### Fixed
+- **A booking for a calon resource that doesn't exist was retried for hours.**
+  With a misspelt or deactivated resource slug on a Date & Timeslot field,
+  calon's "no such resource" answer was treated like calon being down: the
+  booking stayed *pending* and was retried for about eight hours before it
+  was given up. It is marked *failed* (code `RESOURCE_UNKNOWN`) right away
+  now, the response is kept as before, and calon being unreachable is still
+  retried.
+
+## [0.48.3] - 2026-11-05
+
+### Fixed
+- **Responses from the same second were listed oldest-first.** The
+  responses page, the CSV export and the submissions API (which the lodgely
+  connector pages through) sort by submission time, which only has
+  second precision; responses within one second came back in the opposite
+  order. They are strictly newest-first now.
+
+### Changed
+- Listing, counting and exporting a form's responses use a new database
+  index on the form (created automatically on the next start; nothing else
+  changes).
+
+## [0.48.2] - 2026-11-05
+
+### Fixed
+- **Deleting the last response on a later page showed "No responses yet".**
+  The page stayed empty although other responses were left, and deleting on
+  any page didn't move the next page's first response up. The page is
+  reloaded after a delete now, and one that ends up empty steps back.
+
+## [0.48.1] - 2026-11-05
+
+### Fixed
+- **Enter did nothing useful after clicking an answer on an optional last
+  step with inline consent.** When the last question was a click-to-answer one
+  (Yes/No, Single Choice, Rating, …) that isn't required, focus stayed on the
+  clicked option, so the "press Enter to confirm" hint was wrong: Enter just
+  picked the same option again. Focus now moves to the consent box after the
+  answer, as it already did on required steps, so Enter confirms and then
+  agrees and submits.
+
+## [0.48.0] - 2026-11-05
+
+### Added
+- **`CALON_ALLOWED_HOSTS` lets a calon instance next to OpenFlow be
+  connected.** A calon base URL had to resolve to a public address, so the
+  usual self-hosted setup — calon on the same Docker network or LAN, e.g.
+  `http://calon:8000` — was refused ("Requests to localhost are not allowed" /
+  "…resolves to a private/internal address"). List such hosts as
+  comma-separated `host[:port]` entries (`CALON_ALLOWED_HOSTS=calon:8000`).
+  Only OpenFlow's two calon requests (availability and booking) use the list;
+  webhooks and every other integration stay as strict as before, and
+  link-local / cloud-metadata addresses are refused even when listed. Unset,
+  nothing changes.
+
+## [0.47.10] - 2026-11-05
+
+### Fixed
+- **calon booked its own default length instead of the slot that was
+  shown.** A Date & Timeslot field asks calon for free slots of its **Slot
+  length**, but the booking was sent without an end time, so calon booked its
+  resource's default length. Whenever the two differed, the booked
+  appointment was longer or shorter than the one picked, and a slot shown as
+  free could be refused as taken. The booking now carries the matching end.
+- **A request calon refused outright sent the respondent back to pick
+  another time.** When calon answered that the request itself was unusable —
+  a `400`/`422`, or a decision such as an unknown resource — OpenFlow treated
+  it like a taken slot, so the respondent was sent back to the timeslot step
+  again and again and the lead was never stored. Such a submission is now
+  stored with the booking marked `failed` and calon's reason in `lastError`
+  (also when it happens on a background retry); only a refused *slot* still
+  goes back to the respondent.
+- **On the night clocks go back, a booking for 02:00–02:59 could land an
+  hour late.** That hour happens twice; in time zones east of UTC (e.g.
+  Europe/Berlin) the second occurrence was booked although calon lists the
+  first one first. The first occurrence is booked now.
+
+### Changed
+- The Date & Timeslot editor's hint now says that the slot length is also
+  what calon is asked for and books.
+
+## [0.47.9] - 2026-11-05
+
+### Fixed
+- **Conditions on Yes/No, Image Select and Rating answers were easy to get
+  wrong.** The editor asked for the value as free text, but a Yes/No answer
+  is stored as `yes` / `no` and an image option as its value (`opt1`), so a
+  rule like "Garden equals Yes" — what the respondent sees — never matched and
+  the step stayed hidden. For a field with a fixed set of answers (Single and
+  Multiple Choice, Image Select, Yes/No, Rating) the editor now offers those
+  answers in a list for "equals" / "does not equal" (and for "contains" on a
+  Multiple Choice). Existing rules are unchanged; a value that isn't one of
+  the field's answers is still shown, marked as such, so it can be fixed.
+
+## [0.47.8] - 2026-11-05
+
+### Fixed
+- **Files over 37 MB were accepted and then failed at the very end.** The
+  editor allowed a file size limit of up to 50 MB, but a submission carries
+  its upload base64-encoded and the server takes 50 MB per submission, so any
+  file above roughly 37 MB was accepted when picked and then refused on
+  submit with an English "Request body too large". 37 MB is now the most a
+  File Upload field accepts: a larger file is turned down right when it is
+  picked, in the form's language, and the field's hint shows the limit that
+  really applies. Forms set to more than 37 MB keep their setting; the editor
+  says that 37 MB applies.
+- **Sending errors on public forms are in the form's language.** A dropped
+  connection showed the browser's English "Failed to fetch", a proxy's error
+  page "Invalid JSON response", and the per-network submission limit and an
+  oversized upload the server's English text, also on German forms. These now
+  show a translated message that says what to do.
+
+## [0.47.7] - 2026-11-05
+
+### Fixed
+- **A form with the cookie banner showed a blank page when the browser
+  blocks site data.** Reading `localStorage` throws when the visitor blocks
+  cookies for the page — typically a form embedded on another site while
+  third-party cookies are blocked — and that error took the whole form down.
+  Blocked storage now just means the banner's choice isn't remembered: the
+  form, the banner and the submission work as usual. The visit is also still
+  counted in analytics (it used to send no events at all), and the admin's
+  theme choice no longer breaks the admin app in such a browser.
+
+## [0.47.6] - 2026-11-05
+
+### Fixed
+- **Form subdomains blocked admin APIs only in lower case.** Express routes
+  `/API/forms` to the same handler as `/api/forms`, but the per-form subdomain
+  only refused the lower-case spelling, so admin and auth endpoints stayed
+  reachable on a form's subdomain under any other casing. The check is
+  case-insensitive now.
+- **The analytics beacon (`POST /api/public/track`) answered 500 for a
+  malformed request.** A `formId` that wasn't a string reached the database
+  and failed there; it is a 400 now. A malformed session id, step index or
+  step id no longer drops the whole event either: that part is left out and
+  the event is stored.
+
+## [0.47.5] - 2026-11-05
+
+### Fixed
+- **Meta Conversions API sent a value of 0 when the value field was left
+  empty.** With a "value from field" configured, an empty answer (an optional
+  number field left blank) was read as `0` and replaced the default value, so
+  the lead was reported to Meta as worth nothing. An empty answer now falls
+  back to the default value, like the Google Ads integration already did; an
+  unset default sends no value at all.
+
+## [0.47.4] - 2026-11-05
+
+### Fixed
+- **calon's reason for turning a booking down was lost.** calon explains a
+  rejection in `decision.reason`, but OpenFlow read a `decision.message` that
+  calon never sends, so `metadata.calonBookings[…].message` of a booking calon
+  refused on a background retry was always empty. The reason is kept now
+  (`message` is still read for anything that sends one).
+
 ## [0.47.3] - 2026-11-02
 
 ### Fixed

@@ -7,7 +7,13 @@
 // (unreachable, 5xx) is the submission stored anyway, with the booking marked
 // pending in the submission's metadata; the background worker then retries it
 // with the same backoff as integration deliveries, so a calon outage never costs
-// a lead.
+// a lead. A request calon refuses outright (400/422, or a gating code such as an
+// unknown resource) isn't about the slot either: the submission is stored with
+// the booking marked failed, instead of sending the respondent back to pick a
+// time that can't help.
+//
+// The booking asks for exactly the shown slot: `start`, plus `end` = start + the
+// field's slot length (the `duration_min` its availability was read with).
 //
 // The booking outcome lives in `metadata.calonBookings[fieldId]`:
 //   { status: 'booked', bookingId }                                   — done
@@ -17,12 +23,21 @@
 // the retry sweep looks for.
 
 const { flattenFields } = require('../utils/steps');
-const { fetchCalonAvailability, submitCalonBooking, localSlotToIso } = require('./calon');
+const { fetchCalonAvailability, submitCalonBooking, localSlotToIso, instantToIso } = require('./calon');
 const logger = require('../utils/logger');
 
 const RETRY_DELAYS_MINUTES = [1, 5, 30, 120, 360];
 
 class BookingInputError extends Error {}
+
+// calon answered, and the answer was about the request rather than the slot
+// (see REQUEST_LEVEL_CODES): recorded as `failed`, never retried.
+class BookingRefusedError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+  }
+}
 
 // The Date & Timeslot fields of a form that book into calon.
 function calonBookingFields(steps) {
@@ -71,12 +86,20 @@ async function startInstant(field, answer) {
   let timeZone = zone;
   if (!timeZone) {
     const today = new Date().toISOString().slice(0, 10);
-    ({ timezone: timeZone } = await fetchCalonAvailability({
-      baseUrl: field.calon.baseUrl,
-      resourceSlug: field.calon.resourceSlug,
-      from: `${today}T00:00:00Z`,
-      to: `${today}T00:00:01Z`,
-    }));
+    try {
+      ({ timezone: timeZone } = await fetchCalonAvailability({
+        baseUrl: field.calon.baseUrl,
+        resourceSlug: field.calon.resourceSlug,
+        from: `${today}T00:00:00Z`,
+        to: `${today}T00:00:01Z`,
+      }));
+    } catch (err) {
+      // calon's 404 here means the resource isn't there (a misspelt or
+      // deactivated slug — also why the step fell back to the standalone
+      // times). That is calon's RESOURCE_UNKNOWN, not an outage to retry.
+      if (err.status === 404) throw new BookingRefusedError('RESOURCE_UNKNOWN', err.message);
+      throw err;
+    }
     if (!timeZone) throw new Error('calon did not report a timezone');
   }
   try {
@@ -86,17 +109,31 @@ async function startInstant(field, answer) {
   }
 }
 
+// The slot length the field shows availability for (routes/public.js passes it
+// to calon as `duration_min`). Without one, both the availability and the
+// booking use the calon resource's default length.
+function slotMinutes(field) {
+  const minutes = parseInt(field.durationMin, 10);
+  return Number.isInteger(minutes) && minutes > 0 ? minutes : null;
+}
+
 // Ask calon to book one field's answer. Resolves calon's verdict; throws
 // BookingInputError for an answer that can never be booked, or any other error
 // when calon couldn't be asked.
 async function bookField({ field, fields, form, data, submissionId }) {
   const requester = requesterFor(field, fields, data);
   const { start, timeZone } = await startInstant(field, answerOf(data, field.id));
+  // Book exactly the slot that was shown: without an `end` calon books its own
+  // default length, which differs from the shown slot whenever the field's
+  // slot length isn't calon's default.
+  const minutes = slotMinutes(field);
+  const end = minutes ? instantToIso(Date.parse(start) + minutes * 60000, timeZone) : null;
   return submitCalonBooking({
     baseUrl: field.calon.baseUrl,
     booking: {
       resource_slug: field.calon.resourceSlug || 'default',
       start,
+      ...(end ? { end } : {}),
       timezone: timeZone,
       requester,
       subject: `${form.title || 'Booking'}: ${requester.name}`.slice(0, 300),
@@ -108,6 +145,24 @@ async function bookField({ field, fields, form, data, submissionId }) {
 
 function inMinutes(n) {
   return new Date(Date.now() + n * 60000).toISOString();
+}
+
+// calon refused the request itself rather than the slot: a 400/422
+// (INVALID_REQUEST, its shape) or one of calon's gating decision codes — an
+// unusable request, an unknown resource (e.g. the form's resource slug was
+// deactivated), a duration that isn't one. Picking another time or asking
+// again won't change that, so the respondent isn't sent back to the timeslot
+// step: the lead is kept, the booking given up on, and the reason stays with
+// it. Only the slot-level codes (taken, outside hours, notice, …) go back to
+// the respondent.
+const REQUEST_LEVEL_CODES = new Set(['INVALID_REQUEST', 'INVALID_INPUT', 'RESOURCE_UNKNOWN', 'DURATION_NOT_ALLOWED']);
+
+function isRefusedRequest(result) {
+  return !result.accepted && REQUEST_LEVEL_CODES.has(result.code);
+}
+
+function refusedEntry(result) {
+  return { status: 'failed', code: result.code, lastError: String(result.message || '').slice(0, 500) };
 }
 
 function pendingEntry(attempts, err) {
@@ -130,6 +185,11 @@ async function bookSubmission({ form, steps, data, submissionId }) {
     if (!answerOf(data, field.id)) continue;
     try {
       const result = await bookField({ field, fields, form, data, submissionId });
+      if (isRefusedRequest(result)) {
+        logger.error('calon_booking_request_refused', { formId: form.id, fieldId: field.id, error: result.message });
+        bookings[field.id] = refusedEntry(result);
+        continue;
+      }
       if (!result.accepted) {
         return { rejected: { fieldId: field.id, code: result.code, message: result.message } };
       }
@@ -137,6 +197,11 @@ async function bookSubmission({ form, steps, data, submissionId }) {
     } catch (err) {
       if (err instanceof BookingInputError) {
         return { rejected: { fieldId: field.id, code: 'INVALID_INPUT', message: err.message } };
+      }
+      if (err instanceof BookingRefusedError) {
+        logger.error('calon_booking_request_refused', { formId: form.id, fieldId: field.id, error: err.message });
+        bookings[field.id] = refusedEntry(err);
+        continue;
       }
       logger.error('calon_booking_deferred', { formId: form.id, fieldId: field.id, error: err.message });
       bookings[field.id] = pendingEntry(1, err);
@@ -173,6 +238,11 @@ async function processDueCalonBookings(db) {
       }
       try {
         const result = await bookField({ field, fields, form, data, submissionId: row.id });
+        if (isRefusedRequest(result)) {
+          bookings[fieldId] = refusedEntry(result);
+          logger.error('calon_booking_request_refused', { formId: form.id, submissionId: row.id, error: result.message });
+          continue;
+        }
         bookings[fieldId] = result.accepted
           ? { status: 'booked', bookingId: result.bookingId }
           : { status: 'rejected', code: result.code, message: result.message };
@@ -180,6 +250,11 @@ async function processDueCalonBookings(db) {
           logger.error('calon_booking_rejected_on_retry', { formId: form.id, submissionId: row.id, code: result.code });
         }
       } catch (err) {
+        if (err instanceof BookingRefusedError) {
+          bookings[fieldId] = refusedEntry(err);
+          logger.error('calon_booking_request_refused', { formId: form.id, submissionId: row.id, error: err.message });
+          continue;
+        }
         const attempts = (entry.attempts || 0) + 1;
         if (err instanceof BookingInputError || attempts > RETRY_DELAYS_MINUTES.length) {
           bookings[fieldId] = { status: 'failed', attempts, lastError: String(err.message || err).slice(0, 500) };

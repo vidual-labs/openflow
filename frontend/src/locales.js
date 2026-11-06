@@ -16,7 +16,9 @@ export const LOCALES = {
     errorDateRangeEnd: 'Please also select an end date.',
     errorRequireOne: 'Please answer at least one of these questions.',
     errorConsentSubmit: 'You must agree to the consent to submit.',
-    errorSubmitFailed: 'Submission failed',
+    errorSubmitFailed: 'Your answers could not be sent. Please check your connection and try again.',
+    errorTooManySubmissions: 'Too many submissions from your network right now. Please wait a minute and try again.',
+    errorSubmitTooLarge: 'Your upload is too large to send. Please choose a smaller file.',
     errorSlotUnavailable: 'Sorry, that time was just taken. Please pick another one.',
     thankYou: 'Thank you!',
     submittedMessage: 'Your responses have been submitted successfully.',
@@ -67,6 +69,8 @@ export const LOCALES = {
     // Heading over the time column, e.g. "Thu, September 24".
     dateTimeslotDayHeading: (weekday, day, monthName) => `${weekday}, ${monthName} ${day}`,
     dateTimeslotNoSlots: 'No times available on this day.',
+    // Shown when the times come from calon in a zone other than the visitor's.
+    dateTimeslotZone: (zone) => `Times are in ${zone} time.`,
     dateTimeslotLoading: 'Loading availability…',
     errorDateTimeslotTime: 'Please also pick a time.',
     // Accessibility: not shown visually, only exposed to assistive tech.
@@ -98,7 +102,9 @@ export const LOCALES = {
     errorDateRangeEnd: 'Bitte wähle auch ein Enddatum.',
     errorRequireOne: 'Bitte beantworte mindestens eine dieser Fragen.',
     errorConsentSubmit: 'Du musst der Einwilligung zustimmen, um abzusenden.',
-    errorSubmitFailed: 'Übermittlung fehlgeschlagen',
+    errorSubmitFailed: 'Deine Antworten konnten nicht gesendet werden. Bitte prüfe deine Verbindung und versuche es noch einmal.',
+    errorTooManySubmissions: 'Gerade kommen zu viele Antworten aus deinem Netzwerk. Bitte warte eine Minute und versuche es dann noch einmal.',
+    errorSubmitTooLarge: 'Dein Upload ist zu groß zum Senden. Bitte wähle eine kleinere Datei.',
     errorSlotUnavailable: 'Dieser Termin wurde gerade vergeben. Bitte wähle einen anderen.',
     thankYou: 'Vielen Dank!',
     submittedMessage: 'Deine Antworten wurden erfolgreich übermittelt.',
@@ -144,6 +150,7 @@ export const LOCALES = {
     dateTimeslotPickTime: 'Uhrzeit wählen',
     dateTimeslotDayHeading: (weekday, day, monthName) => `${weekday}, ${day}. ${monthName}`,
     dateTimeslotNoSlots: 'An diesem Tag sind keine Zeiten verfügbar.',
+    dateTimeslotZone: (zone) => `Alle Uhrzeiten in der Zeitzone ${zone}.`,
     dateTimeslotLoading: 'Verfügbarkeit wird geladen…',
     errorDateTimeslotTime: 'Bitte wähle auch eine Uhrzeit.',
     previousStep: 'Vorherige Frage',

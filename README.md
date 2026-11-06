@@ -159,6 +159,7 @@ Environment variables (in `.env` or docker-compose):
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ENCRYPTION_KEY` | *(none — auto-generated)* | 🔐 64 hex chars (32 bytes). Encrypts integration secrets (SMTP passwords, Google credentials, webhook HMAC secrets) at rest. If unset, a random key is generated and persisted next to the database — set this explicitly in production **and back it up separately from the database**, since losing it makes existing encrypted integration config unrecoverable. Setting it on an install that ran on an auto-generated key is safe: the old key file is still used to read existing secrets. Backups contain secrets encrypted with this key, so restoring on another instance needs the same key |
+| `CALON_ALLOWED_HOSTS` | *(unset)* | 📅 Comma-separated `host[:port]` entries (e.g. `calon:8000,localhost:8000`) a [calon](#-calon-real-time-booking--calendar-sync) base URL may point at although they are localhost or on a private network — for a calon instance next to OpenFlow (same Docker network or LAN). Applies only to OpenFlow's two calon requests (availability and booking), never to webhooks or other integrations; an entry without a port allows any port on that host; link-local / cloud-metadata addresses stay refused even when listed. Unset, a calon URL must resolve to a public address |
 | `SMTP_BLOCK_PRIVATE_HOSTS` | *(unset)* | 📧 SMTP hosts resolving to link-local/cloud-metadata addresses are always refused. Set to `true` to also refuse private networks and localhost (as webhooks do) when you don't relay mail through an internal server |
 | `SMTP_HOST` | *(unset)* | ✉️ OpenFlow's own outgoing mail: two-factor login codes and security notices (new sign-in, password changed, repeated failed logins). Optional: admins can instead enter it under **Settings → System e-mail** (stored encrypted). When set here, the `SMTP_*` values win and the UI shows them read-only. Check it with **Send test e-mail** there |
 | `SMTP_PORT` | `587` | ✉️ SMTP port (`465` implies `SMTP_SECURE=true`) |
@@ -239,7 +240,7 @@ openflow/
 | 👍 Yes / No | Binary choice | ✓ |
 | ⭐ Rating | Star rating (configurable 3-10) | ✓ |
 | 🖼️ Image / Icon Select | Visual grid with emoji picker or image URLs (1:1 recommended) | ✓ |
-| 📎 File Upload | Drag & drop with configurable types and size limit | |
+| 📎 File Upload | Drag & drop with configurable types and size limit (up to 37 MB per file — a submission carries the file base64-encoded and the server takes 50 MB per submission) | |
 
 **Contact & Data Fields:**
 
@@ -368,7 +369,13 @@ calon URL in the field.
 > **Requirements — read this first.**
 >
 > - **Two separate deployments.** calon is its own application and must be
->   deployed separately, at a URL **OpenFlow's server can reach**.
+>   deployed separately, at a URL **OpenFlow's server can reach**. Like every
+>   URL OpenFlow fetches, it has to resolve to a **public** address unless you
+>   opt the host in: for a calon on the same Docker network or LAN (e.g.
+>   `http://calon:8000`), set `CALON_ALLOWED_HOSTS=calon:8000` (see
+>   [Configuration](#️-configuration)). Without it, **Test connection** answers
+>   "Requests to localhost are not allowed" or "…resolves to a private/internal
+>   address".
 > - **The calendar write is done by calon, never by OpenFlow.** OpenFlow only
 >   sends the chosen slot to calon. calon reads the connected calendar's
 >   free/busy and **writes accepted bookings into Google Calendar or Microsoft
@@ -385,15 +392,21 @@ Once connected (field editor → **Connect to calon**), OpenFlow:
   fields those are is picked under **Book under** in the same panel (automatic by
   default: the first Email and Phone fields, and a Short Text field with the
   *Full name* autofill). calon needs an email, so the form needs an Email field.
+- **Books exactly the slot that was shown** — the field's **Slot length** is the
+  length OpenFlow asks calon's availability for, and the booking carries the
+  matching end time, so calon books that length rather than its own default.
 - **Sends the respondent back if the slot is gone** — when calon turns the slot
   down (taken in the meantime, or against its rules), the respondent lands back on
   the Date & Timeslot step with fresh times and a note to pick another; nothing is
   stored until the booking succeeds.
 - **Never loses a lead to a calon outage** — if calon can't be reached at submit,
   the submission is stored anyway and the booking is retried in the background
-  (1, 5, 30, 120, 360 minutes). The outcome is kept in the submission's metadata
-  (`calonBookings`: `booked` with calon's booking id, `pending`, `rejected` or
-  `failed`).
+  (1, 5, 30, 120, 360 minutes). A request calon refuses outright rather than the
+  slot (it answers `400`/`422`, or the resource is unknown — usually a
+  configuration problem) also keeps the submission, with the booking marked
+  `failed` and calon's reason in `lastError`. The outcome is kept in the
+  submission's metadata (`calonBookings`: `booked` with calon's booking id,
+  `pending`, `rejected` or `failed`).
 
 #### How the two sides talk
 

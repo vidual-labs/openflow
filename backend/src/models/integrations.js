@@ -419,11 +419,14 @@ async function runMetaConversionApi(config, data, steps, metadata) {
     }
   });
 
-  let value = default_value !== undefined && default_value !== '' ? Number(default_value) : undefined;
+  // Same rules as Google Ads above: an unset default is '' (or null), and an
+  // empty answer in the value field falls back to the default — Number('')
+  // and Number(null) are 0, which used to report the lead as worth nothing.
+  let value = default_value !== undefined && default_value !== '' && default_value !== null ? Number(default_value) : undefined;
   if (value_field_id) {
     const raw = data[value_field_id];
     const parsed = Number(raw);
-    if (raw !== undefined && !Number.isNaN(parsed)) value = parsed;
+    if (raw !== undefined && raw !== null && String(raw).trim() !== '' && !Number.isNaN(parsed)) value = parsed;
   }
 
   // event_id is the submission id: stable across the delivery queue's

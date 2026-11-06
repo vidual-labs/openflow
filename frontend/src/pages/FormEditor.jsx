@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { PageNotice } from '../components/AdminUI';
 import { api } from '../api';
 import IntegrationsPanel from '../components/IntegrationsPanel';
-import { toRgbTriplet } from '../components/FormRenderer';
+import { toRgbTriplet, MAX_UPLOAD_MB } from '../components/FormRenderer';
 import AnimatedBackground, { normalizeBgAnimation } from '../components/AnimatedBackground';
 import { TEXT_AUTOFILL_OPTIONS, textAutofillLabel, suggestAutofill } from '../autofill';
 import { syncFieldKeys, normalizeTypedKey, duplicateKeys, KEY_RE } from '../utils/fieldKeys';
@@ -1112,7 +1112,12 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
               </div>
               <div className="input-group">
                 <label>Max File Size (MB)</label>
-                <input className="input" type="number" min={1} max={50} value={step.maxSizeMB || 10} onChange={e => onChange({ maxSizeMB: parseInt(e.target.value) || 10 })} style={{ width: 100 }} />
+                <input className="input" type="number" min={1} max={MAX_UPLOAD_MB} value={step.maxSizeMB || 10} onChange={e => onChange({ maxSizeMB: parseInt(e.target.value) || 10 })} style={{ width: 100 }} />
+                <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>
+                  {Number(step.maxSizeMB) > MAX_UPLOAD_MB
+                    ? `Files over ${MAX_UPLOAD_MB} MB can't be sent with a submission, so ${MAX_UPLOAD_MB} MB is the limit that applies.`
+                    : `Up to ${MAX_UPLOAD_MB} MB`}
+                </span>
               </div>
             </div>
           )}
@@ -1275,7 +1280,7 @@ function StepEditor({ formId, step, index, total, allSteps, expanded, onToggle, 
                 </div>
               </div>
               <span style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 4, display: 'block' }}>
-                Used to generate the selectable times. Ignored for any day calon (below) reports real availability for — calon's own scheduling rules decide those.
+                Used to generate the selectable times. With calon connected (below), calon's own scheduling rules decide which times are offered; the slot length is still the length asked for and booked there.
               </span>
 
               <div style={{ marginTop: 16, padding: 16, background: 'var(--panel)', borderRadius: 10 }}>
@@ -2001,6 +2006,31 @@ function ImageSelectEditor({ options, onChange }) {
 /* ===========================
    ConditionEditor - Show/hide step based on previous answer
    =========================== */
+// The answers a field with a fixed set of choices can hold, exactly as they are
+// stored — which isn't always what the respondent sees: Yes / No is stored as
+// "yes" / "no", an image option as its value, a rating as its number. With a
+// free-text box it was easy to type the visible label and end up with a rule
+// that never matches. Mirrors how FormRenderer.jsx stores each choice.
+function conditionChoices(field) {
+  if (!field) return null;
+  if (field.type === 'yes-no') return [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }];
+  if (field.type === 'rating') {
+    const max = Number(field.max) > 0 ? Number(field.max) : 5;
+    return Array.from({ length: max }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));
+  }
+  if (['select', 'multi-select', 'image-select'].includes(field.type) && Array.isArray(field.options)) {
+    return field.options
+      .map(opt => {
+        if (typeof opt === 'string') return { value: opt, label: opt };
+        const value = field.type === 'image-select' ? opt?.value : (opt?.value ?? opt?.label);
+        const label = opt?.label || value;
+        return { value: value == null ? '' : String(value), label: label == null ? '' : String(label) };
+      })
+      .filter(c => c.value !== '');
+  }
+  return null;
+}
+
 function ConditionEditor({ condition, allSteps, currentStepId, onChange }) {
   const enabled = !!condition;
   // Build the list of referenceable fields, expanding combined steps into their
@@ -2010,11 +2040,22 @@ function ConditionEditor({ condition, allSteps, currentStepId, onChange }) {
     if (s.id === currentStepId) continue;
     // Conditions reference fields by their stable key (see utils/fieldKeys.js).
     if (s.type === 'group' && Array.isArray(s.fields)) {
-      for (const f of s.fields) if (f.key) fieldOptions.push({ key: f.key, label: f.label || f.question || f.key });
+      for (const f of s.fields) if (f.key) fieldOptions.push({ key: f.key, label: f.label || f.question || f.key, field: f });
     } else if (s.key) {
-      fieldOptions.push({ key: s.key, label: s.label || s.question || s.key });
+      fieldOptions.push({ key: s.key, label: s.label || s.question || s.key, field: s });
     }
   }
+
+  // A fixed set of answers is offered as a list for "equals" / "does not
+  // equal" (and for "contains" on a multiple choice, whose answer is the
+  // ticked options joined together). A value that is not among them — typed
+  // before this list existed, or an option renamed since — stays selectable.
+  const referenced = fieldOptions.find(o => o.key === condition?.field)?.field;
+  const choices = conditionChoices(referenced);
+  const op = condition?.op || 'equals';
+  const offerChoices = !!choices?.length && (op === 'equals' || op === 'not_equals' || (op === 'contains' && referenced?.type === 'multi-select'));
+  const currentValue = condition?.value || '';
+  const valueIsChoice = !currentValue || (choices || []).some(c => c.value === currentValue);
 
   function toggle() {
     if (enabled) {
@@ -2048,9 +2089,17 @@ function ConditionEditor({ condition, allSteps, currentStepId, onChange }) {
             <option value="is_set">is answered</option>
             <option value="is_not_set">is not answered</option>
           </select>
-          {!['is_set', 'is_not_set'].includes(condition.op) && (
+          {!['is_set', 'is_not_set'].includes(condition.op) && (offerChoices ? (
+            <select className="input" value={currentValue} onChange={e => onChange({ ...condition, value: e.target.value })} style={{ width: 'auto', minWidth: 120, padding: '6px 10px', fontSize: 13 }}>
+              <option value="">-- Select answer --</option>
+              {choices.map(c => (
+                <option key={c.value} value={c.value}>{c.label === c.value ? c.label : `${c.label} (${c.value})`}</option>
+              ))}
+              {!valueIsChoice && <option value={currentValue}>{currentValue} (not an answer of this field)</option>}
+            </select>
+          ) : (
             <input className="input" value={condition.value || ''} onChange={e => onChange({ ...condition, value: e.target.value })} placeholder="Value" style={{ width: 'auto', minWidth: 120, padding: '6px 10px', fontSize: 13 }} />
-          )}
+          ))}
         </div>
       )}
     </div>

@@ -24,6 +24,10 @@ services:
       # cloud metadata service is always blocked). Leave unset if you relay
       # mail through a server on your own network.
       - SMTP_BLOCK_PRIVATE_HOSTS=${SMTP_BLOCK_PRIVATE_HOSTS:-}
+      # host[:port] entries a calon base URL may point at on a private network
+      # or localhost, e.g. calon:8000 for calon on the same Docker network.
+      # Unset, calon must be reachable at a public address.
+      - CALON_ALLOWED_HOSTS=${CALON_ALLOWED_HOSTS:-}
       # OpenFlow's own outgoing mail: two-factor login codes and security
       # notices. Without SMTP_HOST, users can't turn on two-factor login.
       - SMTP_HOST=${SMTP_HOST:-}

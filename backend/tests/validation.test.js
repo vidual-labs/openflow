@@ -75,6 +75,42 @@ describe('Input Validation', () => {
         expect(res.status).toBe(200);
       }
     });
+
+    // A non-string formId reached the SQLite binding and answered 500.
+    it.each([[{ a: 1 }], [['form-1']], [42]])('should return 400 for a non-string formId (%p)', async (formId) => {
+      const res = await request(app)
+        .post('/api/public/track')
+        .send({ formId, event: 'view' });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 400 for a non-string event', async () => {
+      const res = await request(app)
+        .post('/api/public/track')
+        .send({ formId: 'form-1', event: ['view'] });
+      expect(res.status).toBe(400);
+    });
+
+    // Malformed optional parts used to make the insert throw, silently losing
+    // the event; the event is kept with just the unusable part left out.
+    it('should store the event when sessionId / stepIndex / stepId are malformed', async () => {
+      const res = await request(app)
+        .post('/api/public/track')
+        .send({ formId: 'form-1', event: 'step', sessionId: { a: 1 }, stepIndex: 'x', stepId: ['s'] });
+      expect(res.status).toBe(200);
+      const db = require('../src/models/db').getDb();
+      const row = db.prepare('SELECT session_id, step_index, step_id FROM analytics_events WHERE form_id = ?').get('form-1');
+      expect(row).toEqual({ session_id: null, step_index: null, step_id: null });
+    });
+
+    it('should keep well-formed optional parts', async () => {
+      await request(app)
+        .post('/api/public/track')
+        .send({ formId: 'form-1', event: 'step', sessionId: 'sess-1', stepIndex: 2, stepId: 'field_1' });
+      const db = require('../src/models/db').getDb();
+      const row = db.prepare('SELECT session_id, step_index, step_id FROM analytics_events WHERE form_id = ?').get('form-1');
+      expect(row).toEqual({ session_id: 'sess-1', step_index: 2, step_id: 'field_1' });
+    });
   });
 
   describe('Login validation', () => {
