@@ -2,6 +2,26 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.48.6] - 2026-11-06
+
+### Security
+- **Dependency updates for known advisories**, all within the current major
+  versions, so nothing changes in how OpenFlow behaves:
+  - `body-parser` 1.20.9 (via Express): fixes a high-severity denial of
+    service, where trailing bytes after a compressed request body could
+    tie up the server.
+  - `nodemailer` 10.3.1: fixes how e-mail address lists are parsed (nested
+    comments, quoted `;` and `>`), so the display text of an address can no
+    longer turn into an extra recipient. It also fixes a slow regex in
+    SMTP AUTH detection. This affects the e-mail integration and system mail.
+  - `qs` 6.16.2 and `vite` 6.4.5. Vite is only used to build the frontend,
+    and published forms look exactly as before.
+- Two advisories remain, both moderate or low:
+  - Jest's own tooling (tests only, never shipped).
+  - `react-router-dom` (an open redirect via a backslash in `<Link>` /
+    `useNavigate`). Only react-router 7 fixes it, and moving to 7 is a
+    major upgrade left for a separate change.
+
 ## [0.48.5] - 2026-11-05
 
 ### Fixed
