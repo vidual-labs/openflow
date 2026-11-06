@@ -189,7 +189,7 @@ distributed bots.
 - Choice answers are validated against the configured options on the server.
   File uploads are checked against `accept`/`maxSizeMB` on the server too.
 - The rate limiter stays in-memory by design (single instance), but gets a
-  per-form cap and documented numbers in the README.
+  per-form cap and documented numbers in `docs/production.md`.
 
 ### OF-9 · Consent record
 **Repo:** OpenFlow · **Status:** partial (`_consent: true` is stored and, since 0.41.0, enforced; no text version, no timestamp; the cookie banner is only possible together with GTM) · **Effort:** S · **Depends on:** X-1
@@ -254,7 +254,7 @@ already offers passphrase encryption.
 - `BACKUP_PASSPHRASE` encrypts new scheduled and downloaded backups
   (AES-256-GCM, scrypt KDF). Restore asks for it.
 - Unencrypted old backups keep restoring.
-- The README states plainly what a backup contains and for how long deleted
+- `docs/production.md` states plainly what a backup contains and for how long deleted
   submissions survive in rotated backups.
 
 ---
@@ -310,17 +310,17 @@ Skip it until one exists.
   more. Revisit after OF-5, as variant split + analytics per variant.
 - **Arbitrary custom domains — rejected.** Per-form subdomains under one
   wildcard cert already exist. A fully custom domain is a reverse-proxy
-  concern (map it to `/f/<slug>`). The README gets a proxy recipe instead of
+  concern (map it to `/f/<slug>`). The docs get a proxy recipe instead of
   in-app certificate management.
 - **Horizontal scaling / shared rate-limit store — deferred.** Single
-  instance is a deliberate choice (README "Single-instance architecture").
+  instance is a deliberate choice (`docs/production.md`, "Single-instance architecture").
   OF-7 reduces the rate limiter's role in spam defence.
 
 ## Housekeeping (no phase)
 
 - CLAUDE.md, README and editor copy drift found during the review was fixed
-  in 0.41.0. Keep "Current Version", the README API list and the env table in
-  sync with code in the same commit.
+  in 0.41.0. Keep "Current Version", the API list (`docs/api.md`) and the env
+  table (`docs/configuration.md`) in sync with code in the same commit.
 - The WordPress plugin settings page mentions only the shortcode and
   WPBakery, not the Gutenberg block (`openflow.php` "Usage" text).
 

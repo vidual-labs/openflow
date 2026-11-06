@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.49.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.49.1 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -79,6 +79,7 @@ OpenFlow is a **full-stack application** with three main components:
 - **Database**: SQLite (zero-config, no external DB)
 - **Volumes**: `db-data` (the SQLite DB) and a `./backups` bind mount (scheduled backups)
 - **Deployment**: Docker Compose (one-command deployment)
+- **Docs**: `README.md` is deliberately short (pitch, screenshots, the lodgely/calon diagram, quick start, a docs table); the detail lives in `docs/` (`features.md`, `configuration.md` — the env-var table, `integrations/` — one page per integration incl. `lodgely.md`/`calon.md`, `embedding.md`, `subdomains.md`, `api.md` — the route list, `production.md` — security & ops notes, `development.md`; index in `docs/README.md`). A new env var, route or integration is documented there, not in the README. README images live in `docs/assets/readme/`: WebP screenshots of mock forms (made-up data, light theme, framed) and two hand-written animated SVGs (`ecosystem.svg`, `form-flow.svg` — SMIL/CSS only, no script, honouring `prefers-reduced-motion`)
 - **Promo video**: `docs/video/openflow-promo.html` (frames as a pure function of time, LinkedIn 4:5) + `render.mjs` (Playwright → ffmpeg MP4). Keep its mock UI in step with the landing page when features change
 
 ## Development Setup
