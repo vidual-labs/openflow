@@ -7,7 +7,7 @@ Configure integrations per form in the **Integrations** tab of the form editor.
 ## 🔗 Webhook
 Send submission data to any URL on each submission.
 - Configurable HTTP method (POST/PUT)
-- JSON payload: `event` (always `"submission"`), `formId`, `formTitle`, `data` (keyed by field id), `timestamp` (ISO 8601)
+- JSON payload: `event` (always `"submission"`), `formId`, `formTitle`, `data` (keyed by field id), `tracking` (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `gclid`, `gbraid`, `wbraid`, `fbc` — each `null` when not captured; since 0.50), `timestamp` (ISO 8601)
 - Optional HMAC-SHA256 signing with a shared secret, sent as an `X-OpenFlow-Signature` header — the signature is computed over the exact JSON bytes sent as the body, so a receiver can verify it by HMAC-ing the raw request body it received
 - The target URL is checked against private/internal address ranges before the request is made, and redirects are not followed
 
@@ -22,10 +22,30 @@ Auto-append submissions via Google Apps Script — **no JSON key needed**.
 2. Paste the provided script, deploy as Web App
 3. Copy the URL into OpenFlow
 
+The posted JSON carries the same `tracking` object as the webhook (since 0.50).
+
 ## 📊 Google Sheets (Service Account)
 Auto-append each submission using a Google Service Account.
 - Auto-creates header row from form field labels
+- Tracking columns after the fields: `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, `gclid`, `gbraid`, `wbraid`, `fbc` (since 0.50). A sheet whose header row was written before gets these header cells added to the right of it; existing columns are not moved
 - Configurable sheet name
+
+## 🧾 Integration log
+Every response records, per integration, what happened to it: **uploaded**,
+**skipped** (e.g. Google Ads without a click ID — skipped deliveries are not
+retried), **failed** (with the error), plus the time and a short summary of the
+API's answer (Google's request id and status, Meta's `events_received` /
+`fbtrace_id`, the HTTP status of a webhook or Apps Script, the row range of a
+Sheets append, the SMTP server's reply). Open a response's **Details** on the
+Responses page to see it with its full history of attempts; the CSV export has
+one `Integration: <name>` status column per integration.
+
+The log never stores request payloads, webhook/Apps Script response bodies
+(a receiver may echo the lead back) or the hashed e-mail/phone sent to Meta,
+and it is deleted together with its response. Statuses: `pending`, `success`
+(uploaded), `processing` (uploaded, waiting for the receiving API's verdict),
+`unconfirmed` (no final verdict came), `skipped`, `retrying`, `dead`
+(retries exhausted), `failed` (rejected by the API after upload).
 
 ## 🎯 Google Ads (Server-Side Conversion)
 Upload qualifying leads as offline conversions directly to Google Ads, via the

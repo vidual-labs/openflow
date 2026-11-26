@@ -48,6 +48,14 @@ async function fetchWithReauth(url, init) {
   return fetch(url, init);
 }
 
+function submissionQuery(params) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+  });
+  return query.toString();
+}
+
 async function request(path, options = {}) {
   const res = await fetchWithReauth(`${BASE}${path}`, {
     credentials: 'include',
@@ -109,9 +117,15 @@ export const api = {
   deleteForm: (id) => request(`/forms/${id}`, { method: 'DELETE' }),
   testCalonConnection: (id, data) => request(`/forms/${id}/calon-test`, { method: 'POST', body: JSON.stringify(data) }),
 
-  getSubmissions: (formId, page = 1) => request(`/submissions/${formId}?page=${page}`),
+  // `filters`: { utm_source, utm_medium, utm_campaign, google_ads_click } — empty values are left out.
+  getSubmissions: (formId, page = 1, filters = {}) => request(`/submissions/${formId}?${submissionQuery({ page, ...filters })}`),
+  getSubmissionFilters: (formId) => request(`/submissions/${formId}/filters`),
+  getSubmissionIntegrations: (formId, submissionId) => request(`/submissions/${formId}/${submissionId}/integrations`),
   deleteSubmission: (formId, submissionId) => request(`/submissions/${formId}/${submissionId}`, { method: 'DELETE' }),
-  exportSubmissions: (formId) => `${BASE}/submissions/${formId}/export`,
+  exportSubmissions: (formId, filters = {}) => {
+    const query = submissionQuery(filters);
+    return `${BASE}/submissions/${formId}/export${query ? `?${query}` : ''}`;
+  },
 
   getIntegrations: (formId) => request(`/integrations/${formId}`),
   createIntegration: (formId, data) => request(`/integrations/${formId}`, { method: 'POST', body: JSON.stringify(data) }),

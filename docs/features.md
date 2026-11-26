@@ -39,7 +39,9 @@ Everything OpenFlow does, grouped. The [README](../README.md) has the short vers
 - **📝 Google Sheets (Service Account)** — Auto-append rows via service account for advanced setups
 - **🎯 Google Ads (Server-Side Conversion)** — Upload leads with a captured `gclid`/`gbraid`/`wbraid` as offline conversions via Google's Data Manager API
 - **📣 Meta Conversions API** — Send a server-side `Lead` event to Facebook/Instagram Ads on every submission, no Meta Pixel required; matches leads to ad clicks via `fbclid`, and deduplicates against a Meta Pixel via a shared event ID
-- **CSV Export** — Download all submissions as CSV
+- **CSV Export** — Download all submissions (or the filtered ones) as CSV, with tracking columns and each integration's status
+- **Campaign tracking** — UTM parameters (`utm_source`/`medium`/`campaign`/`term`/`content`) and ad click IDs are stored with each response (after cookie consent), shown in the response details, as optional Source / Medium / Campaign and Google Ads click columns with filters, and passed on to webhooks and Google Sheets
+- **Integration log** — Each response's details show, per integration, whether it was uploaded, skipped (e.g. no click ID) or failed, when, and the API's answer — including Google Ads rejecting an invalid `gclid`
 - **Test Button** — Verify each integration with sample data before going live
 
 ## 📈 Analytics Dashboard

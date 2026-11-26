@@ -82,4 +82,4 @@ Browsers signed in to OpenFlow never load a form's GTM container — the form sh
 
 Optionally, a consent banner can be shown **before** the GTM container is loaded — GTM only fires once the visitor accepts, and the choice is remembered in their browser so the banner doesn't reappear. Enable it under **GTM / GDPR → Cookie / Tracking Consent Banner**; the message and both button labels are editable. A GTM container ID must be set first.
 
-The same consent gates the ad click IDs that the [Google Ads](integrations/README.md#-google-ads-server-side-conversion) (`gclid`/`gbraid`/`wbraid`) and [Meta Conversions API](integrations/README.md#-meta-conversions-api) (`fbclid`, `_fbp`/`_fbc` cookies) integrations rely on.
+The same consent gates the UTM parameters (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`; stored with the response and shown on the Responses page) and the ad click IDs that the [Google Ads](integrations/README.md#-google-ads-server-side-conversion) (`gclid`/`gbraid`/`wbraid`) and [Meta Conversions API](integrations/README.md#-meta-conversions-api) (`fbclid`, `_fbp`/`_fbc` cookies) integrations rely on.

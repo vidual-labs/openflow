@@ -2,6 +2,51 @@
 
 All notable changes to OpenFlow are documented in this file.
 
+## [0.50.0] - 2026-11-26
+
+### Added
+- **UTM parameters are captured.** `utm_source`, `utm_medium`, `utm_campaign`,
+  `utm_term` and `utm_content` are read from the form's URL (`/f/<slug>` and
+  `/embed/<slug>`) together with the ad click IDs, behind the same cookie
+  consent, and stored with the response. Only these keys and the click IDs
+  are kept (trimmed, plain text, max. 200 characters); no new personal data.
+- **Response details.** A **Details** button on the Responses page opens a
+  response with its answers, its tracking data (UTMs, `gclid`/`gbraid`/`wbraid`,
+  Meta `fbc`/`fbp`) and its integration log.
+- **Tracking columns and filters on the Responses page.** Optional
+  "Source / Medium / Campaign" and "Google Ads click" (yes/no) columns, and
+  filters for source, medium, campaign and Google Ads click. The CSV export
+  follows the filters.
+- **Integration log.** Every response records, per integration (Google Ads,
+  Meta CAPI, webhooks, Google Sheets, e-mail), whether it was **uploaded**,
+  **skipped** (no click ID) or **failed**, when, and a short summary of the
+  API's answer, with the full history of attempts. It stores no payloads, no
+  webhook response bodies and no hashed user data, and goes with its response
+  when that is deleted.
+- **Google Ads uploads are confirmed.** Google's Data Manager API processes
+  uploads asynchronously, so an upload is first logged as "uploaded – awaiting
+  confirmation" and its request status is checked afterwards (5 min, 20 min,
+  1h20, 5h20, 17h20). A conversion Google rejects — e.g. an invalid `gclid` —
+  ends up as **failed** with Google's reason, also in the Integrations tab.
+- **Tracking in exports.** The CSV export adds `utm_*`, `gclid`, `gbraid`,
+  `wbraid`, `fbc` columns and one `Integration: <name>` status column per
+  integration. Webhook and Apps Script payloads carry a new `tracking` object
+  (each key `null` when not captured), and service-account Google Sheets get
+  the tracking columns after the fields — an existing sheet's header row is
+  extended to the right, its columns are not moved.
+- New routes: `GET /api/submissions/:formId/filters`,
+  `GET /api/submissions/:formId/:submissionId/integrations`; filter query
+  parameters on `GET /api/submissions/:formId` and its export.
+
+### Changed
+- **Google Ads without a click ID is "skipped", not retried.** Before, such a
+  submission was retried five times and ended as a dead delivery.
+- A failing webhook's error no longer includes the receiver's response body
+  (`Webhook returned HTTP 500`), since a receiver may echo the lead back and
+  the message is now shown in the integration log.
+- The webhook body gains the `tracking` key, so its signed bytes change shape
+  (additive; verifying by HMAC over the raw body keeps working).
+
 ## [0.49.1] - 2026-11-06
 
 ### Documentation

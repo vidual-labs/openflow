@@ -1,6 +1,28 @@
 // Ad click IDs a submission carries for server-side conversion uploads
-// (Google Ads, Meta Conversions API). Callers only use these after cookie
-// consent allows it.
+// (Google Ads, Meta Conversions API), plus the campaign's UTM parameters.
+// Callers only use these after cookie consent allows it. The server keeps
+// only these keys (backend/src/utils/tracking.js#sanitizeTracking).
+
+export const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+const UTM_MAX_LENGTH = 200;
+
+// utm_source/medium/campaign/term/content from the landing URL, as plain
+// trimmed text (the server applies the same rules again).
+export function captureUtms(search = window.location.search) {
+  const params = new URLSearchParams(search);
+  const utms = {};
+  UTM_KEYS.forEach(key => {
+    // eslint-disable-next-line no-control-regex
+    const value = (params.get(key) || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, UTM_MAX_LENGTH);
+    if (value) utms[key] = value;
+  });
+  return utms;
+}
+
+// Everything the submission's `tracking` object carries from the URL.
+export function captureTracking(search = window.location.search) {
+  return { ...captureClickIds(search), ...captureUtms(search) };
+}
 
 // Read once from the landing URL. Meta's click ID is sent in the format of
 // the Pixel's _fbc cookie, stamped with the time the fbclid was first seen.

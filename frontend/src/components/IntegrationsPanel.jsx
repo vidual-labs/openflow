@@ -58,7 +58,8 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
     }
   }
 
-  const failedDeliveries = deliveries.filter(d => d.status === 'dead' || d.status === 'retrying');
+  // 'failed' = rejected by the receiving API after upload (e.g. Google Ads: invalid gclid).
+  const failedDeliveries = deliveries.filter(d => d.status === 'dead' || d.status === 'retrying' || d.status === 'failed');
 
   async function addIntegration(type) {
     if (adding) return;
@@ -206,7 +207,7 @@ export default function IntegrationsPanel({ formId, steps = [] }) {
                 {failedDeliveries.map(d => (
                   <tr key={d.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '4px 8px' }}>{d.type}</td>
-                    <td style={{ padding: '4px 8px' }}>{d.status === 'dead' ? 'Failed (gave up)' : 'Retrying'}</td>
+                    <td style={{ padding: '4px 8px' }}>{d.status === 'dead' ? 'Failed (gave up)' : d.status === 'failed' ? 'Rejected' : 'Retrying'}</td>
                     <td style={{ padding: '4px 8px' }}>{d.attempts}</td>
                     <td style={{ padding: '4px 8px', color: 'var(--danger)' }}>{d.last_error || '-'}</td>
                     <td style={{ padding: '4px 8px' }}>
