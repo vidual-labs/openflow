@@ -154,7 +154,7 @@ take a sales slot (D1). All of this happens in-session, without scoring.
   http(s).
 
 ### OF-6 · Hidden fields, UTM capture & answer piping
-**Repo:** OpenFlow (capture) → lodgely (LG-6) · **Status:** partial (only `gclid`/`gbraid`/`wbraid`/`fbclid` are captured; no hidden fields, no piping; the WordPress plugin forwards no parameters) · **Effort:** M · **Depends on:** X-1
+**Repo:** OpenFlow (capture) → lodgely (LG-6) · **Status:** partial (click ids and, since 0.50, `utm_*` are captured behind the cookie banner and stored flat in submission metadata; no `landing_url`/`referrer` attribution, no hidden fields, no piping; the WordPress plugin forwards no parameters) · **Effort:** M · **Depends on:** X-1
 **Why:** without `utm_*` and partner or campaign ids, lodgely can't
 attribute OpenFlow leads to campaigns. Only Meta Lead Ads leads show up in
 per-campaign reporting today. Piping ("Thanks, {{first_name}}") lifts

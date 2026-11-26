@@ -134,6 +134,25 @@ function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_deliveries_form ON integration_deliveries(form_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_deliveries_due ON integration_deliveries(status, next_attempt_at);
+    CREATE INDEX IF NOT EXISTS idx_deliveries_submission ON integration_deliveries(submission_id);
+
+    -- Integration log (0.50): one row per delivery attempt or status check of
+    -- an integration_deliveries row, so the submission detail view can show
+    -- what happened and when. Holds outcomes only (status, a short message,
+    -- a JSON summary such as Google's requestId or Meta's fbtrace_id) — never
+    -- request payloads, response bodies of webhooks or any respondent data.
+    -- Deleted together with its submission / integration.
+    CREATE TABLE IF NOT EXISTS integration_delivery_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      delivery_id TEXT NOT NULL,
+      submission_id TEXT NOT NULL,
+      kind TEXT NOT NULL DEFAULT 'attempt',
+      status TEXT NOT NULL,
+      message TEXT,
+      response TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_delivery_log_submission ON integration_delivery_log(submission_id, id);
 
     -- Trail of security-relevant events (logins, user/admin changes, backup
     -- and restore) for post-incident review. user_id is nullable (e.g. a
@@ -248,6 +267,23 @@ function initDb() {
   } catch {
     db.exec('ALTER TABLE sessions ADD COLUMN reauth_at INTEGER');
     console.log('Migration: added reauth_at column to sessions');
+  }
+
+  // Migrate: integration log (0.50). `response` is a JSON summary of the
+  // delivery's latest outcome ({ message, requestId, … }); `checks` counts the
+  // follow-up status checks of an upload that is processed asynchronously
+  // (Google Ads Data Manager API, status 'processing').
+  try {
+    db.prepare('SELECT response FROM integration_deliveries LIMIT 1').get();
+  } catch {
+    db.exec('ALTER TABLE integration_deliveries ADD COLUMN response TEXT');
+    console.log('Migration: added response column to integration_deliveries');
+  }
+  try {
+    db.prepare('SELECT checks FROM integration_deliveries LIMIT 1').get();
+  } catch {
+    db.exec('ALTER TABLE integration_deliveries ADD COLUMN checks INTEGER NOT NULL DEFAULT 0');
+    console.log('Migration: added checks column to integration_deliveries');
   }
 
   // Migrate: add subdomain column to forms (existing DBs).

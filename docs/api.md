@@ -32,8 +32,10 @@ All routes live under `/api`. Admin routes accept the session cookie, a `Bearer`
 - `PUT /api/forms/:id` — Update form (`403 gtm_admin_only` when a non-admin changes `gtm_id`; sending the stored value or `""` is fine)
 - `DELETE /api/forms/:id` — Delete form
 - `POST /api/forms/:id/calon-test` — Check a calon base URL + resource from the editor
-- `GET /api/submissions/:formId` — Get submissions (paginated, newest first)
-- `GET /api/submissions/:formId/export` — CSV export
+- `GET /api/submissions/:formId` — Get submissions (paginated, newest first). Optional filters: `utm_source`, `utm_medium`, `utm_campaign` (exact value, or `__none__` for responses without one) and `google_ads_click=yes|no` (any of `gclid`/`gbraid`/`wbraid`). Each submission's `metadata` carries the captured `utm_*` and click-ID keys
+- `GET /api/submissions/:formId/filters` — The distinct `utm_source` / `utm_medium` / `utm_campaign` values of a form's responses
+- `GET /api/submissions/:formId/:submissionId/integrations` — The integration log of one response: per integration its status, a short outcome summary and every attempt / status check
+- `GET /api/submissions/:formId/export` — CSV export (takes the same filters; columns: answers, then `utm_*`, `gclid`, `gbraid`, `wbraid`, `fbc`, then one `Integration: <name>` status column per integration)
 - `DELETE /api/submissions/:formId/:submissionId` — Delete a submission
 - `GET /api/settings` — Read global settings (public) — branding and the configured primary host
 - `PUT /api/settings/:key` — Update a global setting (admin only)

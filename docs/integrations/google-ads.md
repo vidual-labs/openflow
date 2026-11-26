@@ -77,8 +77,19 @@ conversion — a test submission has no genuine click ID).
   setting already used for Google Tag Manager.
 - A submission that arrives **without** one of these click IDs (i.e. an
   organic/direct visitor, not someone who clicked a Google ad) is skipped by
-  this integration — there's nothing to attribute it to.
+  this integration — there's nothing to attribute it to. Since 0.50 it is
+  logged as **skipped** and not retried (before, it was retried until it
+  ended up as a dead delivery).
 - Uploads happen asynchronously after the submission is stored, with the
   same retry/dead-letter handling as OpenFlow's other integrations; a
   failed upload can be inspected and manually retried from the Integrations
   tab.
+- Google processes uploaded events asynchronously too: `events:ingest`
+  answers with a request id, and only a later `requestStatus:retrieve` says
+  whether the conversion was accepted. OpenFlow logs the upload as
+  *uploaded – awaiting confirmation* and checks the request status 5, 20
+  minutes, 1h20, 5h20 and 17h20 after the upload. A rejected conversion
+  (e.g. `PROCESSING_ERROR_REASON_INVALID_GCLID` — "invalid gclid") is logged
+  as **failed** with Google's reason; without a final answer after the last
+  check it ends as *unconfirmed*. The log is shown in each response's
+  **Details** on the Responses page and in the CSV export.

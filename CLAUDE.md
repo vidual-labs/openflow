@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **OpenFlow** is an open-source, self-hosted form builder for lead generation. It's a Typeform/Heyflow alternative with a multi-step form builder, conditional logic, integrations (webhooks, email, Google Sheets, Google Ads, Meta Conversions API), analytics, and a WordPress plugin. Planned work lives in `ROADMAP.md` (including the shared cross-repo contract with lodgely).
 
-**Current Version**: 0.49.1 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
+**Current Version**: 0.50.0 (see CHANGELOG.md; the README version badge reads `backend/package.json` via shields.io)
 
 ## Architecture
 
@@ -26,7 +26,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `models/systemMail.js` — OpenFlow's own outgoing mail (login codes, security notices); separate from the per-form email integration. `SMTP_*` env wins (UI read-only); otherwise the admin UI's settings, stored encrypted as the `smtp` row of `site_settings` (password write-only; a UI host passes `integrations.js#smtpTarget`)
   - `models/passwords.js` — Async bcrypt (cost `BCRYPT_ROUNDS`, default 12), dummy-hash timing equalisation, rehash-on-login
   - `models/auditLog.js` — Security audit trail (logins, user/role changes, settings, backup/restore)
-  - `models/deliveryQueue.js` — Persists each integration delivery and retries it with backoff
+  - `models/deliveryQueue.js` — Persists each integration delivery and retries it with backoff; writes the integration log (`integration_delivery_log`, outcome summaries only) and polls Google Ads' `requestStatus:retrieve` for uploads in status `processing` (`processDueStatusChecks`)
   - `models/backup.js` / `models/backupScheduler.js` — JSON backup/restore + the rotating scheduled backup job
   - `models/apiTokens.js` — Read-only `ofw_` API tokens (hashed at rest)
   - `models/encryption.js` / `models/integrationSecrets.js` — AES-256-GCM for integration configs; which config fields are write-only secrets (redacted from every API response, merged on update)
@@ -35,7 +35,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `middleware/securityHeaders.js` — Strict CSP + `X-Frame-Options: DENY` for admin pages, none for public form pages (`/f/`, `/embed/`, subdomains — GTM/Pixel/iframes); nosniff, referrer policy, HSTS over HTTPS
   - `middleware/subdomain.js` — Resolves per-form subdomains and blocks admin paths on them
   - `routes/` — API endpoints (auth, forms, submissions, public, integrations, analytics, settings, admin). `routes/account.js` (mounted inside `auth.js`) is the self-service part: own password, 2FA, sessions, remembered browsers, and `POST /confirm-password` (sudo mode)
-  - `utils/` — `steps.js` (flattens combined steps), `fieldKeys.js` (stable field keys + key-based condition references), `conditions.js` (server mirror of the renderer's show/hide logic), `slug.js`, `subdomain.js`, `sanitizeCss.js`, `ssrf.js`
+  - `utils/` — `tracking.js` (which UTM / click-ID keys a submission's `tracking` may store, `sanitizeTracking`, and the export column set `TRACKING_EXPORT_KEYS`), `steps.js` (flattens combined steps), `fieldKeys.js` (stable field keys + key-based condition references), `conditions.js` (server mirror of the renderer's show/hide logic), `slug.js`, `subdomain.js`, `sanitizeCss.js`, `ssrf.js`
 - **Database**: SQLite stored in Docker volume (`db-data`) for persistence
 - **Key Features**: Rate limiting, server-side sessions with opt-in e-mail 2FA and account lockout, read-only API tokens, HMAC-signed webhooks, SMTP email, Google Sheets/Ads integrations, retrying deliveries, analytics tracking, backup & restore
 
@@ -52,7 +52,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `pages/Dashboard.jsx` — Form list (create, duplicate, publish, delete)
   - `pages/Analytics.jsx` — Analytics overview: all forms vs. the previous period
   - `pages/FormAnalytics.jsx` — Per-form analytics at `/analytics/:formId`: period + comparison range (in the URL), a "changed the flow on…" before/after shortcut, per-step reach / drop-off / median time on step, daily trend. Shared bits (`Delta`, `Kpi`, UTC day helpers) in `components/AnalyticsUI.jsx`
-  - `pages/Submissions.jsx` — View, delete and export submissions
+  - `pages/Submissions.jsx` — View, filter (UTM source/medium/campaign, Google Ads click), delete and export submissions; optional tracking columns. `components/SubmissionDetail.jsx` is the response detail dialog (answers, tracking, integration log)
   - `pages/Users.jsx` / `pages/Settings.jsx` / `pages/Backup.jsx` — Admin-only pages (users incl. 2FA reset, branding + system e-mail / SMTP form, backup/restore)
   - `pages/Account.jsx` — Every user's own page: change password, two-factor login, active sessions, remembered browsers, API tokens (`ApiTokensCard` lives in `Settings.jsx`)
   - `pages/Login.jsx` — Password step, then (2FA accounts on a new browser) the e-mailed-code step with "remember this browser"
@@ -63,7 +63,7 @@ OpenFlow is a **full-stack application** with three main components:
   - `styles/global.css` — The admin look (since 0.47: a toned-down take on the promo video). Colour tokens for light/dark/auto at the top (`--bg`, `--card`, `--text`, `--text-light`, `--border`, `--border-strong`, `--accent-text`, …; inline styles across the pages use them, so restyle via tokens, not literals). System UI font (`--font`) and system mono (`--mono`, data only: numbers, keys, column heads); Space Grotesk (the Google Fonts link in `index.html`, which public forms rely on too) only for the logo wordmark. Page-wide admin rules (body font/size/background, `color-scheme`, `code`, focus ring) hang off `html.of-admin`, which `App.jsx` sets — see **Admin styles must never reach public forms** below. Purple only for the main button, active tab, focus, links and the purple-tinted sidebar (same in both themes). The sidebar and the page header share a vertical grid so the first menu item and the page title sit in the same 36px band — keep `.admin-sidebar`/`.admin-main` paddings, the 32px logo row and the 20px `.page-crumb` row in step
   - `locales.js` — Built-in respondent-facing UI strings (EN / DE)
   - `autofill.js` — Browser-autofill (`autocomplete`) tokens per field + the editor's "Autofill tip" heuristic for Short Text fields
-  - `clickIds.js` — Ad click-ID capture for FormView/EmbedView (gclid/gbraid/wbraid, `fbclid` → `fbc`, Meta Pixel `_fbp`/`_fbc` cookies), used only after cookie consent
+  - `clickIds.js` — Ad click-ID and UTM capture for FormView/EmbedView (gclid/gbraid/wbraid, `fbclid` → `fbc`, Meta Pixel `_fbp`/`_fbc` cookies, `utm_source/medium/campaign/term/content` via `captureTracking`), used only after cookie consent. Tested by `frontend/tests/clickIds.test.js` (`npm test`, `node --test`)
 - **API Client**: `api.js` — Wrapper for backend API calls. A `403 reauth_required` asks the registered handler (the `ReauthDialog`) for the password, then retries the request once (`fetchWithReauth`, also used by the blob backup download); cancel throws `reauth_cancelled`
 - **Dev Server**: Vite with proxy to backend (port 3000)
 
@@ -177,10 +177,10 @@ backwards compatibility with forms built before this moved.
 ### Integration Engine (`models/integrations.js`)
 Handles all outbound data flows via `runIntegration()`'s switch on
 `integration.type`:
-- **`webhook`**: POST/PUT with optional HMAC-SHA256 signing in `X-OpenFlow-Signature`. The digest is computed over the exact serialized body bytes (`{event, formId, formTitle, data, timestamp: <ISO>}`), so a receiver verifies it by HMAC-ing the raw request body. Keep signing the exact bytes sent.
+- **`webhook`**: POST/PUT with optional HMAC-SHA256 signing in `X-OpenFlow-Signature`. The digest is computed over the exact serialized body bytes (`{event, formId, formTitle, data, tracking, timestamp: <ISO>}`; `tracking` = `trackingFromMetadata`, every key `null` when not captured), so a receiver verifies it by HMAC-ing the raw request body. Keep signing the exact bytes sent.
 - **`email`**: SMTP with HTML-formatted submission table (values HTML-escaped)
 - **`google_sheets`**: Both Sheets variants share this type and branch on `config.mode` — `apps_script` (URL only) or `service_account` (JSON key, auto-creates headers). The UI's `google_sheets_sa` option is mapped to `google_sheets` before saving.
-- **`google_ads_conversion`**: Offline conversion upload via the Data Manager API; only runs for submissions carrying a `gclid`/`gbraid`/`wbraid`
+- **`google_ads_conversion`**: Offline conversion upload via the Data Manager API; only runs for submissions carrying a `gclid`/`gbraid`/`wbraid` (without one it throws `SkipDelivery` → status `skipped`, never retried). Ingest is asynchronous at Google: the upload returns `{ status: 'processing', response: { requestId } }` and the delivery worker later asks `requestStatus:retrieve` (`checkGoogleAdsRequestStatus`) → `success` / `failed` (e.g. `PROCESSING_ERROR_REASON_INVALID_GCLID`) / `unconfirmed`
 - **`meta_conversion_api`**: Server-side `Lead` event to Meta's Conversions API (Graph API `/​{pixel_id}/events`), keyed by `pixel_id` + `access_token`. No Meta Pixel is required — `user_data` is built from the submission's captured IP/user agent, SHA-256-hashed `email`/`phone` field values (matched by field **type**, not id), and — when captured after cookie consent — `fbc` (built client-side from `?fbclid=`, `clickIds.js`) / `fbp` (Meta Pixel cookies), whitelisted by format in `POST /form/:slug/submit`. `event_id` is the submission id (the delivery queue passes it in as `metadata.submissionId`, not stored); the browser gets the same id as `eventId` on the `openflow_submit` dataLayer push and in the embed's `openflow-submit` postMessage, for Pixel deduplication. An optional `test_event_code` routes events to Events Manager's Test Events tool instead of counting them as real leads; the integration's "Test" button only sends a real event when one is set (otherwise it just validates `pixel_id`/`access_token` via a GET, like Google Ads validates OAuth)
 
 **Secrets are write-only.** Fields listed in `SECRET_FIELDS`
@@ -190,6 +190,8 @@ update that omits a secret keeps the stored one (`null`/`''` clears it). A new
 integration type with a credential must add it there, and use `SecretInput` in
 `IntegrationsPanel.jsx`. SMTP hosts are checked for link-local/metadata
 addresses (`SMTP_BLOCK_PRIVATE_HOSTS=true` for the full private-range check).
+
+**Integration log.** Every `run<Name>()` resolves to an outcome summary `{ status?, message, response? }` — short, safe facts only (Google request id/status/reasons, Meta `events_received`/`fbtrace_id`, an HTTP status, a Sheets range, the SMTP reply line). Never put request payloads, webhook/Apps Script response bodies (receivers echo the lead) or hashed user data into it or into error messages. `integration_deliveries.response` holds the latest summary, `integration_delivery_log` one row per attempt/status check; both are deleted with their submission, integration or form. Delivery statuses: `pending`, `success`, `processing`, `unconfirmed`, `skipped`, `retrying`, `dead`, `failed`.
 
 Each integration has an enabled flag and a test endpoint
 (`POST /api/integrations/:formId/:id/test`). Google Ads is special-cased there:
@@ -231,7 +233,7 @@ the security hardening (`securityHardening.test.js`), the GTM rules for signed-i
 non-admins (`gtmProtection.test.js`) and sudo mode (`reauth.test.js`). Suites that call a
 sudo-guarded route for its own sake confirm the password first with `confirmPassword()` from
 `tests/setup.js`.
-There is no frontend test suite.
+The only frontend tests are `frontend/tests/clickIds.test.js` (`cd frontend && npm test`, plain `node --test`) for the URL capture helpers; there is no UI test suite. UTM/click-ID persistence, the response filters, the CSV tracking/status columns, the Sheets tracking columns and the integration log are in `backend/tests/tracking.test.js`.
 
 ## Version Management
 
@@ -263,10 +265,11 @@ migrations in `models/db.js`:
 - `users` — Users (email, bcrypt `password_hash`, `role` = `admin` | `user`, `twofa_enabled`; `token_version` is legacy, unused since 0.44)
 - `sessions` / `trusted_devices` / `auth_challenges` / `login_failures` — Login state (hashed tokens, epoch-ms timestamps, no FKs, not in backups; a restore signs out everyone but the restoring admin). `sessions.reauth_at` (epoch ms, NULL = never; added in 0.49) is when the password was last re-entered on that session
 - `forms` — Everything about a form: `steps`, `end_screen`, `theme` (JSON text columns), `slug`, `gtm_id`, `published`. Steps are **not** a separate table.
-- `submissions` — User responses (`data` + `metadata` JSON, keyed by field id)
+- `submissions` — User responses (`data` keyed by field id + `metadata` JSON: ip, userAgent, referer, submittedAt, and — when captured after consent — `utm_source/medium/campaign/term/content`, `gclid`/`gbraid`/`wbraid`, `fbc`/`fbp`, flat; see `utils/tracking.js`)
 - `integrations` — Integration configs per form (`type`, `enabled`, `config` JSON)
 - `analytics_events` — Analytics events (view, start, step, complete; `drop` is accepted but never sent) with `session_id`, `step_index`, `step_id` — no IP, no answers
-- `integration_deliveries` — One row per (submission, integration) delivery; `attempts` counts retries in place (status, `next_attempt_at`, `last_error`) backing retries and dead letters
+- `integration_deliveries` — One row per (submission, integration) delivery; `attempts` counts retries in place (status, `next_attempt_at`, `last_error`, `response` = JSON outcome summary, `checks` = status checks of an async upload; the last two added in 0.50) backing retries, dead letters and the integration log
+- `integration_delivery_log` — The integration log (0.50): one row per attempt / status check (`delivery_id`, `submission_id`, `kind` = `attempt` | `status_check`, `status`, `message`, `response`). Not in backups
 - `api_tokens` — Read-only API tokens (SHA-256 `token_hash`, `token_prefix`, `last_used_at`)
 - `slug_history` — Old slugs of renamed forms, so previously shared links keep resolving
 - `site_settings` — Global key/value settings: `branding` (public via `GET /api/settings`) and `smtp` (encrypted system-mail settings, private — `GET /api/settings` only returns the public `ALLOWED_KEYS`)

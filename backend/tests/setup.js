@@ -35,6 +35,7 @@ beforeEach(() => {
   const db = getDb();
   db.pragma('foreign_keys = OFF');
   db.exec('DELETE FROM integration_deliveries');
+  db.exec('DELETE FROM integration_delivery_log');
   db.exec('DELETE FROM slug_history');
   db.exec('DELETE FROM analytics_events');
   db.exec('DELETE FROM submissions');

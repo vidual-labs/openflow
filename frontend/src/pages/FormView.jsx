@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router';
 import FormRenderer from '../components/FormRenderer';
 import { api } from '../api';
 import { LOCALES } from '../locales';
-import { captureClickIds, withMetaCookies } from '../clickIds';
+import { captureTracking, withMetaCookies } from '../clickIds';
 import { readStorage, writeStorage } from '../utils/storage';
 
 function CookieBanner({ form, onAccept, onDecline }) {
@@ -159,12 +159,12 @@ export default function FormView({ slugProp, hostMode = false }) {
     else { setCookieConsent('pending'); }
   }, [form]);
 
-  // Capture ad click IDs (Google Ads gclid/gbraid/wbraid, Meta fbclid) from
-  // the landing URL, once consent allows it, so they can ride along with the
-  // submission for server-side conversion upload.
+  // Capture ad click IDs (Google Ads gclid/gbraid/wbraid, Meta fbclid) and
+  // UTM parameters from the landing URL, once consent allows it, so they can
+  // ride along with the submission (server-side conversion upload, reporting).
   useEffect(() => {
     if (cookieConsent !== true) return;
-    const ids = captureClickIds();
+    const ids = captureTracking();
     if (Object.keys(ids).length) setClickIds(ids);
   }, [cookieConsent]);
 

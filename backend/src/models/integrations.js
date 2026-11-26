@@ -8,6 +8,34 @@ const { formatValue } = require('../utils/formatValue');
 const { assertSafeUrl, resolveSafeHost, isLinkLocalOrUnspecified } = require('../utils/ssrf');
 const { decrypt } = require('./encryption');
 const logger = require('../utils/logger');
+const { TRACKING_EXPORT_KEYS, trackingFromMetadata } = require('../utils/tracking');
+
+// Thrown by an integration that has nothing to send for this submission
+// (Google Ads without a captured click ID). The delivery queue records it as
+// 'skipped' and does not retry — unlike any other error.
+class SkipDelivery extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'SkipDelivery';
+    this.skip = true;
+  }
+}
+
+// Every run<Name>() resolves to an outcome summary for the integration log:
+//   { status?: 'processing', message: string, response?: { …short, safe facts } }
+// The summary never holds request payloads, webhook/Apps Script response
+// bodies (a receiver may echo the lead back) or hashed user data.
+function summarize(message, response) {
+  return response ? { message, response } : { message };
+}
+
+async function readJson(res) {
+  try { return await res.json(); } catch { return null; }
+}
+
+function errorText(text, max = 1000) {
+  return String(text || '').replace(/\s+/g, ' ').trim().slice(0, max);
+}
 
 // ──────────────────────────────────────────
 // Run all integrations for a form submission
@@ -20,14 +48,14 @@ async function runIntegration(integration, formId, formTitle, submissionData, st
   const config = JSON.parse(decrypt(integration.config));
   switch (integration.type) {
     case 'webhook':
-      return runWebhook(config, formId, formTitle, submissionData);
+      return runWebhook(config, formId, formTitle, submissionData, metadata);
     case 'email':
       return runEmail(config, formId, formTitle, submissionData, steps);
     case 'google_sheets':
       if (config.mode === 'apps_script') {
-        return runGoogleSheetsAppsScript(config, formId, formTitle, submissionData, steps);
+        return runGoogleSheetsAppsScript(config, formId, formTitle, submissionData, steps, metadata);
       }
-      return runGoogleSheets(config, formId, submissionData, steps);
+      return runGoogleSheets(config, formId, submissionData, steps, metadata);
     case 'google_ads_conversion':
       return runGoogleAdsConversion(config, submissionData, metadata);
     case 'meta_conversion_api':
@@ -45,8 +73,8 @@ async function runIntegrations(db, formId, formTitle, submissionData, steps, met
   const results = [];
   for (const integration of integrations) {
     try {
-      await runIntegration(integration, formId, formTitle, submissionData, steps, metadata);
-      results.push({ id: integration.id, type: integration.type, ok: true });
+      const outcome = await runIntegration(integration, formId, formTitle, submissionData, steps, metadata);
+      results.push({ id: integration.id, type: integration.type, ok: true, message: outcome?.message });
     } catch (err) {
       logger.error('integration_failed', { type: integration.type, integrationId: integration.id, error: err.message });
       results.push({ id: integration.id, type: integration.type, ok: false, error: err.message });
@@ -59,7 +87,7 @@ async function runIntegrations(db, formId, formTitle, submissionData, steps, met
 // Webhook
 // ──────────────────────────────────────────
 
-async function runWebhook(config, formId, formTitle, data) {
+async function runWebhook(config, formId, formTitle, data, metadata = {}) {
   const { url, secret, method = 'POST' } = config;
   if (!url) throw new Error('Webhook URL is required');
   await assertSafeUrl(url);
@@ -70,7 +98,9 @@ async function runWebhook(config, formId, formTitle, data) {
   // payload than what was actually sent, so no receiver could ever
   // reproduce a matching signature. Fixing this changes the signature value
   // for anyone with a webhook that already worked around the mismatch.)
-  const payload = { event: 'submission', formId, formTitle, data, timestamp: new Date().toISOString() };
+  // `tracking`: the submission's UTMs and ad click IDs, each null when not
+  // captured (utils/tracking.js#TRACKING_EXPORT_KEYS).
+  const payload = { event: 'submission', formId, formTitle, data, tracking: trackingFromMetadata(metadata), timestamp: new Date().toISOString() };
   const body = JSON.stringify(payload);
 
   const headers = { 'Content-Type': 'application/json' };
@@ -93,9 +123,12 @@ async function runWebhook(config, formId, formTitle, data) {
   if (res.status >= 300 && res.status < 400) {
     throw new Error('Webhook responded with a redirect, which is not followed for security reasons');
   }
+  // Status only: the receiver's response body may echo the lead's data, and
+  // this message lands in the integration log.
   if (!res.ok) {
-    throw new Error(`Webhook returned ${res.status}: ${await res.text().catch(() => '')}`);
+    throw new Error(`Webhook returned HTTP ${res.status}`);
   }
+  return summarize(`Delivered (HTTP ${res.status})`, { httpStatus: res.status });
 }
 
 // ──────────────────────────────────────────
@@ -190,19 +223,22 @@ async function runEmail(config, formId, formTitle, data, steps) {
     </div>
   `;
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: from || `OpenFlow <${smtp_user || 'noreply@openflow.local'}>`,
     to,
     subject: subject || `New submission: ${formTitle}`,
     html,
   });
+  // The SMTP server's reply line ("250 2.0.0 Ok: queued as …") — no addresses.
+  const smtpReply = errorText(info && info.response, 200);
+  return summarize('Sent', smtpReply ? { smtp: smtpReply } : undefined);
 }
 
 // ──────────────────────────────────────────
 // Google Sheets (Simple — via Apps Script)
 // ──────────────────────────────────────────
 
-async function runGoogleSheetsAppsScript(config, formId, formTitle, data, steps) {
+async function runGoogleSheetsAppsScript(config, formId, formTitle, data, steps, metadata = {}) {
   const { apps_script_url } = config;
   if (!apps_script_url) throw new Error('Apps Script URL is required');
   await assertSafeUrl(apps_script_url);
@@ -221,6 +257,7 @@ async function runGoogleSheetsAppsScript(config, formId, formTitle, data, steps)
     formTitle,
     data,
     fields: flattenFields(steps).map(s => ({ id: s.id, key: s.key, label: s.label || s.question || s.id })),
+    tracking: trackingFromMetadata(metadata),
     timestamp: new Date().toISOString(),
   };
 
@@ -235,13 +272,14 @@ async function runGoogleSheetsAppsScript(config, formId, formTitle, data, steps)
   if (!res.ok) {
     throw new Error(`Apps Script returned ${res.status}`);
   }
+  return summarize(`Delivered (HTTP ${res.status})`, { httpStatus: res.status });
 }
 
 // ──────────────────────────────────────────
 // Google Sheets (Service Account)
 // ──────────────────────────────────────────
 
-async function runGoogleSheets(config, formId, data, steps) {
+async function runGoogleSheets(config, formId, data, steps, metadata = {}) {
   const { credentials_json, spreadsheet_id, sheet_name = 'Sheet1' } = config;
 
   if (!credentials_json || !spreadsheet_id) {
@@ -268,31 +306,65 @@ async function runGoogleSheets(config, formId, data, steps) {
     range: `${sheet_name}!1:1`,
   });
 
-  if (!headerRes.data.values || headerRes.data.values.length === 0) {
-    const headers = ['Timestamp', ...flattenFields(steps).map(s => s.label || s.question || s.id)];
+  const fields = flattenFields(steps);
+  const existingHeader = (headerRes.data.values && headerRes.data.values[0]) || [];
+  // Append the submission row (one cell per field, groups expanded)
+  const row = [
+    new Date().toISOString(),
+    // Sheets rejects cells over 50 000 chars, so a base64 upload must never
+    // be written raw; formatValue turns it into "name (size)".
+    ...fields.map(s => formatValue(s, data[s.id])),
+  ];
+
+  // Tracking columns (UTMs, click IDs) go after the fields, matched by their
+  // header name. A sheet created before they existed gets the missing header
+  // cells added to the right of its header row; existing columns stay put.
+  const tracking = trackingFromMetadata(metadata);
+  if (existingHeader.length === 0) {
+    const headers = ['Timestamp', ...fields.map(s => s.label || s.question || s.id), ...TRACKING_EXPORT_KEYS];
     await sheets.spreadsheets.values.update({
       spreadsheetId: spreadsheet_id,
       range: `${sheet_name}!A1`,
       valueInputOption: 'RAW',
       requestBody: { values: [headers] },
     });
+    TRACKING_EXPORT_KEYS.forEach(key => row.push(tracking[key] || ''));
+  } else {
+    const header = [...existingHeader];
+    const fieldEnd = row.length;
+    let headerChanged = false;
+    for (const key of TRACKING_EXPORT_KEYS) {
+      // Only look right of the field columns, so a field labelled like a
+      // tracking key never swallows its value.
+      let col = header.indexOf(key, fieldEnd);
+      if (col === -1) {
+        col = Math.max(header.length, fieldEnd);
+        while (header.length < col) header.push('');
+        header[col] = key;
+        headerChanged = true;
+      }
+      while (row.length < col) row.push('');
+      row[col] = tracking[key] || '';
+    }
+    if (headerChanged) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: spreadsheet_id,
+        range: `${sheet_name}!A1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [header] },
+      });
+    }
   }
 
-  // Append the submission row (one cell per field, groups expanded)
-  const row = [
-    new Date().toISOString(),
-    // Sheets rejects cells over 50 000 chars, so a base64 upload must never
-    // be written raw; formatValue turns it into "name (size)".
-    ...flattenFields(steps).map(s => formatValue(s, data[s.id])),
-  ];
-
-  await sheets.spreadsheets.values.append({
+  const appendRes = await sheets.spreadsheets.values.append({
     spreadsheetId: spreadsheet_id,
     range: `${sheet_name}!A:A`,
     valueInputOption: 'RAW',
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values: [row] },
   });
+  const updatedRange = appendRes?.data?.updates?.updatedRange;
+  return summarize(updatedRange ? `Row appended (${updatedRange})` : 'Row appended', updatedRange ? { updatedRange } : undefined);
 }
 
 // ──────────────────────────────────────────
@@ -325,7 +397,7 @@ async function runGoogleAdsConversion(config, data, metadata) {
   const gbraid = metadata?.gbraid;
   const wbraid = metadata?.wbraid;
   if (!gclid && !gbraid && !wbraid) {
-    throw new Error('No Google Ads click ID (gclid/gbraid/wbraid) was captured for this submission');
+    throw new SkipDelivery('No Google Ads click ID (gclid/gbraid/wbraid) was captured for this submission');
   }
 
   const accessToken = await getGoogleAdsAccessToken(config);
@@ -373,8 +445,64 @@ async function runGoogleAdsConversion(config, data, metadata) {
   });
 
   if (!res.ok) {
-    throw new Error(`Google Ads Data Manager API returned ${res.status}: ${await res.text().catch(() => '')}`);
+    throw new Error(`Google Ads Data Manager API returned ${res.status}: ${errorText(await res.text().catch(() => ''))}`);
   }
+
+  // The Data Manager API processes events asynchronously: it answers with a
+  // requestId, and whether the conversion was accepted (or e.g. the gclid
+  // could not be decoded) is only known later via requestStatus:retrieve —
+  // the delivery queue polls that (checkGoogleAdsRequestStatus below).
+  const body = await readJson(res);
+  const requestId = body && typeof body.requestId === 'string' ? body.requestId : '';
+  const response = {};
+  if (requestId) response.requestId = requestId;
+  if (Array.isArray(body?.fieldWarnings) && body.fieldWarnings.length) response.fieldWarnings = body.fieldWarnings.length;
+  if (!requestId) return summarize('Uploaded', Object.keys(response).length ? response : undefined);
+  return { status: 'processing', message: 'Uploaded, waiting for Google to process it', response };
+}
+
+// 'PROCESSING_ERROR_REASON_INVALID_GCLID' → 'invalid gclid'
+function describeGoogleReason(reason) {
+  return String(reason || '')
+    .replace(/^PROCESSING_(ERROR|WARNING)_REASON_/, '')
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .trim() || 'unknown reason';
+}
+
+// Looks up the outcome of an earlier events:ingest request. Resolves to
+//   { status: 'success' | 'failed' | 'processing', message, response }
+// and throws only when the lookup itself fails (network, auth).
+async function checkGoogleAdsRequestStatus(config, requestId) {
+  const accessToken = await getGoogleAdsAccessToken(config);
+  const res = await fetch(
+    `https://datamanager.googleapis.com/v1/requestStatus:retrieve?requestId=${encodeURIComponent(requestId)}`,
+    { headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(15000) }
+  );
+  if (!res.ok) {
+    throw new Error(`Google Ads request status lookup returned ${res.status}: ${errorText(await res.text().catch(() => ''), 500)}`);
+  }
+  const body = await readJson(res);
+  const perDestination = Array.isArray(body?.requestStatusPerDestination) ? body.requestStatusPerDestination : [];
+  const statuses = perDestination.map(d => d && d.requestStatus).filter(Boolean);
+  const reasons = [];
+  for (const d of perDestination) {
+    for (const c of d?.errorInfo?.errorCounts || []) {
+      if (c && c.reason && !reasons.includes(c.reason)) reasons.push(String(c.reason));
+    }
+  }
+  const response = { requestId };
+  if (statuses.length) response.requestStatus = statuses.join(',');
+  if (reasons.length) response.errorReasons = reasons;
+
+  if (statuses.some(st => st === 'FAILED' || st === 'PARTIAL_SUCCESS')) {
+    const why = reasons.length ? reasons.map(describeGoogleReason).join(', ') : 'no reason given';
+    return { status: 'failed', message: `Google rejected the conversion: ${why}`, response };
+  }
+  if (statuses.length && statuses.every(st => st === 'SUCCESS')) {
+    return { status: 'success', message: 'Uploaded and processed by Google', response };
+  }
+  return { status: 'processing', message: 'Google is still processing the upload', response };
 }
 
 // Validates Google Ads credentials without uploading a conversion — used by
@@ -455,8 +583,16 @@ async function runMetaConversionApi(config, data, steps, metadata) {
     }
   );
   if (!res.ok) {
-    throw new Error(`Meta Conversions API returned ${res.status}: ${await res.text().catch(() => '')}`);
+    throw new Error(`Meta Conversions API returned ${res.status}: ${errorText(await res.text().catch(() => ''))}`);
   }
+  // Only Meta's counters and trace id are kept — never the hashed user_data.
+  const body = await readJson(res);
+  const response = {};
+  if (body && body.events_received !== undefined) response.eventsReceived = Number(body.events_received);
+  if (body && typeof body.fbtrace_id === 'string') response.fbtraceId = body.fbtrace_id;
+  if (test_event_code) response.testEvent = true;
+  const received = response.eventsReceived !== undefined ? ` (${response.eventsReceived} event${response.eventsReceived === 1 ? '' : 's'} received)` : '';
+  return summarize(`Sent to Meta${received}${test_event_code ? ' as a test event' : ''}`, Object.keys(response).length ? response : undefined);
 }
 
 // Validates the Pixel ID and access token without sending an event — used by
@@ -477,4 +613,7 @@ async function testMetaConversionApiCredentials(config) {
   }
 }
 
-module.exports = { runIntegrations, runIntegration, testGoogleAdsCredentials, testMetaConversionApiCredentials, smtpTarget };
+module.exports = {
+  runIntegrations, runIntegration, testGoogleAdsCredentials, testMetaConversionApiCredentials, smtpTarget,
+  checkGoogleAdsRequestStatus, SkipDelivery,
+};

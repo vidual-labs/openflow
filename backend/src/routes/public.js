@@ -10,10 +10,7 @@ const { sessionFromCookie } = require('../middleware/auth');
 
 const router = Router();
 
-// Meta's _fbc / _fbp cookie formats: fb.<subdomain index>.<creation time ms>.<fbclid | random id>
-// (the last part may carry a dot-separated suffix in newer Pixel versions).
-const META_FBC_RE = /^fb\.[0-2]\.\d{10,13}\.[A-Za-z0-9_.-]{1,500}$/;
-const META_FBP_RE = /^fb\.[0-2]\.\d{10,13}\.[A-Za-z0-9_.-]{1,100}$/;
+const { sanitizeTracking } = require('../utils/tracking');
 
 // req.ip already honours Express's 'trust proxy' setting (index.js enables
 // it, as `trust proxy: 1`, only when fronted by a real reverse proxy), which
@@ -257,20 +254,10 @@ router.post('/form/:slug/submit', asyncHandler(async (req, res) => {
     submittedAt: new Date().toISOString(),
   };
 
-  // Whitelist the ad click IDs the client may have captured from the
-  // landing URL (see FormView/EmbedView) — don't spread arbitrary
-  // client-supplied JSON into stored metadata.
-  const tracking = req.body.tracking;
-  if (tracking && typeof tracking === 'object') {
-    ['gclid', 'gbraid', 'wbraid'].forEach(key => {
-      if (typeof tracking[key] === 'string' && tracking[key]) metadata[key] = tracking[key];
-    });
-    // Meta's click ID (built from ?fbclid=) and browser ID, in the exact
-    // formats of the _fbc/_fbp cookies — passed through to the Conversions
-    // API as-is, so anything else is dropped rather than stored.
-    if (typeof tracking.fbc === 'string' && META_FBC_RE.test(tracking.fbc)) metadata.fbc = tracking.fbc;
-    if (typeof tracking.fbp === 'string' && META_FBP_RE.test(tracking.fbp)) metadata.fbp = tracking.fbp;
-  }
+  // Whitelist the ad click IDs and UTM parameters the client may have
+  // captured from the landing URL (see FormView/EmbedView, clickIds.js) —
+  // never spread arbitrary client-supplied JSON into stored metadata.
+  Object.assign(metadata, sanitizeTracking(req.body.tracking));
 
   if (Object.keys(booking.bookings).length > 0) {
     metadata.calonBookings = booking.bookings;

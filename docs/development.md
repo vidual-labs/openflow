@@ -20,6 +20,13 @@ Run the backend test suite (Jest + supertest):
 cd backend && npm test
 ```
 
+The frontend has one small `node --test` suite for the URL capture helpers
+(`frontend/src/clickIds.js` — UTMs and click IDs), no browser needed:
+
+```bash
+cd frontend && npm test
+```
+
 ## 🏗️ Architecture
 
 ```
@@ -41,7 +48,7 @@ openflow/
 │       ├── pages/                  # Admin pages + public form/embed views
 │       ├── locales.js              # Respondent-facing strings (EN / DE)
 │       ├── autofill.js             # Browser-autofill tokens + the editor's autofill tip
-│       ├── clickIds.js             # Ad click-ID capture (gclid/gbraid/wbraid, fbclid)
+│       ├── clickIds.js             # Ad click-ID + UTM capture (gclid/gbraid/wbraid, fbclid, utm_*)
 │       └── styles/                 # CSS
 ├── wordpress-plugin/               # 🔌 WordPress integration
 │   └── openflow/

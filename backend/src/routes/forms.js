@@ -297,6 +297,7 @@ router.delete('/:id', (req, res) => {
     // Delivery rows reference both the form and its integrations; without
     // this the integrations delete fails the FK check once anything was
     // ever delivered for the form.
+    db.prepare('DELETE FROM integration_delivery_log WHERE delivery_id IN (SELECT id FROM integration_deliveries WHERE form_id = ?)').run(formId);
     db.prepare('DELETE FROM integration_deliveries WHERE form_id = ?').run(formId);
     db.prepare('DELETE FROM integrations WHERE form_id = ?').run(formId);
     db.prepare('DELETE FROM submissions WHERE form_id = ?').run(formId);
